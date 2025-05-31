@@ -1,0 +1,3 @@
+"""
+Analytics schemas package.
+""" 
