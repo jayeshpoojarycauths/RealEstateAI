@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from "react";
 import {
   SafeCard as Card,
   SafeCardHeader as CardHeader,
@@ -10,10 +10,13 @@ import {
   SafeSelect as Select,
   SafeOption as Option,
 } from "../components/SafeMTW";
-import { ArrowUpTrayIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
-import api from '../services/api';
-import * as RadixSelect from '@radix-ui/react-select';
-import { CheckIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowUpTrayIcon,
+  ArrowDownTrayIcon,
+} from "@heroicons/react/24/outline";
+import api from "../services/api";
+import * as RadixSelect from "@radix-ui/react-select";
+import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 
 // Custom dropdown component using Radix UI
 const CustomDropdown: React.FC<{
@@ -86,13 +89,13 @@ export const LeadsImportExportPage: React.FC = () => {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const result = await api.post('/leads/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const result = await api.post("/leads/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       setUploadSuccess("Leads imported successfully!");
       setFile(null);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     } catch (e: any) {
       setUploadError(e?.response?.data?.detail || "Failed to import leads");
@@ -105,14 +108,14 @@ export const LeadsImportExportPage: React.FC = () => {
     setExporting(true);
     setExportError("");
     try {
-      const response = await api.get('/leads/export', {
+      const response = await api.get("/leads/export", {
         params: exportFilters,
-        responseType: 'blob',
+        responseType: "blob",
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', 'leads_export.csv');
+      link.setAttribute("download", "leads_export.csv");
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -125,16 +128,18 @@ export const LeadsImportExportPage: React.FC = () => {
 
   const handleDownloadTemplate = async () => {
     try {
-      const response = await api.get('/leads/template', { responseType: 'blob' });
+      const response = await api.get("/leads/template", {
+        responseType: "blob",
+      });
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', 'lead_upload_template.xlsx');
+      link.setAttribute("download", "lead_upload_template.xlsx");
       document.body.appendChild(link);
       link.click();
       link.remove();
     } catch (error: unknown) {
-      console.error('Error downloading template:', error);
+      console.error("Error downloading template:", error);
     }
   };
 
@@ -233,25 +238,29 @@ export const LeadsImportExportPage: React.FC = () => {
               <CustomDropdown
                 label="Filter by Status"
                 value={exportFilters.status}
-                onChange={(value) => setExportFilters((prev) => ({ ...prev, status: value }))}
+                onChange={(value) =>
+                  setExportFilters((prev) => ({ ...prev, status: value }))
+                }
                 options={[
-                  { value: 'all', label: 'All Statuses' },
-                  { value: 'new', label: 'New' },
-                  { value: 'contacted', label: 'Contacted' },
-                  { value: 'qualified', label: 'Qualified' },
-                  { value: 'lost', label: 'Lost' },
+                  { value: "all", label: "All Statuses" },
+                  { value: "new", label: "New" },
+                  { value: "contacted", label: "Contacted" },
+                  { value: "qualified", label: "Qualified" },
+                  { value: "lost", label: "Lost" },
                 ]}
               />
               <CustomDropdown
                 label="Date Range"
                 value={exportFilters.dateRange}
-                onChange={(value) => setExportFilters((prev) => ({ ...prev, dateRange: value }))}
+                onChange={(value) =>
+                  setExportFilters((prev) => ({ ...prev, dateRange: value }))
+                }
                 options={[
-                  { value: 'all', label: 'All Time' },
-                  { value: 'today', label: 'Today' },
-                  { value: 'week', label: 'This Week' },
-                  { value: 'month', label: 'This Month' },
-                  { value: 'year', label: 'This Year' },
+                  { value: "all", label: "All Time" },
+                  { value: "today", label: "Today" },
+                  { value: "week", label: "This Week" },
+                  { value: "month", label: "This Month" },
+                  { value: "year", label: "This Year" },
                 ]}
               />
             </div>
@@ -279,4 +288,4 @@ export const LeadsImportExportPage: React.FC = () => {
   );
 };
 
-export default LeadsImportExportPage; 
+export default LeadsImportExportPage;

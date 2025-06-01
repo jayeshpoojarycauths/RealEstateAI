@@ -224,6 +224,17 @@ class OutreachService:
         
         for lead in leads:
             try:
+                # Pre-allocate log so it exists even if message generation fails
+                outreach_log = OutreachLog(
+                    customer_id=self.customer.id,
+                    lead_id=lead.id,
+                    channel=channel,
+                    status=OutreachStatus.PENDING,
+                    retry_count=0
+                )
+                self.db.add(outreach_log)
+                self.db.flush()
+
                 # Generate AI message
                 message = await self.ai_service.generate_outreach_message(
                     lead_name=lead.name,
@@ -396,7 +407,8 @@ class OutreachService:
 
     def list_outreach(self, filter_params: OutreachFilter) -> List[Outreach]:
         """List outreach attempts with filtering."""
-        query = self.db.query(Outreach)
+        query = (self.db.query(Outreach)
+                 .filter(Outreach.customer_id == self.customer.id))
         
         if filter_params.channel:
             query = query.filter(Outreach.channel == filter_params.channel)

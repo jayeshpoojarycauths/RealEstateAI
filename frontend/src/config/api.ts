@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import axios from 'axios';
+import { z } from "zod";
+import axios from "axios";
 
 // Environment variable validation
 const envSchema = z.object({
@@ -9,47 +9,49 @@ const envSchema = z.object({
 
 const env = envSchema.parse({
   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-  VITE_API_TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT),
+  VITE_API_TIMEOUT: import.meta.env.VITE_API_TIMEOUT
+    ? Number(import.meta.env.VITE_API_TIMEOUT)
+    : undefined,
 });
 
 // API endpoints
 export const API_ENDPOINTS = {
   AUTH: {
-    LOGIN: '/auth/login',
-    REFRESH: '/auth/refresh',
-    ME: '/auth/me',
-    REGISTER: '/auth/register',
-    VERIFY_EMAIL: '/auth/verify-email',
-    RESEND_VERIFICATION: '/auth/resend-verification',
-    RESET_PASSWORD: '/auth/reset-password',
+    LOGIN: "/auth/login",
+    REFRESH: "/auth/refresh",
+    ME: "/auth/me",
+    REGISTER: "/auth/register",
+    VERIFY_EMAIL: "/auth/verify-email",
+    RESEND_VERIFICATION: "/auth/resend-verification",
+    RESET_PASSWORD: "/auth/reset-password",
   },
   USERS: {
-    BASE: '/users',
+    BASE: "/users",
     BY_ID: (id: string) => `/users/${id}`,
-    ME: '/users/me',
-    PASSWORD: '/users/me/password',
+    ME: "/users/me",
+    PASSWORD: "/users/me/password",
   },
   PROPERTIES: {
-    BASE: '/properties',
+    BASE: "/properties",
     BY_ID: (id: string) => `/properties/${id}`,
-    STATS: '/properties/stats',
+    STATS: "/properties/stats",
   },
   CUSTOMERS: {
-    BASE: '/customers',
+    BASE: "/customers",
     BY_ID: (id: string) => `/customers/${id}`,
   },
   ANALYTICS: {
-    BASE: '/analytics',
-    LEAD_SCORES: '/analytics/lead-scores',
-    CONVERSION_FUNNEL: '/analytics/conversion-funnel',
-    PRICE_TRENDS: '/analytics/price-trends',
+    BASE: "/analytics",
+    LEAD_SCORES: "/analytics/lead-scores",
+    CONVERSION_FUNNEL: "/analytics/conversion-funnel",
+    PRICE_TRENDS: "/analytics/price-trends",
   },
   PLATFORM: {
-    TENANTS: '/platform/tenants',
-    SETTINGS: '/platform/settings',
+    TENANTS: "/platform/tenants",
+    SETTINGS: "/platform/settings",
   },
   AUDIT: {
-    LOGS: '/audit/logs',
+    LOGS: "/audit/logs",
   },
 } as const;
 
@@ -58,7 +60,7 @@ export const api = axios.create({
   baseURL: env.VITE_API_BASE_URL,
   timeout: env.VITE_API_TIMEOUT,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -71,7 +73,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Response interceptor for handling token refresh
@@ -85,14 +87,16 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem(import.meta.env.VITE_AUTH_REFRESH_TOKEN_KEY);
+        const refreshToken = localStorage.getItem(
+          import.meta.env.VITE_AUTH_REFRESH_TOKEN_KEY,
+        );
         if (!refreshToken) {
-          throw new Error('No refresh token available');
+          throw new Error("No refresh token available");
         }
 
         const response = await axios.post(
           `${env.VITE_API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`,
-          { refreshToken }
+          { refreshToken },
         );
 
         const { token } = response.data;
@@ -105,13 +109,13 @@ api.interceptors.response.use(
         // If refresh fails, clear auth state and redirect to login
         localStorage.removeItem(import.meta.env.VITE_AUTH_TOKEN_KEY);
         localStorage.removeItem(import.meta.env.VITE_AUTH_REFRESH_TOKEN_KEY);
-        window.location.href = '/login';
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 // Type definitions
@@ -133,4 +137,4 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
-} 
+}

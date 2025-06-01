@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Card as MTCard,
   CardHeader as MTCardHeader,
@@ -6,32 +6,35 @@ import {
   CardFooter as MTCardFooter,
   Typography,
   IconButton,
-  Button
-} from '@material-tailwind/react';
-import type { color as MTColor, variant as MTVariant } from '@material-tailwind/react/types/components/button';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '../../lib/utils';
+  Button,
+} from "@material-tailwind/react";
+import type {
+  color as MTColor,
+  variant as MTVariant,
+} from "@material-tailwind/react/types/components/button";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "../../lib/utils";
 
 const cardVariants = cva(
-  'rounded-lg border bg-card text-card-foreground shadow-sm',
+  "rounded-lg border bg-card text-card-foreground shadow-sm",
   {
     variants: {
       variant: {
-        default: 'bg-white',
-        secondary: 'bg-gray-50',
-        gradient: 'bg-gradient-to-r from-blue-500 to-blue-700',
+        default: "bg-white",
+        secondary: "bg-gray-50",
+        gradient: "bg-gradient-to-r from-blue-500 to-blue-700",
       },
       size: {
-        default: 'p-6',
-        compact: 'p-4',
-        spacious: 'p-8',
+        default: "p-6",
+        compact: "p-4",
+        spacious: "p-8",
       },
     },
     defaultVariants: {
-      variant: 'default',
-      size: 'default',
+      variant: "default",
+      size: "default",
     },
-  }
+  },
 );
 
 interface CardProps
@@ -43,13 +46,25 @@ interface CardProps
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, size, icon, iconColor = 'blue', gradient, children, ...props }, ref) => {
+  (
+    {
+      className,
+      variant,
+      size,
+      icon,
+      iconColor = "blue",
+      gradient,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
     const defaultEventHandlers = {
       onPointerEnterCapture: () => {},
       onPointerLeaveCapture: () => {},
       onResize: () => {},
       onResizeCapture: () => {},
-      placeholder: undefined
+      placeholder: undefined,
     };
 
     return (
@@ -75,9 +90,9 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         {children}
       </MTCard>
     );
-  }
+  },
 );
-Card.displayName = 'Card';
+Card.displayName = "Card";
 
 interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;
@@ -92,18 +107,18 @@ const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
       onPointerLeaveCapture: () => {},
       onResize: () => {},
       onResizeCapture: () => {},
-      placeholder: undefined
+      placeholder: undefined,
     };
 
-    const titleColor: MTColor = gradient ? 'white' : 'blue-gray';
-    const descriptionColor: MTColor = gradient ? 'white' : 'blue-gray';
+    const titleColor: MTColor = gradient ? "white" : "blue-gray";
+    const descriptionColor: MTColor = gradient ? "white" : "blue-gray";
 
     return (
       <MTCardHeader
         ref={ref}
-        variant={gradient ? 'gradient' : undefined}
-        color={gradient ? 'blue' : undefined}
-        className={cn('mb-4', className)}
+        variant={gradient ? "gradient" : undefined}
+        color={gradient ? "blue" : undefined}
+        className={cn("mb-4", className)}
         {...defaultEventHandlers}
         {...props}
       >
@@ -130,9 +145,9 @@ const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
         {children}
       </MTCardHeader>
     );
-  }
+  },
 );
-CardHeader.displayName = 'CardHeader';
+CardHeader.displayName = "CardHeader";
 
 interface CardBodyProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -143,22 +158,22 @@ const CardBody = React.forwardRef<HTMLDivElement, CardBodyProps>(
       onPointerLeaveCapture: () => {},
       onResize: () => {},
       onResizeCapture: () => {},
-      placeholder: undefined
+      placeholder: undefined,
     };
 
     return (
       <MTCardBody
         ref={ref}
-        className={cn('p-6', className)}
+        className={cn("p-6", className)}
         {...defaultEventHandlers}
         {...props}
       >
         {children}
       </MTCardBody>
     );
-  }
+  },
 );
-CardBody.displayName = 'CardBody';
+CardBody.displayName = "CardBody";
 
 interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
   action?: React.ReactNode;
@@ -171,31 +186,22 @@ const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
       onPointerLeaveCapture: () => {},
       onResize: () => {},
       onResizeCapture: () => {},
-      placeholder: undefined
+      placeholder: undefined,
     };
 
     return (
       <MTCardFooter
         ref={ref}
-        className={cn('flex items-center justify-between p-6 pt-0', className)}
+        className={cn("flex items-center justify-between p-6 pt-0", className)}
         {...defaultEventHandlers}
         {...props}
       >
         {children}
-        {action && (
-          <div className="flex items-center gap-2">
-            {action}
-          </div>
-        )}
+        {action && <div className="flex items-center gap-2">{action}</div>}
       </MTCardFooter>
     );
-  }
+  },
 );
-CardFooter.displayName = 'CardFooter';
+CardFooter.displayName = "CardFooter";
 
-export {
-  Card,
-  CardHeader,
-  CardBody,
-  CardFooter,
-}; 
+export { Card, CardHeader, CardBody, CardFooter };

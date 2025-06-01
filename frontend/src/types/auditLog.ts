@@ -1,4 +1,4 @@
-import { User } from './auth';
+import { User } from "./auth";
 
 export interface AuditLog {
   id: string;
@@ -22,8 +22,8 @@ export interface AuditLogFilters {
   limit?: number;
   startDate?: string;
   endDate?: string;
-  sortBy?: 'timestamp' | 'action' | 'resourceType';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "timestamp" | "action" | "resourceType";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface PaginatedResponse<T> {
@@ -32,4 +32,4 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
-} 
+}

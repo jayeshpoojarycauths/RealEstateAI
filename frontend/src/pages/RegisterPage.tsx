@@ -16,17 +16,34 @@ import { useAuth } from "../hooks/useAuth";
 import log from "loglevel";
 
 // Form schema
-const registerSchema = z.object({
-  first_name: z.string().min(1, "First name is required"),
-  last_name: z.string().min(1, "Last name is required"),
-  company_name: z.string().min(1, "Company name is required"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirm_password: z.string(),
-}).refine((data) => data.password === data.confirm_password, {
-  message: "Passwords don't match",
-  path: ["confirm_password"],
-});
+const registerSchema = z
+  .object({
+    first_name: z.string().min(1, "First name is required"),
+    last_name: z.string().min(1, "Last name is required"),
+    company_name: z.string().min(1, "Company name is required"),
+    email: z.string().email("Invalid email address"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(
+        /(?=.*[a-z])/,
+        "Password must contain at least one lowercase letter",
+      )
+      .regex(
+        /(?=.*[A-Z])/,
+        "Password must contain at least one uppercase letter",
+      )
+      .regex(/(?=.*\d)/, "Password must contain at least one number")
+      .regex(
+        /(?=.*[@$!%*?&])/,
+        "Password must contain at least one special character",
+      ),
+    confirm_password: z.string(),
+  })
+  .refine((data) => data.password === data.confirm_password, {
+    message: "Passwords don't match",
+    path: ["confirm_password"],
+  });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
@@ -65,13 +82,28 @@ export const RegisterPage: React.FC = () => {
     log.info("[Register Attempt]", { email: data.email });
     try {
       setError(null);
-      await registerUser(data);
+      // Sanitize input data
+      const sanitizedData = {
+        ...data,
+        first_name: data.first_name.trim(),
+        last_name: data.last_name.trim(),
+        company_name: data.company_name.trim(),
+        email: data.email.trim().toLowerCase(),
+      };
+      await registerUser(sanitizedData);
       log.info("[Register Success]", { email: data.email });
       navigate("/login");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An error occurred during registration"
-      );
+      // Handle specific error types
+      if (err instanceof Error && err.message.includes("rate limit")) {
+        setError("Too many registration attempts. Please try again later.");
+      } else {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "An error occurred during registration",
+        );
+      }
       log.error("[Register Error]", err);
     }
   };
@@ -80,7 +112,7 @@ export const RegisterPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 p-4">
       <Card
         className="max-w-md w-full mx-auto shadow-xl rounded-2xl bg-white border border-blue-100 backdrop-blur-md"
-        {...(getCardProps() as any)}
+        {...getCardProps()}
       >
         <CardHeader
           variant="gradient"
@@ -106,7 +138,10 @@ export const RegisterPage: React.FC = () => {
           </Typography>
         </CardHeader>
         <CardBody className="p-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-5"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Controller
@@ -119,7 +154,9 @@ export const RegisterPage: React.FC = () => {
                       label="First Name"
                       error={!!errors.first_name}
                       aria-invalid={!!errors.first_name}
-                      aria-describedby={errors.first_name ? "first-name-error" : undefined}
+                      aria-describedby={
+                        errors.first_name ? "first-name-error" : undefined
+                      }
                       {...(getInputProps() as any)}
                     />
                   )}
@@ -148,7 +185,9 @@ export const RegisterPage: React.FC = () => {
                       label="Last Name"
                       error={!!errors.last_name}
                       aria-invalid={!!errors.last_name}
-                      aria-describedby={errors.last_name ? "last-name-error" : undefined}
+                      aria-describedby={
+                        errors.last_name ? "last-name-error" : undefined
+                      }
                       {...(getInputProps() as any)}
                     />
                   )}
@@ -178,7 +217,9 @@ export const RegisterPage: React.FC = () => {
                     label="Company Name"
                     error={!!errors.company_name}
                     aria-invalid={!!errors.company_name}
-                    aria-describedby={errors.company_name ? "company-name-error" : undefined}
+                    aria-describedby={
+                      errors.company_name ? "company-name-error" : undefined
+                    }
                     {...(getInputProps() as any)}
                   />
                 )}
@@ -236,7 +277,9 @@ export const RegisterPage: React.FC = () => {
                     label="Password"
                     error={!!errors.password}
                     aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? "password-error" : undefined}
+                    aria-describedby={
+                      errors.password ? "password-error" : undefined
+                    }
                     {...(getInputProps() as any)}
                   />
                 )}
@@ -265,7 +308,11 @@ export const RegisterPage: React.FC = () => {
                     label="Confirm Password"
                     error={!!errors.confirm_password}
                     aria-invalid={!!errors.confirm_password}
-                    aria-describedby={errors.confirm_password ? "confirm-password-error" : undefined}
+                    aria-describedby={
+                      errors.confirm_password
+                        ? "confirm-password-error"
+                        : undefined
+                    }
                     {...(getInputProps() as any)}
                   />
                 )}
@@ -326,4 +373,4 @@ export const RegisterPage: React.FC = () => {
       </Card>
     </div>
   );
-}; 
+};

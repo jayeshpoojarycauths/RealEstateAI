@@ -18,4 +18,4 @@ export interface LeadQualityResponse {
   total_leads: number;
   source_distribution: LeadQualityMetric[];
   conversion_rates: LeadQualityMetric[];
-} 
+}

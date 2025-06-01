@@ -1,6 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardBody, Typography, Button, Input, Select, Option, Alert } from "../components/SafeMTW";
-import api from '../services/api';
+import React, { useEffect, useState } from "react";
+import {
+  Card,
+  CardBody,
+  Typography,
+  Button,
+  Input,
+  Select,
+  Option,
+  Alert,
+} from "../components/SafeMTW";
+import api from "../services/api";
 
 const defaultConfig = {
   sources: [],
@@ -20,7 +29,9 @@ export const LeadsScraperPage: React.FC = () => {
   const [results, setResults] = useState<any>(null);
   const [status, setStatus] = useState<string>("");
   const [availableSources, setAvailableSources] = useState<string[]>([]);
-  const [availablePropertyTypes, setAvailablePropertyTypes] = useState<string[]>([]);
+  const [availablePropertyTypes, setAvailablePropertyTypes] = useState<
+    string[]
+  >([]);
   const [availableLocations, setAvailableLocations] = useState<string[]>([]);
   // Placeholder for logs
   const [logs, setLogs] = useState<any[]>([]);
@@ -35,10 +46,10 @@ export const LeadsScraperPage: React.FC = () => {
   const fetchConfig = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/scraping/config');
+      const res = await api.get("/scraping/config");
       setConfig(res.data);
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to fetch config');
+      setError(e?.response?.data?.detail || "Failed to fetch config");
     } finally {
       setLoading(false);
     }
@@ -46,10 +57,10 @@ export const LeadsScraperPage: React.FC = () => {
 
   const fetchResults = async () => {
     try {
-      const res = await api.get('/scraping/results');
+      const res = await api.get("/scraping/results");
       setResults(res.data);
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to fetch results');
+      setError(e?.response?.data?.detail || "Failed to fetch results");
     }
   };
 
@@ -75,11 +86,11 @@ export const LeadsScraperPage: React.FC = () => {
     setError("");
     setSuccess("");
     try {
-      await api.post('/scraping/config', config);
-      setSuccess('Configuration saved!');
+      await api.post("/scraping/config", config);
+      setSuccess("Configuration saved!");
       fetchConfig();
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to save config');
+      setError(e?.response?.data?.detail || "Failed to save config");
     } finally {
       setLoading(false);
     }
@@ -90,69 +101,84 @@ export const LeadsScraperPage: React.FC = () => {
     setError("");
     setSuccess("");
     try {
-      await api.put('/scraping/config', config);
-      setSuccess('Configuration updated!');
+      await api.put("/scraping/config", config);
+      setSuccess("Configuration updated!");
       fetchConfig();
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to update config');
+      setError(e?.response?.data?.detail || "Failed to update config");
     } finally {
       setLoading(false);
     }
   };
 
   const handleStartScraping = async () => {
-    setStatus('Starting...');
+    setStatus("Starting...");
     try {
       let response;
-      if (leadType === 'property') {
-        response = await api.post('/scraping/start', { lead_type: leadType });
-        setStatus('Property scraping started!');
+      if (leadType === "property") {
+        response = await api.post("/scraping/start", { lead_type: leadType });
+        setStatus("Property scraping started!");
         fetchResults();
-      } else if (leadType === 'user') {
+      } else if (leadType === "user") {
         // Use the first selected location or empty string
-        const location = config.locations && config.locations.length > 0 ? config.locations[0] : "";
-        response = await api.post('/scraped-leads/scrape-users', { location, max_pages: config.max_pages });
-        setStatus('User scraping complete!');
+        const location =
+          config.locations && config.locations.length > 0
+            ? config.locations[0]
+            : "";
+        response = await api.post("/scraped-leads/scrape-users", {
+          location,
+          max_pages: config.max_pages,
+        });
+        setStatus("User scraping complete!");
         setResults(response.data);
-      } else if (leadType === 'location') {
-        response = await api.post('/scraped-leads/scrape-locations', { max_pages: config.max_pages });
-        setStatus('Location scraping complete!');
+      } else if (leadType === "location") {
+        response = await api.post("/scraped-leads/scrape-locations", {
+          max_pages: config.max_pages,
+        });
+        setStatus("Location scraping complete!");
         setResults(response.data);
       }
     } catch (e: any) {
-      setStatus('Failed to start scraping');
+      setStatus("Failed to start scraping");
     }
   };
 
   const handleScheduleScraping = async () => {
-    setStatus('Scheduling...');
+    setStatus("Scheduling...");
     try {
-      await api.post('/scraping/schedule', { interval_hours: config.interval_hours, lead_type: leadType });
-      setStatus('Scraping scheduled!');
+      await api.post("/scraping/schedule", {
+        interval_hours: config.interval_hours,
+        lead_type: leadType,
+      });
+      setStatus("Scraping scheduled!");
     } catch (e: any) {
-      setStatus('Failed to schedule scraping');
+      setStatus("Failed to schedule scraping");
     }
   };
 
   const handleStopScraping = async () => {
-    setStatus('Stopping...');
+    setStatus("Stopping...");
     try {
-      await api.post('/scraping/stop');
-      setStatus('Scraping stopped!');
+      await api.post("/scraping/stop");
+      setStatus("Scraping stopped!");
     } catch (e: any) {
-      setStatus('Failed to stop scraping');
+      setStatus("Failed to stop scraping");
     }
   };
 
   return (
     <div className="space-y-6">
-      <Typography variant="h4" color="blue-gray">Leads Scraper</Typography>
+      <Typography variant="h4" color="blue-gray">
+        Leads Scraper
+      </Typography>
       {error && <Alert color="red">{error}</Alert>}
       {success && <Alert color="green">{success}</Alert>}
       {/* ScraperConfigForm */}
       <Card>
         <CardBody>
-          <Typography variant="h6" color="blue-gray">Scraping Configuration</Typography>
+          <Typography variant="h6" color="blue-gray">
+            Scraping Configuration
+          </Typography>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <Select
               label="Lead Type"
@@ -167,30 +193,36 @@ export const LeadsScraperPage: React.FC = () => {
               label="Sources"
               value={config.sources}
               multiple
-              onChange={(val: any) => handleConfigChange('sources', val)}
+              onChange={(val: any) => handleConfigChange("sources", val)}
             >
               {availableSources.map((src) => (
-                <Option key={src} value={src}>{src}</Option>
+                <Option key={src} value={src}>
+                  {src}
+                </Option>
               ))}
             </Select>
             <Select
               label="Property Types"
               value={config.property_types}
               multiple
-              onChange={(val: any) => handleConfigChange('property_types', val)}
+              onChange={(val: any) => handleConfigChange("property_types", val)}
             >
               {availablePropertyTypes.map((type) => (
-                <Option key={type} value={type}>{type}</Option>
+                <Option key={type} value={type}>
+                  {type}
+                </Option>
               ))}
             </Select>
             <Select
               label="Locations"
               value={config.locations}
               multiple
-              onChange={(val: any) => handleConfigChange('locations', val)}
+              onChange={(val: any) => handleConfigChange("locations", val)}
             >
               {availableLocations.map((loc) => (
-                <Option key={loc} value={loc}>{loc}</Option>
+                <Option key={loc} value={loc}>
+                  {loc}
+                </Option>
               ))}
             </Select>
             <div className="flex gap-2 items-center">
@@ -198,42 +230,68 @@ export const LeadsScraperPage: React.FC = () => {
                 label="Min Price"
                 type="number"
                 value={config.price_range?.min || 0}
-                onChange={e => handleConfigChange('price_range', { ...config.price_range, min: Number(e.target.value) })}
+                onChange={(e) =>
+                  handleConfigChange("price_range", {
+                    ...config.price_range,
+                    min: Number(e.target.value),
+                  })
+                }
               />
               <Input
                 label="Max Price"
                 type="number"
                 value={config.price_range?.max || 0}
-                onChange={e => handleConfigChange('price_range', { ...config.price_range, max: Number(e.target.value) })}
+                onChange={(e) =>
+                  handleConfigChange("price_range", {
+                    ...config.price_range,
+                    max: Number(e.target.value),
+                  })
+                }
               />
             </div>
             <Input
               label="Max Pages"
               type="number"
               value={config.max_pages}
-              onChange={e => handleConfigChange('max_pages', Number(e.target.value))}
+              onChange={(e) =>
+                handleConfigChange("max_pages", Number(e.target.value))
+              }
             />
             <Input
               label="Interval (hours)"
               type="number"
               value={config.interval_hours}
-              onChange={e => handleConfigChange('interval_hours', Number(e.target.value))}
+              onChange={(e) =>
+                handleConfigChange("interval_hours", Number(e.target.value))
+              }
             />
           </div>
           <div className="flex gap-2 mt-4">
-            <Button color="blue" onClick={handleSaveConfig}>Save Config</Button>
-            <Button color="blue-gray" onClick={handleUpdateConfig}>Update Config</Button>
+            <Button color="blue" onClick={handleSaveConfig}>
+              Save Config
+            </Button>
+            <Button color="blue-gray" onClick={handleUpdateConfig}>
+              Update Config
+            </Button>
           </div>
         </CardBody>
       </Card>
       {/* ScraperControls */}
       <Card>
         <CardBody>
-          <Typography variant="h6" color="blue-gray">Scraping Controls</Typography>
+          <Typography variant="h6" color="blue-gray">
+            Scraping Controls
+          </Typography>
           <div className="flex gap-2 mt-4">
-            <Button color="green" onClick={handleStartScraping}>Start Scraping</Button>
-            <Button color="blue" onClick={handleScheduleScraping}>Schedule Scraping</Button>
-            <Button color="red" onClick={handleStopScraping}>Stop Scraping</Button>
+            <Button color="green" onClick={handleStartScraping}>
+              Start Scraping
+            </Button>
+            <Button color="blue" onClick={handleScheduleScraping}>
+              Schedule Scraping
+            </Button>
+            <Button color="red" onClick={handleStopScraping}>
+              Stop Scraping
+            </Button>
           </div>
           {status && <Typography className="mt-2">{status}</Typography>}
         </CardBody>
@@ -241,7 +299,9 @@ export const LeadsScraperPage: React.FC = () => {
       {/* ScraperResultsTable */}
       <Card>
         <CardBody>
-          <Typography variant="h6" color="blue-gray">Scraping Results</Typography>
+          <Typography variant="h6" color="blue-gray">
+            Scraping Results
+          </Typography>
           <div className="overflow-x-auto mt-4">
             {results ? (
               <table className="w-full min-w-max table-auto text-left">
@@ -256,16 +316,22 @@ export const LeadsScraperPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.values(results).flat().map((res: any, idx: number) => (
-                    <tr key={idx}>
-                      <td>{res.source}</td>
-                      <td>{res.lead_type || '-'}</td>
-                      <td>{res.timestamp ? new Date(res.timestamp).toLocaleString() : '-'}</td>
-                      <td>{res.total_properties}</td>
-                      <td>{res.status}</td>
-                      <td>{res.error || '-'}</td>
-                    </tr>
-                  ))}
+                  {Object.values(results)
+                    .flat()
+                    .map((res: any, idx: number) => (
+                      <tr key={idx}>
+                        <td>{res.source}</td>
+                        <td>{res.lead_type || "-"}</td>
+                        <td>
+                          {res.timestamp
+                            ? new Date(res.timestamp).toLocaleString()
+                            : "-"}
+                        </td>
+                        <td>{res.total_properties}</td>
+                        <td>{res.status}</td>
+                        <td>{res.error || "-"}</td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             ) : (
@@ -277,11 +343,13 @@ export const LeadsScraperPage: React.FC = () => {
       {/* ScraperLogsTable (placeholder) */}
       <Card>
         <CardBody>
-          <Typography variant="h6" color="blue-gray">Scraping Logs (Coming Soon)</Typography>
+          <Typography variant="h6" color="blue-gray">
+            Scraping Logs (Coming Soon)
+          </Typography>
         </CardBody>
       </Card>
     </div>
   );
 };
 
-export default LeadsScraperPage; 
+export default LeadsScraperPage;

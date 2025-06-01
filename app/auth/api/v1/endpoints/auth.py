@@ -274,7 +274,7 @@ def refresh_token(
 
     # Generate new access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = security.create_access_token(
+    access_token = create_access_token(
         data={
             "sub": str(db_refresh_token.user_id),
             "customer_id": str(db_refresh_token.customer_id)

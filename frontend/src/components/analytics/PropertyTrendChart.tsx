@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -8,12 +8,17 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  TooltipProps
-} from 'recharts';
-import { Card, CardHeader, CardBody, Typography } from '@material-tailwind/react';
-import api from '../../services/api';
-import { useAuth } from '../../hooks/useAuth';
-import { format } from 'date-fns';
+  TooltipProps,
+} from "recharts";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  Typography,
+} from "@material-tailwind/react";
+import api from "../../services/api";
+import { useAuth } from "../../hooks/useAuth";
+import { format } from "date-fns";
 
 interface PriceTrendPoint {
   date: string;
@@ -35,7 +40,7 @@ const defaultEventHandlers = {
   onPointerLeaveCapture: () => {},
   onResize: () => {},
   onResizeCapture: () => {},
-  placeholder: undefined
+  placeholder: undefined,
 };
 
 const PropertyTrendChart: React.FC<PropertyTrendChartProps> = ({
@@ -43,8 +48,8 @@ const PropertyTrendChart: React.FC<PropertyTrendChartProps> = ({
   location,
   startDate,
   endDate,
-  className = '',
-  title = 'Property Price Trends'
+  className = "",
+  title = "Property Price Trends",
 }) => {
   const [data, setData] = useState<PriceTrendPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,16 +63,18 @@ const PropertyTrendChart: React.FC<PropertyTrendChartProps> = ({
         setError(null);
 
         const params = new URLSearchParams();
-        if (startDate) params.append('start_date', startDate);
-        if (endDate) params.append('end_date', endDate);
-        if (propertyType) params.append('property_type', propertyType);
-        if (location) params.append('location', location);
+        if (startDate) params.append("start_date", startDate);
+        if (endDate) params.append("end_date", endDate);
+        if (propertyType) params.append("property_type", propertyType);
+        if (location) params.append("location", location);
 
-        const response = await api.get<PriceTrendPoint[]>('/api/v1/stats/price-trends');
+        const response = await api.get<PriceTrendPoint[]>(
+          "/api/v1/stats/price-trends",
+        );
         setData(response.data);
       } catch (error) {
-        console.error('Error fetching property trend data:', error);
-        setError('Failed to fetch property trend data');
+        console.error("Error fetching property trend data:", error);
+        setError("Failed to fetch property trend data");
       } finally {
         setLoading(false);
       }
@@ -77,9 +84,9 @@ const PropertyTrendChart: React.FC<PropertyTrendChartProps> = ({
   }, [startDate, endDate, propertyType, location, getAuthHeaders]);
 
   const formatPrice = (value: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
       maximumFractionDigits: 0,
     }).format(value);
   };
@@ -148,17 +155,17 @@ const PropertyTrendChart: React.FC<PropertyTrendChartProps> = ({
               <XAxis
                 dataKey="date"
                 tick={{ fontSize: 12 }}
-                tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+                tickFormatter={(value) => format(new Date(value), "MMM dd")}
               />
               <YAxis
                 yAxisId="left"
                 tick={{ fontSize: 12 }}
                 tickFormatter={formatPrice}
                 label={{
-                  value: 'Average Price',
+                  value: "Average Price",
                   angle: -90,
-                  position: 'insideLeft',
-                  style: { textAnchor: 'middle' }
+                  position: "insideLeft",
+                  style: { textAnchor: "middle" },
                 }}
               />
               <YAxis
@@ -166,20 +173,22 @@ const PropertyTrendChart: React.FC<PropertyTrendChartProps> = ({
                 orientation="right"
                 tick={{ fontSize: 12 }}
                 label={{
-                  value: 'Number of Properties',
+                  value: "Number of Properties",
                   angle: 90,
-                  position: 'insideRight',
-                  style: { textAnchor: 'middle' }
+                  position: "insideRight",
+                  style: { textAnchor: "middle" },
                 }}
               />
               <Tooltip
                 formatter={(value: number, name: string) => [
-                  name === 'avg_price'
-                    ? formatPrice(value)
-                    : value.toString(),
-                  name === 'avg_price' ? 'Average Price' : 'Number of Properties'
+                  name === "avg_price" ? formatPrice(value) : value.toString(),
+                  name === "avg_price"
+                    ? "Average Price"
+                    : "Number of Properties",
                 ]}
-                labelFormatter={(label) => format(new Date(label), 'MMM dd, yyyy')}
+                labelFormatter={(label) =>
+                  format(new Date(label), "MMM dd, yyyy")
+                }
               />
               <Legend />
               <Line
@@ -206,4 +215,4 @@ const PropertyTrendChart: React.FC<PropertyTrendChartProps> = ({
   );
 };
 
-export default PropertyTrendChart; 
+export default PropertyTrendChart;

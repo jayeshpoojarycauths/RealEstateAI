@@ -15,6 +15,8 @@ import base64
 import re
 import json
 import uuid
+from app.core.crypto import encrypt_value, hash_code
+import asyncio
 
 class AuthService:
     def __init__(self, db: Session):
@@ -36,7 +38,8 @@ class AuthService:
 
     async def authenticate_user(self, email: str, password: str, ip_address: str, user_agent: str) -> Optional[User]:
         """Authenticate a user with email and password."""
-        user = self.db.query(User).filter(User.email == email).first()
+        loop = asyncio.get_running_loop()
+        user = await loop.run_in_executor(None, lambda: self.db.query(User).filter(User.email == email).first())
         if not user or not verify_password(password, user.password_hash):
             self.audit_service.log_login_failure(
                 email=email,
@@ -46,7 +49,6 @@ class AuthService:
                 customer_id=user.customer_id if user else None
             )
             return None
-            
         self.audit_service.log_login_success(
             user=user,
             ip_address=ip_address,
@@ -185,16 +187,18 @@ class AuthService:
         """Setup MFA for a user."""
         # Generate secret key
         secret = pyotp.random_base32()
+        encrypted_secret = encrypt_value(secret)
         
-        # Generate backup codes
+        # Generate backup codes and hash them
         backup_codes = [secrets.token_hex(4) for _ in range(settings.MFA_BACKUP_CODES_COUNT)]
+        hashed_backup_codes = [hash_code(code) for code in backup_codes]
         
         # Create MFA settings
         mfa_settings = MFASettings(
             user_id=user.id,
             is_enabled=False,
-            secret_key=secret,
-            backup_codes=backup_codes
+            secret_key=encrypted_secret,
+            backup_codes=hashed_backup_codes
         )
         self.db.add(mfa_settings)
         self.db.commit()
@@ -217,9 +221,9 @@ class AuthService:
         qr_base64 = base64.b64encode(buffered.getvalue()).decode()
         
         return {
-            "secret_key": secret,
+            "secret_key": secret,  # Return the plaintext secret for the user to scan
             "qr_code": qr_base64,
-            "backup_codes": backup_codes
+            "backup_codes": backup_codes  # Return plaintext codes for the user to save
         }
 
     async def verify_mfa(self, user: User, code: str, ip_address: str, user_agent: str) -> bool:

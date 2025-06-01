@@ -1,6 +1,6 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Card, CardBody, Typography, Button } from '@material-tailwind/react';
-import { logger } from '../../utils/logger';
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import { Card, CardBody, Typography, Button } from "@material-tailwind/react";
+import { logger } from "../../utils/logger";
 
 interface Props {
   children: ReactNode;
@@ -22,7 +22,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    logger.error('ErrorBoundary caught an error:', { error, errorInfo });
+    logger.error("ErrorBoundary caught an error:", { error, errorInfo });
   }
 
   private handleRetry = () => {
@@ -38,7 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
               Something went wrong
             </Typography>
             <Typography color="gray" className="mb-4">
-              {this.state.error?.message || 'An unexpected error occurred'}
+              {this.state.error?.message || "An unexpected error occurred"}
             </Typography>
             <Button color="blue" onClick={this.handleRetry}>
               Try Again
@@ -50,4 +50,4 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return this.props.children;
   }
-} 
+}

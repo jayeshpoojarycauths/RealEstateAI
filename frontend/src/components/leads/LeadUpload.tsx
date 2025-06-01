@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Upload, Button, Table, Alert, Space, Typography } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import type { UploadFile } from 'antd/es/upload/interface';
-import { useAuth } from '../../contexts/AuthContext';
-import { api } from '../../services/api';
+import React, { useState } from "react";
+import { Upload, Button, Table, Alert, Space, Typography } from "antd";
+import { UploadOutlined } from "@ant-design/icons";
+import type { UploadFile } from "antd/es/upload/interface";
+import { useAuth } from "../../contexts/AuthContext";
+import { api } from "../../services/api";
 
 const { Title } = Typography;
 
@@ -23,20 +23,24 @@ const LeadUpload: React.FC = () => {
     if (fileList.length === 0) return;
 
     const formData = new FormData();
-    formData.append('file', fileList[0].originFileObj as File);
+    formData.append("file", fileList[0].originFileObj as File);
 
     setUploading(true);
     try {
-      const result = await api.post<LeadUploadResponse>('/api/v1/leads/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
+      const result = await api.post<LeadUploadResponse>(
+        "/api/v1/leads/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
       setResponse(result.data);
       setFileList([]);
     } catch (error) {
-      console.error('Upload failed:', error);
+      console.error("Upload failed:", error);
     } finally {
       setUploading(false);
     }
@@ -54,22 +58,22 @@ const LeadUpload: React.FC = () => {
       return false;
     },
     fileList,
-    accept: '.csv,.xlsx',
+    accept: ".csv,.xlsx",
   };
 
   const errorColumns = [
     {
-      title: 'Error',
-      dataIndex: 'error',
-      key: 'error',
+      title: "Error",
+      dataIndex: "error",
+      key: "error",
     },
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div style={{ padding: "24px" }}>
       <Title level={2}>Upload Leads</Title>
-      
-      <Space direction="vertical" style={{ width: '100%' }} size="large">
+
+      <Space direction="vertical" style={{ width: "100%" }} size="large">
         <Alert
           message="File Requirements"
           description="Upload a CSV or Excel file with the following columns: name, email, phone, source. Optional columns: notes, status."
@@ -88,17 +92,17 @@ const LeadUpload: React.FC = () => {
           loading={uploading}
           style={{ marginTop: 16 }}
         >
-          {uploading ? 'Uploading' : 'Start Upload'}
+          {uploading ? "Uploading" : "Start Upload"}
         </Button>
 
         {response && (
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space direction="vertical" style={{ width: "100%" }}>
             <Alert
               message={`Upload Complete: ${response.success_count} leads imported successfully`}
               type="success"
               showIcon
             />
-            
+
             {response.error_count > 0 && (
               <>
                 <Alert
@@ -124,4 +128,4 @@ const LeadUpload: React.FC = () => {
   );
 };
 
-export default LeadUpload; 
+export default LeadUpload;

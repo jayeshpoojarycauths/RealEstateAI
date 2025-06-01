@@ -220,9 +220,17 @@ class Messages:
         
         # Format message and details with kwargs if provided
         if kwargs:
-            message["message"] = message["message"].format(**kwargs)
-            message["details"] = message["details"].format(**kwargs)
-            
+            try:
+                message["message"] = message["message"].format(**kwargs)
+                message["details"] = message["details"].format(**kwargs)
+            except (KeyError, IndexError, ValueError) as e:
+                import logging
+                logging.getLogger("app.core.messages").error(f"Message formatting failed for code {code}: {e}. kwargs: {kwargs}")
+                # Option 1: Return unformatted message
+                # pass
+                # Option 2: Raise a descriptive exception
+                # raise ValueError(f"Failed to format message for code {code}: {e}")
+        
         return message
 
     @classmethod

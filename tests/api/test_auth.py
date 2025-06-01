@@ -50,13 +50,19 @@ def test_register_user_success(client: TestClient, db_session: Session):
 def test_register_user_duplicate_email(client: TestClient, db_session: Session):
     """Test registration with duplicate email."""
     # Create existing user
+    # Arrange – create required role & customer first
+    role = Role(name="user")
+    customer = Customer(name="Dummy Co")
+    db_session.add_all([role, customer])
+    db_session.flush()          # ensures IDs are generated
+
     existing_user = User(
         email="existing@test.com",
         first_name="Existing",
         last_name="User",
         hashed_password="hashed_password",
-        role_id=1,
-        customer_id=1
+        role_id=role.id,
+        customer_id=customer.id,
     )
     db_session.add(existing_user)
     db_session.commit()

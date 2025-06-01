@@ -1,11 +1,11 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance } from "axios";
 
 // Log levels
 export enum LogLevel {
-  DEBUG = 'DEBUG',
-  INFO = 'INFO',
-  WARN = 'WARN',
-  ERROR = 'ERROR'
+  DEBUG = "DEBUG",
+  INFO = "INFO",
+  WARN = "WARN",
+  ERROR = "ERROR",
 }
 
 // Log entry interface
@@ -42,13 +42,13 @@ interface LoggerConfig {
 }
 
 const DEFAULT_CONFIG: LoggerConfig = {
-  apiEndpoint: '/api/v1/logs',
+  apiEndpoint: "/api/v1/logs",
   maxBufferSize: 100,
   flushInterval: 5000,
   maxRetries: 3,
   retryDelay: 1000,
   maxWorkers: 4,
-  isDevelopment: process.env.NODE_ENV === 'development'
+  isDevelopment: process.env.NODE_ENV === "development",
 };
 
 export class Logger {
@@ -65,8 +65,8 @@ export class Logger {
     this.axiosInstance = axios.create({
       timeout: 5000,
       headers: {
-        'Content-Type': 'application/json'
-      }
+        "Content-Type": "application/json",
+      },
     });
     this.workerPool = this.createWorkerPool();
     this.startFlushTimer();
@@ -82,7 +82,7 @@ export class Logger {
   private createWorkerPool(): Worker[] {
     const workers: Worker[] = [];
     for (let i = 0; i < this.config.maxWorkers; i++) {
-      const worker = new Worker(new URL('./logWorker.ts', import.meta.url));
+      const worker = new Worker(new URL("./logWorker.ts", import.meta.url));
       worker.onerror = (error) => {
         console.error(`Log worker error: ${error.message}`);
       };
@@ -95,14 +95,17 @@ export class Logger {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
     }
-    this.flushTimer = setInterval(() => this.flush(), this.config.flushInterval);
+    this.flushTimer = setInterval(
+      () => this.flush(),
+      this.config.flushInterval,
+    );
   }
 
   private createLogEntry(
     level: LogLevel,
     message: string,
     context: Record<string, any> = {},
-    stackTrace?: string
+    stackTrace?: string,
   ): LogEntry {
     return {
       level,
@@ -110,8 +113,8 @@ export class Logger {
       timestamp: new Date().toISOString(),
       context: this.sanitizeContext(context),
       stackTrace,
-      service: context.service || 'frontend',
-      correlationId: context.correlationId
+      service: context.service || "frontend",
+      correlationId: context.correlationId,
     };
   }
 
@@ -125,13 +128,16 @@ export class Logger {
       /authorization/i,
       /credit[_-]?card/i,
       /ssn/i,
-      /social[_-]?security/i
+      /social[_-]?security/i,
     ];
 
     for (const [key, value] of Object.entries(context)) {
-      if (typeof value === 'string' && sensitivePatterns.some(pattern => pattern.test(key))) {
-        sanitized[key] = '***';
-      } else if (typeof value === 'object' && value !== null) {
+      if (
+        typeof value === "string" &&
+        sensitivePatterns.some((pattern) => pattern.test(key))
+      ) {
+        sanitized[key] = "***";
+      } else if (typeof value === "object" && value !== null) {
         sanitized[key] = this.sanitizeContext(value);
       } else {
         sanitized[key] = value;
@@ -145,7 +151,7 @@ export class Logger {
     if (this.buffer.length === 0 || this.isShuttingDown) return;
 
     const batch: LogBatch = {
-      entries: [...this.buffer]
+      entries: [...this.buffer],
     };
     this.buffer = [];
 
@@ -157,22 +163,35 @@ export class Logger {
       } catch (error) {
         retries++;
         if (retries === this.config.maxRetries) {
-          console.error('Failed to send logs to server after max retries:', error);
+          console.error(
+            "Failed to send logs to server after max retries:",
+            error,
+          );
           // Put logs back in buffer if they couldn't be sent
           this.buffer = [...batch.entries, ...this.buffer];
         } else {
-          await new Promise(resolve => setTimeout(resolve, this.config.retryDelay * retries));
+          await new Promise((resolve) =>
+            setTimeout(resolve, this.config.retryDelay * retries),
+          );
         }
       }
     }
   }
 
-  private formatMessage(level: LogLevel, message: string, data?: any): LogMessage {
+  private formatMessage(
+    level: LogLevel,
+    message: string,
+    data?: any,
+  ): LogEntry {
     return {
       level,
       message,
-      data,
       timestamp: new Date().toISOString(),
+      context:
+        data && typeof data === "object" ? this.sanitizeContext(data) : {},
+      stackTrace: undefined,
+      service: (data && data.service) || "frontend",
+      correlationId: data && data.correlationId,
     };
   }
 
@@ -200,6 +219,9 @@ export class Logger {
         // Example: Sentry.captureException(data);
       }
     }
+    // Always add to buffer for persistence and backend delivery
+    this.buffer.push(logMessage);
+    this.checkBuffer();
   }
 
   public debug(message: string, data?: any): void {
@@ -223,14 +245,18 @@ export class Logger {
     resourceType: string,
     resourceId: string | number,
     userId?: string,
-    context: Record<string, any> = {}
+    context: Record<string, any> = {},
   ): void {
     const auditEntry: AuditLogEntry = {
-      ...this.createLogEntry(LogLevel.INFO, `Audit: ${action} ${resourceType} ${resourceId}`, context),
+      ...this.createLogEntry(
+        LogLevel.INFO,
+        `Audit: ${action} ${resourceType} ${resourceId}`,
+        context,
+      ),
       action,
       resourceType,
       resourceId,
-      userId
+      userId,
     };
     this.buffer.push(auditEntry);
     this.checkBuffer();
@@ -244,7 +270,7 @@ export class Logger {
 
   public async shutdown(): Promise<void> {
     this.isShuttingDown = true;
-    
+
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
@@ -264,4 +290,4 @@ export class Logger {
 export const logger = Logger.getInstance();
 
 // Export default for convenience
-export default logger; 
+export default logger;

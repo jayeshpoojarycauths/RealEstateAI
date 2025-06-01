@@ -20,24 +20,27 @@ from app.core.pagination import PaginationParams
 
 class ProjectService:
     def __init__(self, db: Session):
-        self.db = db
-        self.audit_service = AuditService(db)
-
     async def list_projects(
         self,
         customer_id: str,
         filter_params: ProjectFilter,
         pagination: PaginationParams
-    ) -> List[Project]:
-        """Get all projects for a customer with filtering."""
-        query = self.db.query(Project).filter(Project.customer_id == customer_id)
+    ) -> tuple[List[Project], int]:
+         """Get all projects for a customer with filtering."""
+         query = self.db.query(Project).filter(Project.customer_id == customer_id)
+         
+         # Apply filters
+         if filter_params.type:
+             query = query.filter(Project.type == filter_params.type)
+         # ... other filters ...
+         
+        # Get total count before pagination
+        total_count = query.count()
         
-        # Apply filters
-        if filter_params.type:
-            query = query.filter(Project.type == filter_params.type)
-        if filter_params.status:
-            query = query.filter(Project.status == filter_params.status)
-        if filter_params.city:
+         # Apply pagination
+         query = query.offset(pagination.offset).limit(pagination.limit)
+         
+        return query.all(), total_count
             query = query.filter(Project.city.ilike(f"%{filter_params.city}%"))
         if filter_params.state:
             query = query.filter(Project.state.ilike(f"%{filter_params.state}%"))
@@ -46,8 +49,8 @@ class ProjectService:
         if filter_params.max_price:
             query = query.filter(Project.total_value <= filter_params.max_price)
         if filter_params.amenities:
-            for amenity in filter_params.amenities:
-                query = query.filter(Project.amenities.contains([amenity]))
+            # Use PostgreSQL's array overlap operator for better performance
+            query = query.filter(Project.amenities.overlap(filter_params.amenities))
         
         # Apply pagination
         query = query.offset(pagination.offset).limit(pagination.limit)
@@ -74,7 +77,7 @@ class ProjectService:
     ) -> Project:
         """Create a new project."""
         project = Project(
-            **project_in.dict(),
+            **project_in.dict(exclude_unset=True),
             customer_id=customer_id,
             created_by=user_id,
             updated_by=user_id
@@ -114,7 +117,8 @@ class ProjectService:
                 setattr(project, field, value)
         
         project.updated_by = user_id
-        project.updated_at = datetime.utcnow()
+        from datetime import timezone
+        project.updated_at = datetime.now(timezone.utc)
         
         self.db.commit()
         self.db.refresh(project)
@@ -150,20 +154,29 @@ class ProjectService:
         self.db.commit()
         return True
 
-    async def add_feature(
-        self,
-        project_id: str,
-        feature_in: ProjectFeatureCreate,
-        customer_id: str,
-        user_id: str
-    ) -> ProjectFeature:
-        """Add a feature to a project."""
-        project = await self.get_project(project_id, customer_id)
+async def add_feature(
+         self,
+         project_id: str,
+         feature_in: ProjectFeatureCreate,
+         customer_id: str,
+         user_id: str
+     ) -> ProjectFeature:
+         """Add a feature to a project."""
+         project = await self.get_project(project_id, customer_id)
+         
+        # Check for duplicate feature
+        existing_feature = self.db.query(ProjectFeature).filter(
+            ProjectFeature.project_id == project_id,
+            ProjectFeature.name == feature_in.name
+        ).first()
         
-        feature = ProjectFeature(
-            **feature_in.dict(),
-            project_id=project_id
-        )
+        if existing_feature:
+            raise ValidationError(detail="Feature already exists for this project")
+        
+         feature = ProjectFeature(
+             **feature_in.dict(),
+             project_id=project_id
+         )
         
         self.db.add(feature)
         self.db.commit()
@@ -390,10 +403,11 @@ class ProjectService:
         all_amenities = self.db.query(Project.amenities).filter(
             Project.customer_id == customer_id
         ).all()
-        amenity_counts = {}
-        for amenities in all_amenities:
-            for amenity in amenities[0] or []:
-                amenity_counts[amenity] = amenity_counts.get(amenity, 0) + 1
+amenity_counts = {}
+         for amenities in all_amenities:
+            if amenities[0]:  # Check if amenities exist
+                for amenity in amenities[0]:
+                 amenity_counts[amenity] = amenity_counts.get(amenity, 0) + 1
         for amenity, count in amenity_counts.items():
             amenity_popularity.append({
                 "amenity": amenity,

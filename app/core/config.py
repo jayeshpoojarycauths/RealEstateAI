@@ -7,6 +7,9 @@ __all__ = ["Settings", "get_settings"]
 # Re-export settings for backward compatibility
 settings = get_settings()
 
+# Removed local Settings class to avoid shadowing the imported one.
+# Use the imported Settings and get_settings for configuration access.
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Real Estate AI"
     VERSION: str = "1.0.0"
@@ -45,6 +48,4 @@ class Settings(BaseSettings):
     
     class Config:
         case_sensitive = True
-        env_file = ".env"
-
-settings = Settings() 
+        env_file = ".env" 

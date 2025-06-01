@@ -14,6 +14,12 @@ import {
   Select,
   Option,
   Alert,
+  Switch,
+  IconButton,
+  Drawer,
+  List,
+  ListItem,
+  ListItemPrefix,
 } from "@material-tailwind/react";
 
 const noOp = () => {};
@@ -79,4 +85,28 @@ export const SafeOption = React.forwardRef((props: any, ref) => (
 
 export const SafeAlert = React.forwardRef((props: any, ref) => (
   <Alert ref={ref} {...defaultProps} {...props} />
-)); 
+));
+
+export const SafeSwitch = React.forwardRef((props: any, ref) => (
+  <Switch ref={ref} {...defaultProps} {...props} />
+));
+
+export const SafeIconButton = React.forwardRef((props: any, ref) => (
+  <IconButton ref={ref} {...defaultProps} {...props} />
+));
+
+export const SafeDrawer = React.forwardRef((props: any, ref) => (
+  <Drawer ref={ref} {...defaultProps} {...props} />
+));
+
+export const SafeList = React.forwardRef((props: any, ref) => (
+  <List ref={ref} {...defaultProps} {...props} />
+));
+
+export const SafeListItem = React.forwardRef((props: any, ref) => (
+  <ListItem ref={ref} {...defaultProps} {...props} />
+));
+
+export const SafeListItemPrefix = React.forwardRef((props: any, ref) => (
+  <ListItemPrefix ref={ref} {...defaultProps} {...props} />
+));

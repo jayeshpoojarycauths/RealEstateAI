@@ -1,20 +1,20 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { ProtectedRoute } from './components/common/ProtectedRoute';
-import { Role } from './types/auth';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
-import { Dashboard } from './pages/Dashboard';
-import { Properties } from './pages/Properties';
-import { Customers } from './pages/Customers';
-import { Settings } from './pages/Settings';
-import { AuditLogs } from './pages/AuditLogs';
-import { Analytics } from './pages/Analytics';
-import { UserManagement } from './pages/admin/UserManagement';
-import { TenantManagement } from './pages/platform/TenantManagement';
-import { SystemSettings } from './pages/platform/SystemSettings';
-import { Unauthorized } from './pages/Unauthorized';
-import { NotFound } from './pages/NotFound';
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { ProtectedRoute } from "./components/common/ProtectedRoute";
+import { Role } from "./types/auth";
+import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
+import { Dashboard } from "./pages/Dashboard";
+import { Properties } from "./pages/Properties";
+import { Customers } from "./pages/Customers";
+import { Settings } from "./pages/Settings";
+import { AuditLogs } from "./pages/AuditLogs";
+import { Analytics } from "./pages/Analytics";
+import { UserManagement } from "./pages/admin/UserManagement";
+import { TenantManagement } from "./pages/platform/TenantManagement";
+import { SystemSettings } from "./pages/platform/SystemSettings";
+import { Unauthorized } from "./pages/Unauthorized";
+import { NotFound } from "./pages/NotFound";
 
 export const AppRoutes = () => {
   return (
@@ -52,7 +52,14 @@ export const AppRoutes = () => {
       <Route
         path="/analytics"
         element={
-          <ProtectedRoute requiredRoles={[Role.PLATFORM_ADMIN, Role.SUPERADMIN, Role.ADMIN, Role.ANALYST]}>
+          <ProtectedRoute
+            requiredRoles={[
+              Role.PLATFORM_ADMIN,
+              Role.SUPERADMIN,
+              Role.ADMIN,
+              Role.ANALYST,
+            ]}
+          >
             <Analytics />
           </ProtectedRoute>
         }
@@ -60,7 +67,9 @@ export const AppRoutes = () => {
       <Route
         path="/settings"
         element={
-          <ProtectedRoute requiredRoles={[Role.PLATFORM_ADMIN, Role.SUPERADMIN, Role.ADMIN]}>
+          <ProtectedRoute
+            requiredRoles={[Role.PLATFORM_ADMIN, Role.SUPERADMIN, Role.ADMIN]}
+          >
             <Settings />
           </ProtectedRoute>
         }
@@ -70,7 +79,9 @@ export const AppRoutes = () => {
       <Route
         path="/admin/users"
         element={
-          <ProtectedRoute requiredRoles={[Role.PLATFORM_ADMIN, Role.SUPERADMIN, Role.ADMIN]}>
+          <ProtectedRoute
+            requiredRoles={[Role.PLATFORM_ADMIN, Role.SUPERADMIN, Role.ADMIN]}
+          >
             <UserManagement />
           </ProtectedRoute>
         }
@@ -78,7 +89,9 @@ export const AppRoutes = () => {
       <Route
         path="/audit-logs"
         element={
-          <ProtectedRoute requiredRoles={[Role.PLATFORM_ADMIN, Role.SUPERADMIN, Role.AUDITOR]}>
+          <ProtectedRoute
+            requiredRoles={[Role.PLATFORM_ADMIN, Role.SUPERADMIN, Role.AUDITOR]}
+          >
             <AuditLogs />
           </ProtectedRoute>
         }
@@ -107,4 +120,4 @@ export const AppRoutes = () => {
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
-}; 
+};

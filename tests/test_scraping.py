@@ -13,10 +13,22 @@ from app.scraping.services.scheduler import ScrapingScheduler
 from app.shared.core.exceptions import NotFoundError, ValidationError
 
 @pytest.fixture
-def db_session():
-    """Create a test database session."""
-    # TODO: Implement test database session
-    pass
+ def db_session():
+     """Create a test database session."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from app.database import Base
+    
+    # Use in-memory SQLite for testing
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
 
 @pytest.fixture
 def scraper_service(db_session):

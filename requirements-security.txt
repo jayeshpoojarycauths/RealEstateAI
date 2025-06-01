@@ -7,7 +7,7 @@ pytest-mock>=3.12.0,<4.0.0
 # Security
 bandit>=1.7.5,<2.0.0
 safety>=2.3.5,<3.0.0
-cryptography>=41.0.4,<42.0.0
+cryptography>=45.0.3,<46.0.0
 
 # Type Checking and Formatting  
 mypy>=1.6.1,<2.0.0
@@ -16,14 +16,14 @@ isort>=5.12.0,<6.0.0
 flake8>=6.1.0,<7.0.0
 
 # Database
-SQLAlchemy>=2.0.23,<3.0.0
+SQLAlchemy>=2.0.29,<3.0.0
 alembic>=1.12.1,<2.0.0
 psycopg2-binary>=2.9.9,<3.0.0; platform_system != "Windows"  # Use psycopg2 for Windows
 psycopg2>=2.9.9,<3.0.0; platform_system == "Windows"
 
 # API Framework
-fastapi>=0.104.1,<0.105.0
-uvicorn>=0.24.0,<0.25.0
+fastapi>=0.115.12,<0.116.0
+uvicorn>=0.34.2,<0.35.0
 python-jose[cryptography]>=3.3.0,<4.0.0
 passlib[bcrypt]>=1.7.4,<2.0.0
 python-multipart>=0.0.6,<0.1.0

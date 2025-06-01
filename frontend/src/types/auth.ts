@@ -1,4 +1,4 @@
-import { Role } from './roles';
+import { Role } from "./roles";
 
 // Role utility functions
 export const isPlatformAdmin = (role: Role) => role === Role.PLATFORM_ADMIN;
@@ -12,7 +12,14 @@ export const isAuditor = (role: Role) => role === Role.AUDITOR;
 // Role hierarchy for permission checks
 export const roleHierarchy: Record<Role, Role[]> = {
   [Role.PLATFORM_ADMIN]: Object.values(Role),
-  [Role.SUPERADMIN]: [Role.SUPERADMIN, Role.ADMIN, Role.MANAGER, Role.AGENT, Role.ANALYST, Role.AUDITOR],
+  [Role.SUPERADMIN]: [
+    Role.SUPERADMIN,
+    Role.ADMIN,
+    Role.MANAGER,
+    Role.AGENT,
+    Role.ANALYST,
+    Role.AUDITOR,
+  ],
   [Role.ADMIN]: [Role.ADMIN, Role.MANAGER, Role.AGENT, Role.ANALYST],
   [Role.MANAGER]: [Role.MANAGER, Role.AGENT],
   [Role.AGENT]: [Role.AGENT],
@@ -92,4 +99,6 @@ export interface EmailVerificationDto {
 
 export interface ResendVerificationDto {
   email: string;
-} 
+}
+export { Role };
+

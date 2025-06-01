@@ -136,20 +136,20 @@ class AuditService:
         email: str,
         ip_address: str,
         user_agent: str,
-        reason: str,
-        customer_id: Optional[str] = None
-    ) -> None:
-        """Log failed login attempt."""
+    def log_login_failure(..., reason: str, customer_id: Optional[str] = None) -> None:
+         ...
         self.log_auth_event(
-            user=None,
-            action="login_failure",
-            ip_address=ip_address,
-            user_agent=user_agent,
-            details={
-                "email": email,
-                "reason": reason
+             user=None,
+             action="login_failure",
+             ip_address=ip_address,
+             user_agent=user_agent,
+             details={
+                 "email": email,
+                 "reason": reason
             },
-            success=False
+             success=False,
+            customer_id=customer_id
+         )
         )
 
     def log_logout(

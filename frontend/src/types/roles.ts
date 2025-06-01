@@ -1,11 +1,11 @@
 export enum Role {
-  PLATFORM_ADMIN = 'platform_admin',
-  SUPERADMIN = 'superadmin',
-  ADMIN = 'admin',
-  MANAGER = 'manager',
-  AGENT = 'agent',
-  ANALYST = 'analyst',
-  AUDITOR = 'auditor',
+  PLATFORM_ADMIN = "platform_admin",
+  SUPERADMIN = "superadmin",
+  ADMIN = "admin",
+  MANAGER = "manager",
+  AGENT = "agent",
+  ANALYST = "analyst",
+  AUDITOR = "auditor",
 }
 
 // Role utility functions
@@ -20,7 +20,14 @@ export const isAuditor = (role: Role) => role === Role.AUDITOR;
 // Role hierarchy for permission checks
 export const roleHierarchy: Record<Role, Role[]> = {
   [Role.PLATFORM_ADMIN]: Object.values(Role),
-  [Role.SUPERADMIN]: [Role.SUPERADMIN, Role.ADMIN, Role.MANAGER, Role.AGENT, Role.ANALYST, Role.AUDITOR],
+  [Role.SUPERADMIN]: [
+    Role.SUPERADMIN,
+    Role.ADMIN,
+    Role.MANAGER,
+    Role.AGENT,
+    Role.ANALYST,
+    Role.AUDITOR,
+  ],
   [Role.ADMIN]: [Role.ADMIN, Role.MANAGER, Role.AGENT, Role.ANALYST],
   [Role.MANAGER]: [Role.MANAGER, Role.AGENT],
   [Role.AGENT]: [Role.AGENT],
@@ -42,5 +49,6 @@ export interface RoleBasedAccess {
 // Create a role-based access control object
 export const createRoleAccess = (roles: Role[]): RoleBasedAccess => ({
   requiredRoles: roles,
-  checkAccess: (userRole: Role) => roles.some(role => hasPermission(userRole, role)),
-}); 
+  checkAccess: (userRole: Role) =>
+    roles.some((role) => hasPermission(userRole, role)),
+});

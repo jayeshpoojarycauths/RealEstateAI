@@ -1,5 +1,5 @@
-export type Language = 'en' | 'es' | 'fr';
-export type Theme = 'light' | 'dark' | 'system';
+export type Language = "en" | "es" | "fr";
+export type Theme = "light" | "dark" | "system";
 
 export interface Profile {
   firstName: string;
@@ -49,4 +49,4 @@ export interface UpdateSettingsDto {
   profile?: Partial<Profile>;
   preferences?: Partial<Preferences>;
   notifications?: Partial<Notifications>;
-} 
+}

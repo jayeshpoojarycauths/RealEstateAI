@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { api } from '../services/api';
-import { config } from '../config';
+import { useState } from "react";
+import { api } from "../services/api";
+import { config } from "../config";
 
 interface PriceTrend {
   date: string;
@@ -27,22 +27,26 @@ export function useStats() {
     startDate?: string,
     endDate?: string,
     location?: string,
-    propertyType?: string
+    propertyType?: string,
   ) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.get(`${config.apiUrl}/v1/stats/price-trends/`, {
-        params: {
-          start_date: startDate,
-          end_date: endDate,
-          location,
-          property_type: propertyType,
+      const response = await api.get(
+        `${config.apiUrl}/v1/stats/price-trends/`,
+        {
+          params: {
+            start_date: startDate,
+            end_date: endDate,
+            location,
+            property_type: propertyType,
+          },
         },
-      });
+      );
       return response.data as PriceTrend[];
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch price trends';
+      const message =
+        err instanceof Error ? err.message : "Failed to fetch price trends";
       setError(message);
       throw new Error(message);
     } finally {
@@ -54,15 +58,19 @@ export function useStats() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.get(`${config.apiUrl}/v1/stats/lead-quality/`, {
-        params: {
-          start_date: startDate,
-          end_date: endDate,
+      const response = await api.get(
+        `${config.apiUrl}/v1/stats/lead-quality/`,
+        {
+          params: {
+            start_date: startDate,
+            end_date: endDate,
+          },
         },
-      });
+      );
       return response.data as LeadQuality;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch lead quality';
+      const message =
+        err instanceof Error ? err.message : "Failed to fetch lead quality";
       setError(message);
       throw new Error(message);
     } finally {
@@ -76,4 +84,4 @@ export function useStats() {
     isLoading,
     error,
   };
-} 
+}

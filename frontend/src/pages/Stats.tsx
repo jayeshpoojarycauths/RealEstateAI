@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -8,7 +8,7 @@ import {
   CircularProgress,
   Card,
   CardContent,
-} from '@mui/material';
+} from "@mui/material";
 import {
   LineChart,
   Line,
@@ -21,10 +21,10 @@ import {
   PieChart,
   Pie,
   Cell,
-} from 'recharts';
-import { useApi } from '../hooks/useApi';
+} from "recharts";
+import { useApi } from "../hooks/useApi";
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 export const Stats: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -34,10 +34,10 @@ export const Stats: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await get('/api/v1/stats');
+        const response = await get("/api/v1/stats");
         setStats(response.data);
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error("Error fetching stats:", error);
       } finally {
         setLoading(false);
       }
@@ -48,7 +48,12 @@ export const Stats: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="80vh"
+      >
         <CircularProgress />
       </Box>
     );
@@ -79,8 +84,18 @@ export const Stats: React.FC = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="new_leads" stroke="#8884d8" name="New Leads" />
-                    <Line type="monotone" dataKey="active_leads" stroke="#82ca9d" name="Active Leads" />
+                    <Line
+                      type="monotone"
+                      dataKey="new_leads"
+                      stroke="#8884d8"
+                      name="New Leads"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="active_leads"
+                      stroke="#82ca9d"
+                      name="Active Leads"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </Box>
@@ -106,11 +121,18 @@ export const Stats: React.FC = () => {
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }) =>
+                        `${name} ${(percent * 100).toFixed(0)}%`
+                      }
                     >
-                      {stats?.project_stats?.status_distribution?.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
+                      {stats?.project_stats?.status_distribution?.map(
+                        (entry: any, index: number) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ),
+                      )}
                     </Pie>
                     <Tooltip />
                   </PieChart>
@@ -138,8 +160,18 @@ export const Stats: React.FC = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="interactions" stroke="#8884d8" name="Interactions" />
-                    <Line type="monotone" dataKey="responses" stroke="#82ca9d" name="Responses" />
+                    <Line
+                      type="monotone"
+                      dataKey="interactions"
+                      stroke="#8884d8"
+                      name="Interactions"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="responses"
+                      stroke="#82ca9d"
+                      name="Responses"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </Box>
@@ -149,4 +181,4 @@ export const Stats: React.FC = () => {
       </Grid>
     </Container>
   );
-}; 
+};

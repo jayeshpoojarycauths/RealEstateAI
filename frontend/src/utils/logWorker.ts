@@ -1,22 +1,28 @@
-import { LogEntry } from './logger';
+import { LogEntry } from "./logger";
 
 // Process log entries in a separate thread
 self.onmessage = (event: MessageEvent) => {
-    if (event.data.type === 'process') {
-        const entry: LogEntry = event.data.entry;
-        
-        // Add any additional processing here
-        // For example, you could:
-        // - Add environment information
-        // - Add browser/device information
-        // - Add performance metrics
-        // - Add memory usage
-        // - Add network status
-        
-        // Send the processed entry back
-        self.postMessage({
-            type: 'processed',
-            entry
-        });
+  try {
+    if (!event.data || event.data.type !== "process" || !event.data.entry) {
+      // Invalid message structure
+      self.postMessage({
+        type: "error",
+        error: "Malformed log entry or message type.",
+      });
+      return;
     }
-}; 
+    const entry: LogEntry = event.data.entry;
+    // Optionally validate entry fields here
+    // Send the processed entry back
+    self.postMessage({
+      type: "processed",
+      entry,
+    });
+  } catch (err) {
+    // Log error and prevent worker from crashing
+    self.postMessage({
+      type: "error",
+      error: (err as Error).message || "Unknown error in log worker.",
+    });
+  }
+};

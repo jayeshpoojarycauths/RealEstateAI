@@ -23,9 +23,16 @@ import {
   ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
-import api from '../services/api';
+import api from "../services/api";
 import { useForm, Controller } from "react-hook-form";
-import { FaSms, FaPhone, FaWhatsapp, FaTelegramPlane, FaEdit, FaSave } from 'react-icons/fa';
+import {
+  FaSms,
+  FaPhone,
+  FaWhatsapp,
+  FaTelegramPlane,
+  FaEdit,
+  FaSave,
+} from "react-icons/fa";
 
 interface Lead {
   id: number;
@@ -65,7 +72,14 @@ export const LeadsPage: React.FC = () => {
   const [editingRowId, setEditingRowId] = useState<number | null>(null);
   const [rowEdits, setRowEdits] = useState<Partial<Lead>>({});
 
-  const { register, handleSubmit, reset, setValue, formState: { errors }, control } = useForm({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+    control,
+  } = useForm({
     defaultValues: {
       first_name: "",
       last_name: "",
@@ -83,20 +97,20 @@ export const LeadsPage: React.FC = () => {
   const fetchLeads = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      console.log('Fetching leads...');
-      console.log('Token:', token);
-      console.log('API URL:', api.defaults.baseURL, '/leads/');
-      const response = await api.get('/leads/');
-      console.log('Leads API response:', response);
+      const token = localStorage.getItem("token");
+      console.log("Fetching leads...");
+      console.log("Token:", token);
+      console.log("API URL:", api.defaults.baseURL, "/leads/");
+      const response = await api.get("/leads/");
+      console.log("Leads API response:", response);
       setLeads(response.data);
       setError("");
     } catch (e: any) {
-      console.error('Error fetching leads:', e);
+      console.error("Error fetching leads:", e);
       if (e.response) {
-        console.error('Error response data:', e.response.data);
-        console.error('Error response status:', e.response.status);
-        console.error('Error response headers:', e.response.headers);
+        console.error("Error response data:", e.response.data);
+        console.error("Error response status:", e.response.status);
+        console.error("Error response headers:", e.response.headers);
       }
       setError("Failed to fetch leads. Please try again later.");
     } finally {
@@ -119,7 +133,8 @@ export const LeadsPage: React.FC = () => {
         lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lead.phone.includes(searchTerm);
-      const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "all" || lead.status === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -132,7 +147,7 @@ export const LeadsPage: React.FC = () => {
   const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
   const paginatedLeads = filteredLeads.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const statusOptions = [
@@ -163,8 +178,11 @@ export const LeadsPage: React.FC = () => {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const result = await api.post('/leads/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${localStorage.getItem('token')}` },
+      const result = await api.post("/leads/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       });
       setUploadResponse(result.data);
       setFile(null);
@@ -205,7 +223,7 @@ export const LeadsPage: React.FC = () => {
       setRowEdits({});
       fetchLeads();
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to save lead');
+      setError(e?.response?.data?.detail || "Failed to save lead");
     }
   };
 
@@ -238,22 +256,30 @@ export const LeadsPage: React.FC = () => {
 
   const handleDownloadTemplate = async () => {
     try {
-      const response = await api.get('/leads/template', { responseType: 'blob' });
+      const response = await api.get("/leads/template", {
+        responseType: "blob",
+      });
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', 'lead_upload_template.xlsx');
+      link.setAttribute("download", "lead_upload_template.xlsx");
       document.body.appendChild(link);
       link.click();
       link.remove();
     } catch (error) {
-      console.error('Error downloading template:', error);
+      console.error("Error downloading template:", error);
     }
   };
 
   // Type guard for error object
-  function isValidationError(error: unknown): error is { detail: { msg: string }[] } {
-    return typeof error === 'object' && error !== null && Array.isArray((error as any).detail);
+  function isValidationError(
+    error: unknown,
+  ): error is { detail: { msg: string }[] } {
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      Array.isArray((error as any).detail)
+    );
   }
 
   const handleSms = async (lead: Lead) => {
@@ -262,11 +288,13 @@ export const LeadsPage: React.FC = () => {
     try {
       await api.post(`/communication/send/${lead.id}/`, {
         message: `Hello ${lead.name}, this is a test SMS from Real Estate AI!`,
-        channel: 'sms',
+        channel: "sms",
       });
       setSuccessMessage(`SMS sent to ${lead.phone}`);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || `Failed to send SMS to ${lead.phone}`);
+      setError(
+        err?.response?.data?.detail || `Failed to send SMS to ${lead.phone}`,
+      );
     }
   };
 
@@ -276,11 +304,13 @@ export const LeadsPage: React.FC = () => {
     try {
       await api.post(`/communication/send/${lead.id}/`, {
         message: `Hello ${lead.name}, this is a test call from Real Estate AI!`,
-        channel: 'call',
+        channel: "call",
       });
       setSuccessMessage(`Call to ${lead.phone} ended`);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || `Failed to make call to ${lead.phone}`);
+      setError(
+        err?.response?.data?.detail || `Failed to make call to ${lead.phone}`,
+      );
     }
   };
 
@@ -290,11 +320,14 @@ export const LeadsPage: React.FC = () => {
     try {
       await api.post(`/communication/send/${lead.id}/`, {
         message: `Hello ${lead.name}, this is a test WhatsApp message from Real Estate AI!`,
-        channel: 'whatsapp',
+        channel: "whatsapp",
       });
       setSuccessMessage(`WhatsApp sent to ${lead.phone}`);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || `Failed to send WhatsApp to ${lead.phone}`);
+      setError(
+        err?.response?.data?.detail ||
+          `Failed to send WhatsApp to ${lead.phone}`,
+      );
     }
   };
 
@@ -304,11 +337,14 @@ export const LeadsPage: React.FC = () => {
     try {
       await api.post(`/communication/send/${lead.id}/`, {
         message: `Hello ${lead.name}, this is a test Telegram message from Real Estate AI!`,
-        channel: 'telegram',
+        channel: "telegram",
       });
       setSuccessMessage(`Telegram sent to ${lead.phone}`);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || `Failed to send Telegram to ${lead.phone}`);
+      setError(
+        err?.response?.data?.detail ||
+          `Failed to send Telegram to ${lead.phone}`,
+      );
     }
   };
 
@@ -320,7 +356,7 @@ export const LeadsPage: React.FC = () => {
         ...data,
         name: `${data.first_name} ${data.last_name}`.trim(),
       };
-      await api.post('/leads/new/', payload);
+      await api.post("/leads/new/", payload);
       setSuccessMessage("Lead added successfully!");
       setAddLeadOpen(false);
       reset();
@@ -351,11 +387,11 @@ export const LeadsPage: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-full">
         <Typography variant="h6" color="red">
-          {typeof error === 'string'
+          {typeof error === "string"
             ? error
-            : (typeof error === 'object' && error !== null && 'msg' in error)
+            : typeof error === "object" && error !== null && "msg" in error
               ? (error as any).msg
-              : (typeof error === 'object' && error !== null && 'detail' in error)
+              : typeof error === "object" && error !== null && "detail" in error
                 ? (error as any).detail
                 : JSON.stringify(error)}
         </Typography>
@@ -368,9 +404,7 @@ export const LeadsPage: React.FC = () => {
       {successMessage && (
         <div className="mb-4 text-green-600">{successMessage}</div>
       )}
-      {error && (
-        <div className="mb-4 text-red-600">{error}</div>
-      )}
+      {error && <div className="mb-4 text-red-600">{error}</div>}
       <div className="flex items-center justify-between">
         <Typography variant="h4" color="blue-gray">
           Leads
@@ -407,13 +441,37 @@ export const LeadsPage: React.FC = () => {
 
       {file && (
         <div className="mb-4 p-4 bg-blue-gray-50 rounded-lg flex flex-col gap-2">
-          <Typography variant="small" color="blue-gray">Selected file: {file.name}</Typography>
+          <Typography variant="small" color="blue-gray">
+            Selected file: {file.name}
+          </Typography>
           <div className="flex gap-2">
-            <Button color="blue" onClick={handleUpload} disabled={uploading} type="button">{uploading ? "Uploading..." : "Upload"}</Button>
-            <Button color="red" variant="text" onClick={() => setFile(null)} type="button">Cancel</Button>
+            <Button
+              color="blue"
+              onClick={handleUpload}
+              disabled={uploading}
+              type="button"
+            >
+              {uploading ? "Uploading..." : "Upload"}
+            </Button>
+            <Button
+              color="red"
+              variant="text"
+              onClick={() => setFile(null)}
+              type="button"
+            >
+              Cancel
+            </Button>
           </div>
-          {uploadError && <Typography variant="small" color="red">{uploadError}</Typography>}
-          {uploadResponse && <Typography variant="small" color="green">Upload complete!</Typography>}
+          {uploadError && (
+            <Typography variant="small" color="red">
+              {uploadError}
+            </Typography>
+          )}
+          {uploadResponse && (
+            <Typography variant="small" color="green">
+              Upload complete!
+            </Typography>
+          )}
         </div>
       )}
 
@@ -423,7 +481,9 @@ export const LeadsPage: React.FC = () => {
             type="text"
             placeholder="Search leads..."
             value={searchTerm}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setSearchTerm(e.target.value)
+            }
             icon={<MagnifyingGlassIcon className="h-5 w-5" />}
           />
         </div>
@@ -449,149 +509,258 @@ export const LeadsPage: React.FC = () => {
           </Typography>
         </CardHeader>
         <CardBody>
-        <div className="overflow-x-auto">
-  <table className="w-full min-w-max table-auto text-left">
-    <thead>
-      <tr>
-        <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4 cursor-pointer" onClick={() => handleSort("name")}>
-          <div className="flex items-center">
-            <Typography variant="small" color="blue-gray" className="font-normal leading-none opacity-70">
-              Name
-            </Typography>
-            {sortField === "name" && (sortDirection === "asc" ? <ChevronUpIcon className="h-4 w-4 ml-1" /> : <ChevronDownIcon className="h-4 w-4 ml-1" />)}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max table-auto text-left">
+              <thead>
+                <tr>
+                  <th
+                    className="border-b border-blue-gray-100 bg-blue-gray-50 p-4 cursor-pointer"
+                    onClick={() => handleSort("name")}
+                  >
+                    <div className="flex items-center">
+                      <Typography
+                        variant="small"
+                        color="blue-gray"
+                        className="font-normal leading-none opacity-70"
+                      >
+                        Name
+                      </Typography>
+                      {sortField === "name" &&
+                        (sortDirection === "asc" ? (
+                          <ChevronUpIcon className="h-4 w-4 ml-1" />
+                        ) : (
+                          <ChevronDownIcon className="h-4 w-4 ml-1" />
+                        ))}
+                    </div>
+                  </th>
+                  <th
+                    className="border-b border-blue-gray-100 bg-blue-gray-50 p-4 cursor-pointer"
+                    onClick={() => handleSort("email")}
+                  >
+                    <div className="flex items-center">
+                      <Typography
+                        variant="small"
+                        color="blue-gray"
+                        className="font-normal leading-none opacity-70"
+                      >
+                        Email
+                      </Typography>
+                      {sortField === "email" &&
+                        (sortDirection === "asc" ? (
+                          <ChevronUpIcon className="h-4 w-4 ml-1" />
+                        ) : (
+                          <ChevronDownIcon className="h-4 w-4 ml-1" />
+                        ))}
+                    </div>
+                  </th>
+                  <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
+                    <Typography
+                      variant="small"
+                      color="blue-gray"
+                      className="font-normal leading-none opacity-70"
+                    >
+                      Phone
+                    </Typography>
+                  </th>
+                  <th
+                    className="border-b border-blue-gray-100 bg-blue-gray-50 p-4 cursor-pointer"
+                    onClick={() => handleSort("status")}
+                  >
+                    <div className="flex items-center">
+                      <Typography
+                        variant="small"
+                        color="blue-gray"
+                        className="font-normal leading-none opacity-70"
+                      >
+                        Status
+                      </Typography>
+                      {sortField === "status" &&
+                        (sortDirection === "asc" ? (
+                          <ChevronUpIcon className="h-4 w-4 ml-1" />
+                        ) : (
+                          <ChevronDownIcon className="h-4 w-4 ml-1" />
+                        ))}
+                    </div>
+                  </th>
+                  <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
+                    <Typography
+                      variant="small"
+                      color="blue-gray"
+                      className="font-normal leading-none opacity-70"
+                    >
+                      Communicate
+                    </Typography>
+                  </th>
+                  <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4 text-center">
+                    <Typography
+                      variant="small"
+                      color="blue-gray"
+                      className="font-normal leading-none opacity-70"
+                    >
+                      Actions
+                    </Typography>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedLeads.map((lead) => (
+                  <tr key={lead.id}>
+                    <td className="p-4">
+                      {editingRowId === lead.id ? (
+                        <Input
+                          value={rowEdits.name || ""}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            handleRowEditChange("name", e.target.value)
+                          }
+                          className="w-full"
+                        />
+                      ) : (
+                        <Typography
+                          variant="small"
+                          color="blue-gray"
+                          className="font-normal"
+                        >
+                          {lead.name}
+                        </Typography>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      {editingRowId === lead.id ? (
+                        <Input
+                          value={rowEdits.email || ""}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            handleRowEditChange("email", e.target.value)
+                          }
+                          className="w-full"
+                        />
+                      ) : (
+                        <Typography
+                          variant="small"
+                          color="blue-gray"
+                          className="font-normal"
+                        >
+                          {lead.email}
+                        </Typography>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      {editingRowId === lead.id ? (
+                        <Input
+                          value={rowEdits.phone || ""}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            handleRowEditChange("phone", e.target.value)
+                          }
+                          className="w-full"
+                        />
+                      ) : (
+                        <Typography
+                          variant="small"
+                          color="blue-gray"
+                          className="font-normal"
+                        >
+                          {lead.phone}
+                        </Typography>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      {editingRowId === lead.id ? (
+                        <Select
+                          value={rowEdits.status || ""}
+                          onChange={(e: string | undefined) =>
+                            handleRowEditChange("status", e || "")
+                          }
+                          className="w-full"
+                        >
+                          <Option value="new">New</Option>
+                          <Option value="contacted">Contacted</Option>
+                          <Option value="qualified">Qualified</Option>
+                          <Option value="lost">Lost</Option>
+                        </Select>
+                      ) : (
+                        <Typography
+                          variant="small"
+                          color="blue-gray"
+                          className="font-normal"
+                        >
+                          {lead.status}
+                        </Typography>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <div className="grid grid-cols-4 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleSms(lead)}
+                          title="Send SMS"
+                          className="p-1"
+                        >
+                          <FaSms className="text-blue-500 hover:text-blue-700" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCall(lead)}
+                          title="Call"
+                          className="p-1"
+                        >
+                          <FaPhone className="text-green-500 hover:text-green-700" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleWhatsapp(lead)}
+                          title="WhatsApp"
+                          className="p-1"
+                        >
+                          <FaWhatsapp className="text-green-600 hover:text-green-800" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTelegram(lead)}
+                          title="Telegram"
+                          className="p-1"
+                        >
+                          <FaTelegramPlane className="text-blue-400 hover:text-blue-600" />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="p-4 text-center">
+                      <div className="grid grid-cols-2 gap-2 justify-center">
+                        {editingRowId === lead.id ? (
+                          <Button
+                            variant="text"
+                            color="green"
+                            size="sm"
+                            onClick={() => saveRowEdit(lead)}
+                            type="button"
+                          >
+                            <FaSave />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="text"
+                            color="blue"
+                            size="sm"
+                            onClick={() => startEditRow(lead)}
+                            type="button"
+                          >
+                            <FaEdit />
+                          </Button>
+                        )}
+                        <Button
+                          variant="text"
+                          color="red"
+                          size="sm"
+                          onClick={() => handleDelete(lead)}
+                          type="button"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </th>
-        <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4 cursor-pointer" onClick={() => handleSort("email")}>
-          <div className="flex items-center">
-            <Typography variant="small" color="blue-gray" className="font-normal leading-none opacity-70">
-              Email
-            </Typography>
-            {sortField === "email" && (sortDirection === "asc" ? <ChevronUpIcon className="h-4 w-4 ml-1" /> : <ChevronDownIcon className="h-4 w-4 ml-1" />)}
-          </div>
-        </th>
-        <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
-          <Typography variant="small" color="blue-gray" className="font-normal leading-none opacity-70">
-            Phone
-          </Typography>
-        </th>
-        <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4 cursor-pointer" onClick={() => handleSort("status")}>
-          <div className="flex items-center">
-            <Typography variant="small" color="blue-gray" className="font-normal leading-none opacity-70">
-              Status
-            </Typography>
-            {sortField === "status" && (sortDirection === "asc" ? <ChevronUpIcon className="h-4 w-4 ml-1" /> : <ChevronDownIcon className="h-4 w-4 ml-1" />)}
-          </div>
-        </th>
-        <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
-          <Typography variant="small" color="blue-gray" className="font-normal leading-none opacity-70">
-            Communicate
-          </Typography>
-        </th>
-        <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4 text-center">
-          <Typography variant="small" color="blue-gray" className="font-normal leading-none opacity-70">
-            Actions
-          </Typography>
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      {paginatedLeads.map((lead) => (
-        <tr key={lead.id}>
-          <td className="p-4">
-            {editingRowId === lead.id ? (
-              <Input
-                value={rowEdits.name || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleRowEditChange('name', e.target.value)}
-                className="w-full"
-              />
-            ) : (
-              <Typography variant="small" color="blue-gray" className="font-normal">
-                {lead.name}
-              </Typography>
-            )}
-          </td>
-          <td className="p-4">
-            {editingRowId === lead.id ? (
-              <Input
-                value={rowEdits.email || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleRowEditChange('email', e.target.value)}
-                className="w-full"
-              />
-            ) : (
-              <Typography variant="small" color="blue-gray" className="font-normal">
-                {lead.email}
-              </Typography>
-            )}
-          </td>
-          <td className="p-4">
-            {editingRowId === lead.id ? (
-              <Input
-                value={rowEdits.phone || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleRowEditChange('phone', e.target.value)}
-                className="w-full"
-              />
-            ) : (
-              <Typography variant="small" color="blue-gray" className="font-normal">
-                {lead.phone}
-              </Typography>
-            )}
-          </td>
-          <td className="p-4">
-            {editingRowId === lead.id ? (
-              <Select
-                value={rowEdits.status || ''}
-                onChange={(e: string | undefined) => handleRowEditChange('status', e || '')}
-                className="w-full"
-              >
-                <Option value="new">New</Option>
-                <Option value="contacted">Contacted</Option>
-                <Option value="qualified">Qualified</Option>
-                <Option value="lost">Lost</Option>
-              </Select>
-            ) : (
-              <Typography variant="small" color="blue-gray" className="font-normal">
-                {lead.status}
-              </Typography>
-            )}
-          </td>
-          <td className="p-4">
-            <div className="grid grid-cols-4 gap-2">
-              <button type="button" onClick={() => handleSms(lead)} title="Send SMS" className="p-1">
-                <FaSms className="text-blue-500 hover:text-blue-700" />
-              </button>
-              <button type="button" onClick={() => handleCall(lead)} title="Call" className="p-1">
-                <FaPhone className="text-green-500 hover:text-green-700" />
-              </button>
-              <button type="button" onClick={() => handleWhatsapp(lead)} title="WhatsApp" className="p-1">
-                <FaWhatsapp className="text-green-600 hover:text-green-800" />
-              </button>
-              <button type="button" onClick={() => handleTelegram(lead)} title="Telegram" className="p-1">
-                <FaTelegramPlane className="text-blue-400 hover:text-blue-600" />
-              </button>
-            </div>
-          </td>
-          <td className="p-4 text-center">
-            <div className="grid grid-cols-2 gap-2 justify-center">
-              {editingRowId === lead.id ? (
-                <Button variant="text" color="green" size="sm" onClick={() => saveRowEdit(lead)} type="button">
-                  <FaSave />
-                </Button>
-              ) : (
-                <Button variant="text" color="blue" size="sm" onClick={() => startEditRow(lead)} type="button">
-                  <FaEdit />
-                </Button>
-              )}
-              <Button variant="text" color="red" size="sm" onClick={() => handleDelete(lead)} type="button">
-                Delete
-              </Button>
-            </div>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between p-4 border-t border-blue-gray-50">
@@ -636,7 +805,11 @@ export const LeadsPage: React.FC = () => {
           </Typography>
         </DialogHeader>
         <DialogBody>
-          <form onSubmit={handleSubmit(onAddLeadSubmit)} autoComplete="off" className="w-full">
+          <form
+            onSubmit={handleSubmit(onAddLeadSubmit)}
+            autoComplete="off"
+            className="w-full"
+          >
             <DialogBody className="flex flex-col gap-4">
               {/* First Name */}
               <Controller
@@ -657,7 +830,12 @@ export const LeadsPage: React.FC = () => {
                       containerProps={{ className: "min-w-[100px]" }}
                     />
                     {fieldState.error && (
-                      <Typography color="red" variant="small" id="first-name-error" className="mt-1">
+                      <Typography
+                        color="red"
+                        variant="small"
+                        id="first-name-error"
+                        className="mt-1"
+                      >
                         {fieldState.error.message}
                       </Typography>
                     )}
@@ -683,7 +861,12 @@ export const LeadsPage: React.FC = () => {
                       containerProps={{ className: "min-w-[100px]" }}
                     />
                     {fieldState.error && (
-                      <Typography color="red" variant="small" id="last-name-error" className="mt-1">
+                      <Typography
+                        color="red"
+                        variant="small"
+                        id="last-name-error"
+                        className="mt-1"
+                      >
                         {fieldState.error.message}
                       </Typography>
                     )}
@@ -716,7 +899,12 @@ export const LeadsPage: React.FC = () => {
                       containerProps={{ className: "min-w-[100px]" }}
                     />
                     {fieldState.error && (
-                      <Typography color="red" variant="small" id="email-error" className="mt-1">
+                      <Typography
+                        color="red"
+                        variant="small"
+                        id="email-error"
+                        className="mt-1"
+                      >
                         {fieldState.error.message}
                       </Typography>
                     )}
@@ -748,7 +936,12 @@ export const LeadsPage: React.FC = () => {
                       containerProps={{ className: "min-w-[100px]" }}
                     />
                     {fieldState.error && (
-                      <Typography color="red" variant="small" id="phone-error" className="mt-1">
+                      <Typography
+                        color="red"
+                        variant="small"
+                        id="phone-error"
+                        className="mt-1"
+                      >
                         {fieldState.error.message}
                       </Typography>
                     )}
@@ -766,7 +959,7 @@ export const LeadsPage: React.FC = () => {
                     <select
                       {...field}
                       id="lead-status"
-                      className={`w-full border rounded px-3 py-2 ${fieldState.error ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full border rounded px-3 py-2 ${fieldState.error ? "border-red-500" : "border-gray-300"}`}
                       aria-invalid={!!fieldState.error}
                     >
                       <option value="new">New</option>
@@ -775,7 +968,12 @@ export const LeadsPage: React.FC = () => {
                       <option value="lost">Lost</option>
                     </select>
                     {fieldState.error && (
-                      <Typography color="red" variant="small" id="status-error" className="mt-1">
+                      <Typography
+                        color="red"
+                        variant="small"
+                        id="status-error"
+                        className="mt-1"
+                      >
                         {fieldState.error.message}
                       </Typography>
                     )}
@@ -803,34 +1001,40 @@ export const LeadsPage: React.FC = () => {
               />
 
               {/* Error rendering */}
-              {addLeadError && (
-                isValidationError(addLeadError) ? (
+              {addLeadError &&
+                (isValidationError(addLeadError) ? (
                   addLeadError.detail.map((e: { msg: string }, i: number) => (
-                    <Typography key={i} color="red" variant="small" className="mt-2">
+                    <Typography
+                      key={i}
+                      color="red"
+                      variant="small"
+                      className="mt-2"
+                    >
                       {e.msg}
                     </Typography>
                   ))
                 ) : (
                   <Typography color="red" variant="small" className="mt-2">
-                    {typeof addLeadError === 'string' ? addLeadError : 'Failed to save lead'}
+                    {typeof addLeadError === "string"
+                      ? addLeadError
+                      : "Failed to save lead"}
                   </Typography>
-                )
-              )}
+                ))}
             </DialogBody>
             <DialogFooter className="gap-2 pt-4">
-              <Button 
-                color="red" 
-                variant="text" 
-                onClick={closeDialog} 
+              <Button
+                color="red"
+                variant="text"
+                onClick={closeDialog}
                 type="button"
                 className="mr-2"
               >
                 Cancel
               </Button>
-              <Button 
-                color="blue" 
-                type="submit" 
-                loading={addLeadLoading} 
+              <Button
+                color="blue"
+                type="submit"
+                loading={addLeadLoading}
                 disabled={addLeadLoading}
                 className="ml-2"
               >
@@ -841,13 +1045,20 @@ export const LeadsPage: React.FC = () => {
         </DialogBody>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen} handler={() => setDeleteDialogOpen(false)} size="xs">
+      <Dialog
+        open={deleteDialogOpen}
+        handler={() => setDeleteDialogOpen(false)}
+        size="xs"
+      >
         <DialogHeader>Delete Lead</DialogHeader>
-        <DialogBody>
-          Are you sure you want to delete this lead?
-        </DialogBody>
+        <DialogBody>Are you sure you want to delete this lead?</DialogBody>
         <DialogFooter className="gap-2">
-          <Button color="blue-gray" variant="text" onClick={() => setDeleteDialogOpen(false)} type="button">
+          <Button
+            color="blue-gray"
+            variant="text"
+            onClick={() => setDeleteDialogOpen(false)}
+            type="button"
+          >
             Cancel
           </Button>
           <Button color="red" onClick={confirmDelete} type="button">
@@ -857,4 +1068,4 @@ export const LeadsPage: React.FC = () => {
       </Dialog>
     </div>
   );
-}; 
+};

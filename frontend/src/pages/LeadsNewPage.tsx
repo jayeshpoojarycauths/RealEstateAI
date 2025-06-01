@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   SafeCard as Card,
   SafeCardBody as CardBody,
@@ -9,9 +9,9 @@ import {
   SafeOption as Option,
   SafeAlert as Alert,
 } from "../components/SafeMTW";
-import api from '../services/api';
-import * as RadixSelect from '@radix-ui/react-select';
-import { CheckIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import api from "../services/api";
+import * as RadixSelect from "@radix-ui/react-select";
+import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 
 // Custom dropdown component using Radix UI
 const StatusDropdown: React.FC<{
@@ -28,7 +28,7 @@ const StatusDropdown: React.FC<{
     <RadixSelect.Portal>
       <RadixSelect.Content className="z-50 bg-white border border-blue-gray-200 rounded-lg shadow-lg">
         <RadixSelect.Viewport className="p-2">
-          {['new', 'contacted', 'qualified', 'lost'].map((status) => (
+          {["new", "contacted", "qualified", "lost"].map((status) => (
             <RadixSelect.Item
               key={status}
               value={status}
@@ -50,36 +50,45 @@ const StatusDropdown: React.FC<{
 
 export const LeadsNewPage: React.FC = () => {
   const [form, setForm] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    status: 'new',
-    notes: '',
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    status: "new",
+    notes: "",
   });
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setSuccess('');
-    setError('');
+    setSuccess("");
+    setError("");
     try {
       const payload = {
         ...form,
         name: `${form.first_name} ${form.last_name}`.trim(),
       };
-      await api.post('/leads/new/', payload);
-      setSuccess('Lead created successfully!');
-      setForm({ first_name: '', last_name: '', email: '', phone: '', status: 'new', notes: '' });
+      await api.post("/leads/new/", payload);
+      setSuccess("Lead created successfully!");
+      setForm({
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        status: "new",
+        notes: "",
+      });
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Failed to create lead');
+      setError(e?.response?.data?.detail || "Failed to create lead");
     } finally {
       setLoading(false);
     }
@@ -89,7 +98,13 @@ export const LeadsNewPage: React.FC = () => {
     <div className="flex justify-center items-center min-h-screen bg-blue-gray-50">
       <Card className="w-full max-w-3xl p-10 shadow-2xl border border-blue-gray-100">
         <CardBody>
-          <Typography variant="h5" color="blue-gray" className="mb-10 font-bold tracking-wide">Create New Lead</Typography>
+          <Typography
+            variant="h5"
+            color="blue-gray"
+            className="mb-10 font-bold tracking-wide"
+          >
+            Create New Lead
+          </Typography>
           <form onSubmit={handleSubmit} className="space-y-8 mt-4">
             <div className="flex gap-8">
               <Input
@@ -127,8 +142,13 @@ export const LeadsNewPage: React.FC = () => {
               className="w-full px-4 py-3 border border-blue-gray-200 rounded-lg bg-white text-blue-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
             <div>
-              <label className="block text-blue-gray-700 font-medium mb-2">Status</label>
-              <StatusDropdown value={form.status} onChange={(status) => setForm({ ...form, status })} />
+              <label className="block text-blue-gray-700 font-medium mb-2">
+                Status
+              </label>
+              <StatusDropdown
+                value={form.status}
+                onChange={(status) => setForm({ ...form, status })}
+              />
             </div>
             <Input
               label="Notes"
@@ -139,11 +159,25 @@ export const LeadsNewPage: React.FC = () => {
               rows={2}
               className="w-full px-4 py-3 border border-blue-gray-200 rounded-lg bg-white text-blue-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
-            <Button color="blue" type="submit" loading={loading} disabled={loading} className="w-full mt-6 py-3 text-lg font-semibold rounded-lg shadow-md">
-              {loading ? 'Saving...' : 'Create Lead'}
+            <Button
+              color="blue"
+              type="submit"
+              loading={loading}
+              disabled={loading}
+              className="w-full mt-6 py-3 text-lg font-semibold rounded-lg shadow-md"
+            >
+              {loading ? "Saving..." : "Create Lead"}
             </Button>
-            {success && <Alert color="green" className="mt-6 text-base font-medium">{success}</Alert>}
-            {error && <Alert color="red" className="mt-6 text-base font-medium">{error}</Alert>}
+            {success && (
+              <Alert color="green" className="mt-6 text-base font-medium">
+                {success}
+              </Alert>
+            )}
+            {error && (
+              <Alert color="red" className="mt-6 text-base font-medium">
+                {error}
+              </Alert>
+            )}
           </form>
         </CardBody>
       </Card>
@@ -151,4 +185,4 @@ export const LeadsNewPage: React.FC = () => {
   );
 };
 
-export default LeadsNewPage; 
+export default LeadsNewPage;

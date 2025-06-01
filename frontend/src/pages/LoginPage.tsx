@@ -54,7 +54,10 @@ export const LoginPage: React.FC = () => {
   });
 
   const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
-    log.info("[Login Attempt]", { email: data.email, rememberMe: data.rememberMe });
+    log.info("[Login Attempt]", {
+      email: data.email,
+      rememberMe: data.rememberMe,
+    });
     try {
       setError(null);
       await login(data.email, data.password, data.rememberMe);
@@ -64,7 +67,7 @@ export const LoginPage: React.FC = () => {
       }
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "An error occurred during login"
+        err instanceof Error ? err.message : "An error occurred during login",
       );
       log.error("[Login Error]", err);
     }
@@ -74,7 +77,6 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 p-4">
-
       <Card
         className="max-w-md w-full mx-auto shadow-xl rounded-2xl bg-white border border-blue-100 backdrop-blur-md"
         {...(getCardProps() as any)}
@@ -103,7 +105,10 @@ export const LoginPage: React.FC = () => {
           </Typography>
         </CardHeader>
         <CardBody className="p-6 space-y-6" {...(getCardBodyProps() as any)}>
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-5"
+          >
             <div>
               <Controller
                 name="email"
@@ -144,7 +149,9 @@ export const LoginPage: React.FC = () => {
                     label="Password"
                     error={!!errors.password}
                     aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? "password-error" : undefined}
+                    aria-describedby={
+                      errors.password ? "password-error" : undefined
+                    }
                     {...(getInputProps() as any)}
                   />
                 )}

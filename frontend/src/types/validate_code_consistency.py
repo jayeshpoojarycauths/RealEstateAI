@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import re
 
@@ -25,7 +26,8 @@ patterns = {
 results = []
 
 for search_dir in search_dirs:
-    root = Path(f"/mnt/data/{search_dir}")
+    base_path = os.getenv("CODEBASE_PATH", ".")
+    root = Path(base_path) / search_dir
     if not root.exists():
         continue
     for file_path in root.rglob("*"):
@@ -33,7 +35,11 @@ for search_dir in search_dirs:
             continue
         try:
             text = file_path.read_text(encoding="utf-8")
-        except Exception:
+        except (UnicodeDecodeError, PermissionError) as e:
+            print(f"Warning: Could not read {file_path}: {e}")
+            continue
+        except Exception as e:
+            print(f"Unexpected error reading {file_path}: {e}")
             continue
         for category, checks in patterns.items():
             for pattern in checks:
@@ -47,4 +53,10 @@ for search_dir in search_dirs:
 
 import pandas as pd
 df_results = pd.DataFrame(results)
-import ace_tools as tools; tools.display_dataframe_to_user(name="Code Consistency Issues", dataframe=df_results)
+
+try:
+    import ace_tools as tools
+    tools.display_dataframe_to_user(name="Code Consistency Issues", dataframe=df_results)
+except ImportError:
+    print("ace_tools not available, displaying results:")
+    print(df_results.to_string())

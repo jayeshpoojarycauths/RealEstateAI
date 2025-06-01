@@ -19,7 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useMaterialTailwind } from "../hooks/useMaterialTailwind";
 import { useNavigate } from "react-router-dom";
-import api from '../services/api';
+import api from "../services/api";
 
 interface Project {
   id: number;
@@ -47,7 +47,14 @@ export const ProjectsPage: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const itemsPerPage = 10;
   const navigate = useNavigate();
-  const { getButtonProps, getCardProps, getCardBodyProps, getCardHeaderProps, getTypographyProps, getInputProps } = useMaterialTailwind();
+  const {
+    getButtonProps,
+    getCardProps,
+    getCardBodyProps,
+    getCardHeaderProps,
+    getTypographyProps,
+    getInputProps,
+  } = useMaterialTailwind();
 
   useEffect(() => {
     fetchProjects();
@@ -55,10 +62,10 @@ export const ProjectsPage: React.FC = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await api.get('/projects/');
+      const response = await api.get("/projects/");
       setProjects(response.data);
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error("Error fetching projects:", error);
       throw new Error("Failed to fetch projects");
     }
   };
@@ -88,7 +95,10 @@ export const ProjectsPage: React.FC = () => {
   };
 
   const getStatusLabel = (status: Project["status"]) => {
-    return status.split("_").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+    return status
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   const filteredProjects = projects
@@ -96,7 +106,8 @@ export const ProjectsPage: React.FC = () => {
       const matchesSearch =
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         project.location.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || project.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "all" || project.status === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -109,7 +120,7 @@ export const ProjectsPage: React.FC = () => {
   const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
   const paginatedProjects = filteredProjects.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const statusOptions = [
@@ -213,13 +224,12 @@ export const ProjectsPage: React.FC = () => {
                       >
                         Name
                       </Typography>
-                      {sortField === "name" && (
-                        sortDirection === "asc" ? (
+                      {sortField === "name" &&
+                        (sortDirection === "asc" ? (
                           <ChevronUpIcon className="h-4 w-4 ml-1" />
                         ) : (
                           <ChevronDownIcon className="h-4 w-4 ml-1" />
-                        )
-                      )}
+                        ))}
                     </div>
                   </th>
                   <th
@@ -235,13 +245,12 @@ export const ProjectsPage: React.FC = () => {
                       >
                         Location
                       </Typography>
-                      {sortField === "location" && (
-                        sortDirection === "asc" ? (
+                      {sortField === "location" &&
+                        (sortDirection === "asc" ? (
                           <ChevronUpIcon className="h-4 w-4 ml-1" />
                         ) : (
                           <ChevronDownIcon className="h-4 w-4 ml-1" />
-                        )
-                      )}
+                        ))}
                     </div>
                   </th>
                   <th
@@ -257,13 +266,12 @@ export const ProjectsPage: React.FC = () => {
                       >
                         Status
                       </Typography>
-                      {sortField === "status" && (
-                        sortDirection === "asc" ? (
+                      {sortField === "status" &&
+                        (sortDirection === "asc" ? (
                           <ChevronUpIcon className="h-4 w-4 ml-1" />
                         ) : (
                           <ChevronDownIcon className="h-4 w-4 ml-1" />
-                        )
-                      )}
+                        ))}
                     </div>
                   </th>
                   <th
@@ -279,13 +287,12 @@ export const ProjectsPage: React.FC = () => {
                       >
                         Progress
                       </Typography>
-                      {sortField === "progress" && (
-                        sortDirection === "asc" ? (
+                      {sortField === "progress" &&
+                        (sortDirection === "asc" ? (
                           <ChevronUpIcon className="h-4 w-4 ml-1" />
                         ) : (
                           <ChevronDownIcon className="h-4 w-4 ml-1" />
-                        )
-                      )}
+                        ))}
                     </div>
                   </th>
                   <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
@@ -402,4 +409,4 @@ export const ProjectsPage: React.FC = () => {
       </Card>
     </div>
   );
-}; 
+};

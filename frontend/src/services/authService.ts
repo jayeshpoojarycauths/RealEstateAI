@@ -1,14 +1,20 @@
-import { apiClient } from './apiClient';
-import { API_CONFIG } from '../config/api';
-import { LoginDto, RegisterDto, AuthResponse, User } from '../types/auth';
+import { apiClient } from "./apiClient";
+import { API_CONFIG } from "../config/api";
+import { LoginDto, RegisterDto, AuthResponse, User } from "../types/auth";
 
 export const authService = {
   async login(credentials: LoginDto): Promise<AuthResponse> {
-    return apiClient.post<AuthResponse>(API_CONFIG.endpoints.auth.login, credentials);
+    return apiClient.post<AuthResponse>(
+      API_CONFIG.endpoints.auth.login,
+      credentials,
+    );
   },
 
   async register(userData: RegisterDto): Promise<AuthResponse> {
-    return apiClient.post<AuthResponse>(API_CONFIG.endpoints.auth.register, userData);
+    return apiClient.post<AuthResponse>(
+      API_CONFIG.endpoints.auth.register,
+      userData,
+    );
   },
 
   async refreshToken(refreshToken: string): Promise<AuthResponse> {
@@ -25,8 +31,8 @@ export const authService = {
     try {
       await apiClient.post(API_CONFIG.endpoints.auth.logout);
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
     }
   },
 
@@ -46,6 +52,8 @@ export const authService = {
   },
 
   async resendVerificationEmail(email: string): Promise<void> {
-    return apiClient.post(API_CONFIG.endpoints.auth.resendVerification, { email });
+    return apiClient.post(API_CONFIG.endpoints.auth.resendVerification, {
+      email,
+    });
   },
-}; 
+};

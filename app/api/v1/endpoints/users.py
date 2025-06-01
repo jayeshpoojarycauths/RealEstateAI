@@ -26,6 +26,11 @@ async def create_user(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered"
             )
+        if db.query(User).filter(User.username == user_data.username).first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken"
+            )
         
         # Create new user
         hashed_password = get_password_hash(user_data.password)
@@ -53,7 +58,8 @@ async def create_user(
         
         return new_user
     except Exception as e:
-        logger.error(f"Error creating user: {str(e)}")
+        db.rollback()
+        logger.error("Error creating user", exc_info=e)
         raise
 
 @router.get("/", response_model=List[UserResponse])

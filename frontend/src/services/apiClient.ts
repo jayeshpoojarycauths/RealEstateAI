@@ -1,6 +1,12 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { API_CLIENT_CONFIG, ApiError, RequestOptions } from '../config/api';
-import { logger } from '../utils/logger';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
+import {
+  api,
+  API_ENDPOINTS,
+  ApiResponse,
+  ApiError,
+  PaginatedResponse,
+} from "../config/api";
+import { logger } from "../utils/logger";
 
 class ApiClient {
   private static instance: ApiClient;
@@ -22,50 +28,52 @@ class ApiClient {
     // Request interceptor
     this.client.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
       },
       (error) => {
-        logger.error('Request interceptor error:', error);
+        logger.error("Request interceptor error:", error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // Response interceptor
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+        const originalRequest = error.config as AxiosRequestConfig & {
+          _retry?: boolean;
+        };
 
         // Handle token refresh
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
 
           try {
-            const refreshToken = localStorage.getItem('refreshToken');
+            const refreshToken = localStorage.getItem("refreshToken");
             if (!refreshToken) {
-              throw new Error('No refresh token available');
+              throw new Error("No refresh token available");
             }
 
-            const response = await this.client.post('/api/auth/refresh', {
+            const response = await this.client.post("/api/auth/refresh", {
               refresh_token: refreshToken,
             });
 
             const { access_token } = response.data;
-            localStorage.setItem('token', access_token);
+            localStorage.setItem("token", access_token);
 
             if (originalRequest.headers) {
               originalRequest.headers.Authorization = `Bearer ${access_token}`;
             }
             return this.client(originalRequest);
           } catch (refreshError) {
-            logger.error('Token refresh failed:', refreshError);
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-            window.location.href = '/login';
+            logger.error("Token refresh failed:", refreshError);
+            localStorage.removeItem("token");
+            localStorage.removeItem("refreshToken");
+            window.location.href = "/login";
             return Promise.reject(refreshError);
           }
         }
@@ -73,13 +81,13 @@ class ApiClient {
         // Handle other errors
         const apiError = new ApiError(
           error.response?.status || 500,
-          error.response?.data?.message || 'An unexpected error occurred',
-          error.response?.data
+          error.response?.data?.message || "An unexpected error occurred",
+          error.response?.data,
         );
 
-        logger.error('API error:', apiError);
+        logger.error("API error:", apiError);
         return Promise.reject(apiError);
-      }
+      },
     );
   }
 
@@ -88,17 +96,29 @@ class ApiClient {
     return response.data;
   }
 
-  public async post<T>(url: string, data?: any, options?: RequestOptions): Promise<T> {
+  public async post<T>(
+    url: string,
+    data?: any,
+    options?: RequestOptions,
+  ): Promise<T> {
     const response = await this.client.post<T>(url, data, options);
     return response.data;
   }
 
-  public async put<T>(url: string, data?: any, options?: RequestOptions): Promise<T> {
+  public async put<T>(
+    url: string,
+    data?: any,
+    options?: RequestOptions,
+  ): Promise<T> {
     const response = await this.client.put<T>(url, data, options);
     return response.data;
   }
 
-  public async patch<T>(url: string, data?: any, options?: RequestOptions): Promise<T> {
+  public async patch<T>(
+    url: string,
+    data?: any,
+    options?: RequestOptions,
+  ): Promise<T> {
     const response = await this.client.patch<T>(url, data, options);
     return response.data;
   }
@@ -108,16 +128,27 @@ class ApiClient {
     return response.data;
   }
 
-  public async upload<T>(url: string, formData: FormData, options?: RequestOptions): Promise<T> {
+  public async upload<T>(
+    url: string,
+    formData: FormData,
+    options?: RequestOptions,
+  ): Promise<T> {
     const response = await this.client.post<T>(url, formData, {
       ...options,
       headers: {
         ...options?.headers,
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
   }
 }
 
-export const apiClient = ApiClient.getInstance(); 
+export const apiClient = ApiClient.getInstance();
+
+function handleError(error: unknown): string {
+  if (typeof error === "object" && error && "message" in error) {
+    return (error as { message: string }).message;
+  }
+  return "Unknown error";
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Card,
   CardHeader,
@@ -8,7 +8,7 @@ import {
   Alert,
 } from "@material-tailwind/react";
 import { ArrowUpTrayIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { useOutreach } from '@/hooks/useOutreach';
+import { useOutreach } from "@/hooks/useOutreach";
 import { useMaterialTailwind } from "@/hooks/useMaterialTailwind";
 
 interface Lead {
@@ -22,13 +22,19 @@ interface Lead {
 export function LeadUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [channel, setChannel] = useState<'email' | 'sms'>('email');
+  const [channel, setChannel] = useState<"email" | "sms">("email");
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const { uploadLeads, sendOutreach } = useOutreach();
-  const { getButtonProps, getCardProps, getCardHeaderProps, getCardBodyProps, getTypographyProps } = useMaterialTailwind();
+  const {
+    getButtonProps,
+    getCardProps,
+    getCardHeaderProps,
+    getCardBodyProps,
+    getTypographyProps,
+  } = useMaterialTailwind();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -36,7 +42,7 @@ export function LeadUpload() {
 
     // Validate file type
     if (!selectedFile.name.match(/\.(csv|xlsx)$/)) {
-      setError('Please select a CSV or Excel file');
+      setError("Please select a CSV or Excel file");
       return;
     }
 
@@ -47,13 +53,13 @@ export function LeadUpload() {
 
     try {
       const formData = new FormData();
-      formData.append('file', selectedFile);
-      
+      formData.append("file", selectedFile);
+
       const response = await uploadLeads(formData);
       setLeads(response);
-      setSuccess('File uploaded successfully. Preview the leads below.');
+      setSuccess("File uploaded successfully. Preview the leads below.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload file');
+      setError(err instanceof Error ? err.message : "Failed to upload file");
       setLeads([]);
     } finally {
       setIsUploading(false);
@@ -72,12 +78,12 @@ export function LeadUpload() {
         channel,
         leads,
       });
-      setSuccess('Outreach messages sent successfully');
+      setSuccess("Outreach messages sent successfully");
       // Reset form after successful send
       setFile(null);
       setLeads([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send outreach');
+      setError(err instanceof Error ? err.message : "Failed to send outreach");
     } finally {
       setIsUploading(false);
     }
@@ -98,7 +104,12 @@ export function LeadUpload() {
         className="mb-4 grid h-28 place-items-center"
         {...getCardHeaderProps()}
       >
-        <Typography variant="h3" color="white" className="text-center" {...getTypographyProps()}>
+        <Typography
+          variant="h3"
+          color="white"
+          className="text-center"
+          {...getTypographyProps()}
+        >
           Lead Upload & Outreach
         </Typography>
       </CardHeader>
@@ -106,7 +117,11 @@ export function LeadUpload() {
         <div className="flex flex-col gap-6">
           {/* File Upload Section */}
           <div className="flex flex-col gap-2">
-            <Typography variant="h6" className="font-medium" {...getTypographyProps()}>
+            <Typography
+              variant="h6"
+              className="font-medium"
+              {...getTypographyProps()}
+            >
               Upload CSV/Excel File
             </Typography>
             <div className="flex items-center gap-4">
@@ -128,11 +143,13 @@ export function LeadUpload() {
                   {...getButtonProps()}
                 >
                   <ArrowUpTrayIcon className="h-5 w-5" />
-                  {isUploading ? 'Uploading...' : 'Choose File'}
+                  {isUploading ? "Uploading..." : "Choose File"}
                 </Button>
                 {file && (
                   <div className="flex items-center gap-2">
-                    <Typography className="text-sm" {...getTypographyProps()}>{file.name}</Typography>
+                    <Typography className="text-sm" {...getTypographyProps()}>
+                      {file.name}
+                    </Typography>
                     <Button
                       variant="text"
                       color="red"
@@ -163,13 +180,19 @@ export function LeadUpload() {
           {leads.length > 0 && (
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <Typography variant="h6" className="font-medium" {...getTypographyProps()}>
+                <Typography
+                  variant="h6"
+                  className="font-medium"
+                  {...getTypographyProps()}
+                >
                   Outreach Channel
                 </Typography>
                 <div className="w-full">
                   <select
                     value={channel}
-                    onChange={(e) => setChannel(e.target.value as 'email' | 'sms')}
+                    onChange={(e) =>
+                      setChannel(e.target.value as "email" | "sms")
+                    }
                     className="w-full p-2 border rounded-lg"
                   >
                     <option value="email">Email</option>
@@ -179,7 +202,11 @@ export function LeadUpload() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Typography variant="h6" className="font-medium" {...getTypographyProps()}>
+                <Typography
+                  variant="h6"
+                  className="font-medium"
+                  {...getTypographyProps()}
+                >
                   Preview ({leads.length} leads)
                 </Typography>
                 <div className="max-h-60 overflow-y-auto">
@@ -196,8 +223,8 @@ export function LeadUpload() {
                       {leads.map((lead, index) => (
                         <tr key={index} className="border-t">
                           <td className="p-2">{lead.name}</td>
-                          <td className="p-2">{lead.email || '-'}</td>
-                          <td className="p-2">{lead.phone || '-'}</td>
+                          <td className="p-2">{lead.email || "-"}</td>
+                          <td className="p-2">{lead.phone || "-"}</td>
                           <td className="p-2">{lead.source}</td>
                         </tr>
                       ))}
@@ -213,7 +240,7 @@ export function LeadUpload() {
                 className="mt-4"
                 {...getButtonProps()}
               >
-                {isUploading ? 'Sending...' : 'Send Outreach'}
+                {isUploading ? "Sending..." : "Send Outreach"}
               </Button>
             </div>
           )}
@@ -221,4 +248,4 @@ export function LeadUpload() {
       </CardBody>
     </Card>
   );
-} 
+}

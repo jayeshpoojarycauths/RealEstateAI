@@ -17,8 +17,8 @@ class AuthenticationError(BaseAPIException):
             detail=detail,
             headers={"WWW-Authenticate": "Bearer"}
         )
-
-class AuthorizationError(BaseAPIException):
+class AuthorizationException(BaseAPIException):
+     ...
     def __init__(self, detail: str = "Not enough permissions"):
         super().__init__(
             status_code=status.HTTP_403_FORBIDDEN,

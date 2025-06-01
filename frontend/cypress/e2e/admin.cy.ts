@@ -8,18 +8,20 @@ describe('Admin Flow', () => {
         // Navigate to properties page
         cy.visit('/properties');
 
-        // Add new property
-        cy.get('[data-testid="add-property-button"]').click();
-        cy.get('[data-testid="property-title"]').type('Test Property');
-        cy.get('[data-testid="property-address"]').type('123 Test St');
-        cy.get('[data-testid="property-price"]').type('500000');
-        cy.get('[data-testid="property-status"]').select('available');
-        cy.get('[data-testid="property-type"]').select('residential');
-        cy.get('[data-testid="property-area"]').type('2000');
-        cy.get('[data-testid="property-submit"]').click();
+// Add new property
+         cy.get('[data-testid="add-property-button"]').click();
+        cy.get('[data-testid="property-form"]').should('be.visible');
+         cy.get('[data-testid="property-title"]').type('Test Property');
+         cy.get('[data-testid="property-address"]').type('123 Test St');
+         cy.get('[data-testid="property-price"]').type('500000');
+         cy.get('[data-testid="property-status"]').select('available');
+         cy.get('[data-testid="property-type"]').select('residential');
+         cy.get('[data-testid="property-area"]').type('2000');
+         cy.get('[data-testid="property-submit"]').click();
+        cy.get('[data-testid="success-message"]').should('be.visible');
 
-        // Verify property was added
-        cy.contains('Test Property').should('be.visible');
+         // Verify property was added
+         cy.contains('Test Property').should('be.visible');
         cy.contains('123 Test St').should('be.visible');
         cy.contains('$500,000').should('be.visible');
 

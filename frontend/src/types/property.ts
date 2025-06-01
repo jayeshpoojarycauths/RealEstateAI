@@ -1,5 +1,5 @@
-export type PropertyStatus = 'available' | 'sold' | 'pending';
-export type PropertyType = 'residential' | 'commercial' | 'land';
+export type PropertyStatus = "available" | "sold" | "pending";
+export type PropertyType = "residential" | "commercial" | "land";
 
 export interface Property {
   id: string;
@@ -36,6 +36,15 @@ export interface UpdatePropertyDto extends Partial<CreatePropertyDto> {
   id: string;
 }
 
+type SortablePropertyFields =
+  | "title"
+  | "price"
+  | "area"
+  | "createdAt"
+  | "updatedAt"
+  | "bedrooms"
+  | "bathrooms";
+
 export interface PropertyFilters {
   search?: string;
   status?: PropertyStatus;
@@ -49,6 +58,6 @@ export interface PropertyFilters {
   features?: string[];
   page?: number;
   limit?: number;
-  sortBy?: keyof Property;
-  sortOrder?: 'asc' | 'desc';
-} 
+  sortBy?: SortablePropertyFields;
+  sortOrder?: "asc" | "desc";
+}

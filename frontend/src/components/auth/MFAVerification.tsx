@@ -1,8 +1,8 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Card,
   CardHeader,
@@ -10,16 +10,16 @@ import {
   Typography,
   Button,
   Input,
-} from '@material-tailwind/react';
-import { useMaterialTailwind } from '../../hooks/useMaterialTailwind';
-import { useAuth } from '../../hooks/useAuth';
+} from "@material-tailwind/react";
+import { useMaterialTailwind } from "../../hooks/useMaterialTailwind";
+import { useAuth } from "../../hooks/useAuth";
 
 const mfaSchema = z.object({
   code: z
     .string()
-    .min(1, 'MFA code is required')
-    .length(6, 'MFA code must be 6 digits')
-    .regex(/^\d+$/, 'MFA code must contain only digits'),
+    .min(1, "MFA code is required")
+    .length(6, "MFA code must be 6 digits")
+    .regex(/^\d+$/, "MFA code must contain only digits"),
 });
 
 type MFAFormData = z.infer<typeof mfaSchema>;
@@ -36,7 +36,14 @@ const defaultEventHandlers = {
 export const MFAVerification: React.FC = () => {
   const navigate = useNavigate();
   const { verifyMFA, error: authError } = useAuth();
-  const { getButtonProps, getCardProps, getCardBodyProps, getCardHeaderProps, getTypographyProps, getInputProps } = useMaterialTailwind();
+  const {
+    getButtonProps,
+    getCardProps,
+    getCardBodyProps,
+    getCardHeaderProps,
+    getTypographyProps,
+    getInputProps,
+  } = useMaterialTailwind();
 
   const {
     register,
@@ -46,30 +53,49 @@ export const MFAVerification: React.FC = () => {
   } = useForm<MFAFormData>({
     resolver: zodResolver<MFAFormData, any, MFAFormData>(mfaSchema),
     defaultValues: {
-      code: '',
+      code: "",
     },
   });
 
   const onSubmit = async (data: MFAFormData) => {
     try {
       await verifyMFA(data.code);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err) {
-      setError('root', {
-        type: 'manual',
-        message: err instanceof Error ? err.message : 'An error occurred',
+      setError("root", {
+        type: "manual",
+        message: err instanceof Error ? err.message : "An error occurred",
       });
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card {...getCardProps()} className="w-full max-w-md" {...defaultEventHandlers}>
-        <CardHeader {...getCardHeaderProps()} className="text-center" {...defaultEventHandlers}>
-          <Typography {...getTypographyProps()} variant="h4" color="blue-gray" {...defaultEventHandlers}>
+      <Card
+        {...getCardProps()}
+        className="w-full max-w-md"
+        {...defaultEventHandlers}
+      >
+        <CardHeader
+          {...getCardHeaderProps()}
+          className="text-center"
+          {...defaultEventHandlers}
+        >
+          <Typography
+            {...getTypographyProps()}
+            variant="h4"
+            color="blue-gray"
+            {...defaultEventHandlers}
+          >
             Two-Factor Authentication
           </Typography>
-          <Typography {...getTypographyProps()} variant="small" color="gray" className="mt-1" {...defaultEventHandlers}>
+          <Typography
+            {...getTypographyProps()}
+            variant="small"
+            color="gray"
+            className="mt-1"
+            {...defaultEventHandlers}
+          >
             Please enter the 6-digit code from your authenticator app
           </Typography>
         </CardHeader>
@@ -80,18 +106,18 @@ export const MFAVerification: React.FC = () => {
                 {...getInputProps()}
                 type="text"
                 label="MFA Code"
-                {...register('code')}
+                {...register("code")}
                 error={!!errors.code}
                 aria-invalid={!!errors.code}
-                aria-describedby={errors.code ? 'code-error' : undefined}
+                aria-describedby={errors.code ? "code-error" : undefined}
                 maxLength={6}
                 {...defaultEventHandlers}
               />
               {errors.code && (
-                <Typography 
-                  {...getTypographyProps()} 
-                  variant="small" 
-                  color="red" 
+                <Typography
+                  {...getTypographyProps()}
+                  variant="small"
+                  color="red"
                   className="mt-1"
                   id="code-error"
                   {...defaultEventHandlers}
@@ -102,10 +128,10 @@ export const MFAVerification: React.FC = () => {
             </div>
 
             {(errors.root || authError) && (
-              <Typography 
-                {...getTypographyProps()} 
-                variant="small" 
-                color="red" 
+              <Typography
+                {...getTypographyProps()}
+                variant="small"
+                color="red"
                 className="text-center"
                 role="alert"
                 {...defaultEventHandlers}
@@ -122,11 +148,11 @@ export const MFAVerification: React.FC = () => {
               aria-busy={isSubmitting}
               {...defaultEventHandlers}
             >
-              {isSubmitting ? 'Verifying...' : 'Verify'}
+              {isSubmitting ? "Verifying..." : "Verify"}
             </Button>
           </form>
         </CardBody>
       </Card>
     </div>
   );
-}; 
+};

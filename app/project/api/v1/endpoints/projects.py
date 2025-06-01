@@ -123,8 +123,7 @@ async def list_projects(
     current_user: dict = Depends(get_current_user)
 ):
     """List all projects for the current customer with filtering."""
-    project_service = ProjectService(db)
-    projects = await project_service.list_projects(
+    projects, total = await project_service.list_projects(...)
         customer_id=current_customer["id"],
         filter_params=filter_params,
         pagination=pagination

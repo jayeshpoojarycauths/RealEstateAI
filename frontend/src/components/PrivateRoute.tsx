@@ -1,7 +1,7 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import config from '../config';
+import config from "../config";
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -21,4 +21,4 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
   }
 
   return <>{children}</>;
-}; 
+};

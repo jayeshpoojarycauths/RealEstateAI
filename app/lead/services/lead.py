@@ -33,6 +33,7 @@ from app.services.ai import AIService
 import logging
 from app.shared.core.exceptions import ValidationError, NotFoundError
 from app.shared.core.audit import AuditService
+from starlette.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -175,9 +176,9 @@ class LeadService:
             customer_id=customer_id,
             created_at=datetime.utcnow()
         )
-        self.db.add(lead)
-        self.db.commit()
-        self.db.refresh(lead)
+        await run_in_threadpool(self.db.add, lead)
+        await run_in_threadpool(self.db.commit)
+        await run_in_threadpool(self.db.refresh, lead)
         
         # Log activity
         self._log_activity(
@@ -198,14 +199,14 @@ class LeadService:
 
     async def get_lead(self, lead_id: int, customer_id: int) -> Optional[Lead]:
         """Get a lead by ID."""
-        lead = self.db.query(Lead).filter(
-            Lead.id == lead_id,
-            Lead.customer_id == customer_id
-        ).first()
-        
+        lead = await run_in_threadpool(
+            lambda: self.db.query(Lead).filter(
+                Lead.id == lead_id,
+                Lead.customer_id == customer_id
+            ).first()
+        )
         if not lead:
             raise NotFoundError(detail="Lead not found")
-            
         return lead
 
     async def update_lead(
@@ -216,7 +217,6 @@ class LeadService:
     ) -> Optional[Lead]:
         """Update a lead."""
         lead = await self.get_lead(lead_id, customer_id)
-        
         # Track changes for audit
         changes = {}
         for field, value in lead_data.dict(exclude_unset=True).items():
@@ -226,11 +226,9 @@ class LeadService:
                     "new": value
                 }
                 setattr(lead, field, value)
-        
         lead.updated_at = datetime.utcnow()
-        self.db.commit()
-        self.db.refresh(lead)
-        
+        await run_in_threadpool(self.db.commit)
+        await run_in_threadpool(self.db.refresh, lead)
         # Log activity
         if changes:
             self._log_activity(
@@ -239,7 +237,6 @@ class LeadService:
                 activity_type=ActivityType.STATUS_CHANGE,
                 description=f"Lead updated: {', '.join(changes.keys())}"
             )
-            
             # Log audit
             self.audit_service.log_lead_update(
                 lead=lead,
@@ -247,22 +244,19 @@ class LeadService:
                 customer_id=customer_id,
                 changes=changes
             )
-        
         return lead
 
     async def delete_lead(self, lead_id: int, customer_id: int) -> bool:
         """Delete a lead."""
         lead = await self.get_lead(lead_id, customer_id)
-        
         # Log audit before deletion
         self.audit_service.log_lead_deletion(
             lead=lead,
             user_id="system",
             customer_id=customer_id
         )
-        
-        self.db.delete(lead)
-        self.db.commit()
+        await run_in_threadpool(self.db.delete, lead)
+        await run_in_threadpool(self.db.commit)
         return True
 
     def bulk_upload_leads(self, df, customer_id, db):

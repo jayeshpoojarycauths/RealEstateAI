@@ -111,8 +111,7 @@ async def verify_mfa_code(
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserRegister,
-    db: Session = Depends(get_db),
-    captcha_token: str = None
+    db: Session = Depends(get_db)
 ):
     """
     Register a new user with email verification and CAPTCHA.
@@ -120,12 +119,12 @@ async def register(
     try:
         # Verify CAPTCHA if enabled
         if settings.ENABLE_CAPTCHA:
-            if not captcha_token:
+            if not user_data.captcha_token:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="CAPTCHA token is required"
                 )
-            if not await verify_captcha(captcha_token):
+            if not await verify_captcha(user_data.captcha_token):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid CAPTCHA"
@@ -159,7 +158,7 @@ async def register(
             email=user_data.email,
             first_name=user_data.first_name,
             last_name=user_data.last_name,
-            hashed_password=get_password_hash(user_data.password),
+            password_hash=get_password_hash(user_data.password),
             role_id=admin_role.id,
             customer_id=customer.id,
             is_active=False,  # User needs to verify email first

@@ -4,13 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 from app.project.models.project import ProjectType, ProjectStatus
-
-# --- Enums ---
-class ProjectType(str, Enum):
-    """Types of real estate projects."""
-    RESIDENTIAL = "residential"
-    COMMERCIAL = "commercial"
-    LAND = "land"
+...
     RENTAL = "rental"
 
 # --- Base Schemas ---

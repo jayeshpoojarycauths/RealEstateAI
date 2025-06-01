@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
-import {
-    Card,
-    CardHeader,
-    CardBody,
-    Typography,
-    Button,
-    Input,
-    Select,
-    Option,
-} from '@material-tailwind/react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '../../hooks/useAuth';
-import { Role } from '../../types/auth';
+import { Role, User } from '../../types/auth';
 import { useUsers } from '../../hooks/useUsers';
 import { logger } from '../../utils/logger';
+import {
+    SafeCard,
+    SafeCardHeader,
+    SafeCardBody,
+    SafeTypography,
+    SafeButton,
+    SafeInput,
+    SafeSelect,
+    SafeOption,
+} from '../../components/SafeMTW';
 
 const createUserSchema = z.object({
     email: z.string().email('Invalid email address'),
@@ -28,16 +27,15 @@ const createUserSchema = z.object({
 type CreateUserFormData = z.infer<typeof createUserSchema>;
 
 export const UserManagement: React.FC = () => {
-    const { user } = useAuth();
     const { users, createUser, updateUser, deleteUser, isLoading, error } = useUsers();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
     const {
         register,
         handleSubmit,
         formState: { errors },
         reset,
+        control,
     } = useForm<CreateUserFormData>({
         resolver: zodResolver(createUserSchema),
     });
@@ -47,9 +45,9 @@ export const UserManagement: React.FC = () => {
             await createUser(data);
             setIsCreateModalOpen(false);
             reset();
-            logger.info('User created successfully', { email: data.email, role: data.role });
+            logger.info('User created successfully', { email: data.email });
         } catch (error) {
-            logger.error('Failed to create user', error as Error, { email: data.email });
+            logger.error('Failed to create user', { error, email: data.email });
         }
     };
 
@@ -58,40 +56,30 @@ export const UserManagement: React.FC = () => {
             await deleteUser(userId);
             logger.info('User deleted successfully', { userId });
         } catch (error) {
-            logger.error('Failed to delete user', error as Error, { userId });
-        }
-    };
-
-    const handleUpdateUser = async (userId: string, userData: Partial<CreateUserFormData>) => {
-        try {
-            await updateUser(userId, userData);
-            setSelectedUser(null);
-            logger.info('User updated successfully', { userId });
-        } catch (error) {
-            logger.error('Failed to update user', error as Error, { userId });
+            logger.error('Failed to delete user', { error, userId });
         }
     };
 
     return (
         <div className="p-4">
-            <Card>
-                <CardHeader
+            <SafeCard>
+                <SafeCardHeader
                     variant="gradient"
                     color="blue"
                     className="mb-4 grid h-28 place-items-center"
                 >
-                    <Typography variant="h3" color="white">
+                    <SafeTypography variant="h3" color="white">
                         User Management
-                    </Typography>
-                </CardHeader>
-                <CardBody className="overflow-x-auto px-0 pt-0 pb-2">
+                    </SafeTypography>
+                </SafeCardHeader>
+                <SafeCardBody className="overflow-x-auto px-0 pt-0 pb-2">
                     <div className="flex justify-end mb-4">
-                        <Button
+                        <SafeButton
                             color="blue"
                             onClick={() => setIsCreateModalOpen(true)}
                         >
                             Create User
-                        </Button>
+                        </SafeButton>
                     </div>
 
                     {isLoading ? (
@@ -103,36 +91,36 @@ export const UserManagement: React.FC = () => {
                             <thead>
                                 <tr>
                                     <th className="border-b border-blue-gray-50 py-3 px-6 text-left">
-                                        <Typography
+                                        <SafeTypography
                                             variant="small"
                                             className="text-[11px] font-medium uppercase text-blue-gray-400"
                                         >
                                             Name
-                                        </Typography>
+                                        </SafeTypography>
                                     </th>
                                     <th className="border-b border-blue-gray-50 py-3 px-6 text-left">
-                                        <Typography
+                                        <SafeTypography
                                             variant="small"
                                             className="text-[11px] font-medium uppercase text-blue-gray-400"
                                         >
                                             Email
-                                        </Typography>
+                                        </SafeTypography>
                                     </th>
                                     <th className="border-b border-blue-gray-50 py-3 px-6 text-left">
-                                        <Typography
+                                        <SafeTypography
                                             variant="small"
                                             className="text-[11px] font-medium uppercase text-blue-gray-400"
                                         >
                                             Role
-                                        </Typography>
+                                        </SafeTypography>
                                     </th>
                                     <th className="border-b border-blue-gray-50 py-3 px-6 text-left">
-                                        <Typography
+                                        <SafeTypography
                                             variant="small"
                                             className="text-[11px] font-medium uppercase text-blue-gray-400"
                                         >
-                                            Status
-                                        </Typography>
+                                            Actions
+                                        </SafeTypography>
                                     </th>
                                 </tr>
                             </thead>
@@ -140,172 +128,198 @@ export const UserManagement: React.FC = () => {
                                 {users?.map((user) => (
                                     <tr key={user.id}>
                                         <td className="py-3 px-6 border-b border-blue-gray-50">
-                                            <Typography
+                                            <SafeTypography
                                                 variant="small"
                                                 color="blue-gray"
                                                 className="font-normal"
                                             >
                                                 {user.firstName} {user.lastName}
-                                            </Typography>
+                                            </SafeTypography>
                                         </td>
                                         <td className="py-3 px-6 border-b border-blue-gray-50">
-                                            <Typography
+                                            <SafeTypography
                                                 variant="small"
                                                 color="blue-gray"
                                                 className="font-normal"
                                             >
                                                 {user.email}
-                                            </Typography>
+                                            </SafeTypography>
                                         </td>
                                         <td className="py-3 px-6 border-b border-blue-gray-50">
-                                            <Typography
+                                            <SafeTypography
                                                 variant="small"
                                                 color="blue-gray"
                                                 className="font-normal"
                                             >
                                                 {user.role}
-                                            </Typography>
+                                            </SafeTypography>
                                         </td>
                                         <td className="py-3 px-6 border-b border-blue-gray-50">
-                                            <Typography
-                                                variant="small"
-                                                color={user.isActive ? 'green' : 'red'}
-                                                className="font-normal"
-                                            >
-                                                {user.isActive ? 'Active' : 'Inactive'}
-                                            </Typography>
+                                            <div className="flex space-x-2">
+                                                <SafeButton
+                                                    size="sm"
+                                                    variant="outlined"
+                                                    color="blue"
+                                                    onClick={() => updateUser(user.id, { role: user.role })}
+                                                >
+                                                    Edit
+                                                </SafeButton>
+                                                <SafeButton
+                                                    size="sm"
+                                                    variant="outlined"
+                                                    color="red"
+                                                    onClick={() => handleDeleteUser(user.id)}
+                                                >
+                                                    Delete
+                                                </SafeButton>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     )}
-                </CardBody>
-            </Card>
+                </SafeCardBody>
+            </SafeCard>
 
             {/* Create User Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <Card className="w-96">
-                        <CardHeader
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="modal-title"
+                >
+                    <SafeCard className="w-96">
+                        <SafeCardHeader
                             variant="gradient"
                             color="blue"
                             className="mb-4 grid h-28 place-items-center"
                         >
-                            <Typography variant="h3" color="white">
+                            <SafeTypography id="modal-title" variant="h3" color="white">
                                 Create User
-                            </Typography>
-                        </CardHeader>
-                        <CardBody>
+                            </SafeTypography>
+                        </SafeCardHeader>
+                        <SafeCardBody>
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                                 <div>
-                                    <Input
+                                    <SafeInput
                                         label="Email"
                                         type="email"
                                         {...register('email')}
                                         error={!!errors.email}
                                     />
                                     {errors.email && (
-                                        <Typography
+                                        <SafeTypography
                                             variant="small"
                                             color="red"
                                             className="mt-1"
                                         >
                                             {errors.email.message}
-                                        </Typography>
+                                        </SafeTypography>
                                     )}
                                 </div>
 
                                 <div>
-                                    <Input
+                                    <SafeInput
                                         label="Password"
                                         type="password"
                                         {...register('password')}
                                         error={!!errors.password}
                                     />
                                     {errors.password && (
-                                        <Typography
+                                        <SafeTypography
                                             variant="small"
                                             color="red"
                                             className="mt-1"
                                         >
                                             {errors.password.message}
-                                        </Typography>
+                                        </SafeTypography>
                                     )}
                                 </div>
 
                                 <div>
-                                    <Input
+                                    <SafeInput
                                         label="First Name"
                                         {...register('firstName')}
                                         error={!!errors.firstName}
                                     />
                                     {errors.firstName && (
-                                        <Typography
+                                        <SafeTypography
                                             variant="small"
                                             color="red"
                                             className="mt-1"
                                         >
                                             {errors.firstName.message}
-                                        </Typography>
+                                        </SafeTypography>
                                     )}
                                 </div>
 
                                 <div>
-                                    <Input
+                                    <SafeInput
                                         label="Last Name"
                                         {...register('lastName')}
                                         error={!!errors.lastName}
                                     />
                                     {errors.lastName && (
-                                        <Typography
+                                        <SafeTypography
                                             variant="small"
                                             color="red"
                                             className="mt-1"
                                         >
                                             {errors.lastName.message}
-                                        </Typography>
+                                        </SafeTypography>
                                     )}
                                 </div>
 
                                 <div>
-                                    <Select
-                                        label="Role"
-                                        {...register('role')}
-                                        error={!!errors.role}
-                                    >
-                                        {Object.values(Role).map((role) => (
-                                            <Option key={role} value={role}>
-                                                {role}
-                                            </Option>
-                                        ))}
-                                    </Select>
+                                    <Controller
+                                        name="role"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <SafeSelect
+                                                label="Role"
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                                error={!!errors.role}
+                                            >
+                                                {Object.values(Role).map((role) => (
+                                                    <SafeOption key={role} value={role}>
+                                                        {role}
+                                                    </SafeOption>
+                                                ))}
+                                            </SafeSelect>
+                                        )}
+                                    />
                                     {errors.role && (
-                                        <Typography
+                                        <SafeTypography
                                             variant="small"
                                             color="red"
                                             className="mt-1"
                                         >
                                             {errors.role.message}
-                                        </Typography>
+                                        </SafeTypography>
                                     )}
                                 </div>
 
                                 <div className="flex justify-end space-x-2">
-                                    <Button
+                                    <SafeButton
                                         variant="outlined"
                                         color="red"
-                                        onClick={() => setIsCreateModalOpen(false)}
+                                        onClick={() => {
+                                            setIsCreateModalOpen(false);
+                                            reset();
+                                        }}
                                     >
                                         Cancel
-                                    </Button>
-                                    <Button type="submit" color="blue">
+                                    </SafeButton>
+                                    <SafeButton type="submit" color="blue">
                                         Create
-                                    </Button>
+                                    </SafeButton>
                                 </div>
                             </form>
-                        </CardBody>
-                    </Card>
+                        </SafeCardBody>
+                    </SafeCard>
                 </div>
             )}
         </div>

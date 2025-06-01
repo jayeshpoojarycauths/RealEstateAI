@@ -5,10 +5,8 @@ import {
   SafeButton as Button,
   SafeCard as Card,
   SafeCardBody as CardBody,
-} from '../components/SafeMTW';
-import {
-  Collapse,
-} from "@material-tailwind/react";
+} from "../components/SafeMTW";
+import { Collapse } from "@material-tailwind/react";
 import {
   Bars3Icon,
   XMarkIcon,
@@ -30,19 +28,25 @@ interface DashboardLayoutProps {
 const Navbar: React.FC = () => (
   <nav className="w-full bg-white border-b border-blue-gray-100 px-6 py-3 flex items-center justify-between shadow-sm z-20">
     <div className="flex items-center gap-4">
-      <Link to="/dashboard" className="text-lg font-semibold text-blue-700 hover:text-blue-900 transition-colors">
+      <Link
+        to="/dashboard"
+        className="text-lg font-semibold text-blue-700 hover:text-blue-900 transition-colors"
+      >
         Home
       </Link>
     </div>
   </nav>
 );
 
-export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
+  children,
+}) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [leadsDropdownOpen, setLeadsDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { getButtonProps, getCardProps, getCardBodyProps, getTypographyProps } = useMaterialTailwind();
+  const { getButtonProps, getCardProps, getCardBodyProps, getTypographyProps } =
+    useMaterialTailwind();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -59,9 +63,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
 
   const navItems = [
     // Leads is now handled as a dropdown
-    { path: "/projects", icon: <FolderIcon className="h-5 w-5" />, label: "Projects" },
-    { path: "/stats", icon: <ChartBarIcon className="h-5 w-5" />, label: "Analytics" },
-    { path: "/profile", icon: <UserCircleIcon className="h-5 w-5" />, label: "Profile" },
+    {
+      path: "/projects",
+      icon: <FolderIcon className="h-5 w-5" />,
+      label: "Projects",
+    },
+    {
+      path: "/stats",
+      icon: <ChartBarIcon className="h-5 w-5" />,
+      label: "Analytics",
+    },
+    {
+      path: "/profile",
+      icon: <UserCircleIcon className="h-5 w-5" />,
+      label: "Profile",
+    },
   ];
 
   return (
@@ -92,8 +108,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               {/* Leads Dropdown */}
               <li>
                 <Button
-                  variant={location.pathname.startsWith("/leads") ? "filled" : "text"}
-                  color={location.pathname.startsWith("/leads") ? "blue" : "blue-gray"}
+                  variant={
+                    location.pathname.startsWith("/leads") ? "filled" : "text"
+                  }
+                  color={
+                    location.pathname.startsWith("/leads")
+                      ? "blue"
+                      : "blue-gray"
+                  }
                   onClick={() => setLeadsDropdownOpen((open) => !open)}
                   className="rounded-lg w-full flex items-center justify-between"
                   {...getButtonProps()}
@@ -134,8 +156,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                     </li>
                     <li>
                       <Button
-                        variant={isActive("/leads/import-export") ? "filled" : "text"}
-                        color={isActive("/leads/import-export") ? "blue" : "blue-gray"}
+                        variant={
+                          isActive("/leads/import-export") ? "filled" : "text"
+                        }
+                        color={
+                          isActive("/leads/import-export")
+                            ? "blue"
+                            : "blue-gray"
+                        }
                         onClick={() => navigate("/leads/import-export")}
                         className="rounded-lg w-full text-left"
                         {...getButtonProps()}
@@ -192,12 +220,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             >
               <Bars3Icon className="h-5 w-5" />
             </button>
-            <Typography variant="h6" color="blue-gray" {...getTypographyProps()}>
+            <Typography
+              variant="h6"
+              color="blue-gray"
+              {...getTypographyProps()}
+            >
               {location.pathname.startsWith("/leads/scraper")
                 ? "Leads Scraper"
                 : location.pathname.startsWith("/leads")
-                ? "Leads Page"
-                : navItems.find((item) => isActive(item.path))?.label || "Dashboard"}
+                  ? "Leads Page"
+                  : navItems.find((item) => isActive(item.path))?.label ||
+                    "Dashboard"}
             </Typography>
           </div>
         </header>
@@ -209,4 +242,4 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       </div>
     </div>
   );
-}; 
+};

@@ -110,7 +110,7 @@ class InsufficientPermissionsException(AuthorizationException):
     """Exception for insufficient permissions."""
     def __init__(self, required_permissions: List[str], **kwargs):
         super().__init__(
-            message_code=MessageCode.AUTH_INVALID_TOKEN,
+            message_code=MessageCode.AUTH_INSUFFICIENT_PERMISSIONS,
             details=f"Required permissions: {', '.join(required_permissions)}",
             required_permissions=required_permissions,
             **kwargs
@@ -242,6 +242,7 @@ def get_error_response(
     status_code: int,
     message_code: MessageCode,
     details: Optional[str] = None,
+    errors: Optional[List[Dict[str, Any]]] = None,
     **kwargs
 ) -> JSONResponse:
     """
@@ -253,6 +254,7 @@ def get_error_response(
         status_code: HTTP status code
         message_code: Message code for the error
         details: Optional additional details
+        errors: Optional list of validation errors
         **kwargs: Additional parameters for message formatting
         
     Returns:
@@ -268,6 +270,8 @@ def get_error_response(
         "path": request.url.path,
         "method": request.method
     }
+    if errors is not None:
+        error_response["errors"] = errors
     
     return JSONResponse(
         status_code=status_code,
@@ -282,6 +286,7 @@ async def app_exception_handler(request: Request, exc: BaseAppException) -> JSON
         status_code=exc.status_code,
         message_code=exc.message_code,
         details=exc.details,
+        errors=exc.errors,
         **exc.kwargs
     )
 
@@ -303,7 +308,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         exc=exc,
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         message_code=MessageCode.VALIDATION_ERROR,
-        details=str(errors)
+        details=None,
+        errors=errors
     )
 
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:

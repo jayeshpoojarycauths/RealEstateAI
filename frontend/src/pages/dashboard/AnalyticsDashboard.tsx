@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Card,
   CardHeader,
@@ -6,14 +6,14 @@ import {
   Typography,
   Select,
   Option,
-  Input
-} from '@material-tailwind/react';
-import { DateRangePicker, Range, RangeKeyDict } from 'react-date-range';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
-import PropertyTrendChart from '../../components/analytics/PropertyTrendChart';
-import LeadScoreChart from '../../components/analytics/LeadScoreChart';
-import ConversionFunnelChart from '../../components/analytics/ConversionFunnelChart';
+  Input,
+} from "@material-tailwind/react";
+import { DateRangePicker, Range, RangeKeyDict } from "react-date-range";
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
+import PropertyTrendChart from "../../components/analytics/PropertyTrendChart";
+import LeadScoreChart from "../../components/analytics/LeadScoreChart";
+import ConversionFunnelChart from "../../components/analytics/ConversionFunnelChart";
 
 interface DateRange {
   startDate: Date;
@@ -25,7 +25,7 @@ const defaultEventHandlers = {
   onPointerEnterCapture: () => {},
   onPointerLeaveCapture: () => {},
   onResize: () => {},
-  onResizeCapture: () => {}
+  onResizeCapture: () => {},
 };
 
 const AnalyticsDashboard: React.FC = () => {
@@ -33,14 +33,14 @@ const AnalyticsDashboard: React.FC = () => {
   const [dateRange, setDateRange] = useState<DateRange>({
     startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
     endDate: new Date(),
-    key: 'selection'
+    key: "selection",
   });
-  const [propertyType, setPropertyType] = useState<string>('');
-  const [location, setLocation] = useState<string>('');
+  const [propertyType, setPropertyType] = useState<string>("");
+  const [location, setLocation] = useState<string>("");
 
   // Format dates for API
   const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   };
 
   // Handle date range change
@@ -50,7 +50,7 @@ const AnalyticsDashboard: React.FC = () => {
       setDateRange({
         startDate: selection.startDate,
         endDate: selection.endDate,
-        key: 'selection'
+        key: "selection",
       });
     }
   };
@@ -59,19 +59,15 @@ const AnalyticsDashboard: React.FC = () => {
     <div className="p-6">
       {/* Header */}
       <div className="mb-8">
-        <Typography 
-          variant="h4" 
-          color="blue-gray" 
+        <Typography
+          variant="h4"
+          color="blue-gray"
           className="mb-2"
           {...defaultEventHandlers}
         >
           Analytics Dashboard
         </Typography>
-        <Typography 
-          variant="paragraph" 
-          color="gray"
-          {...defaultEventHandlers}
-        >
+        <Typography variant="paragraph" color="gray" {...defaultEventHandlers}>
           View and analyze your real estate data
         </Typography>
       </div>
@@ -82,9 +78,9 @@ const AnalyticsDashboard: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Property Type Filter */}
             <div>
-              <Typography 
-                variant="small" 
-                color="blue-gray" 
+              <Typography
+                variant="small"
+                color="blue-gray"
                 className="mb-2 font-medium"
                 {...defaultEventHandlers}
               >
@@ -105,9 +101,9 @@ const AnalyticsDashboard: React.FC = () => {
 
             {/* Location Filter */}
             <div>
-              <Typography 
-                variant="small" 
-                color="blue-gray" 
+              <Typography
+                variant="small"
+                color="blue-gray"
                 className="mb-2 font-medium"
                 {...defaultEventHandlers}
               >
@@ -125,9 +121,9 @@ const AnalyticsDashboard: React.FC = () => {
 
             {/* Date Range Filter */}
             <div>
-              <Typography 
-                variant="small" 
-                color="blue-gray" 
+              <Typography
+                variant="small"
+                color="blue-gray"
                 className="mb-2 font-medium"
                 {...defaultEventHandlers}
               >
@@ -177,4 +173,4 @@ const AnalyticsDashboard: React.FC = () => {
   );
 };
 
-export default AnalyticsDashboard; 
+export default AnalyticsDashboard;

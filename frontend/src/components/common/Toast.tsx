@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Alert } from '@material-tailwind/react';
-import { AnimatePresence, motion } from 'framer-motion';
+import React, { createContext, useContext, useState, useCallback, useRef } from "react";
+import { Alert } from "@material-tailwind/react";
+import { AnimatePresence, motion } from "framer-motion";
 
-type ToastType = 'success' | 'error' | 'warning' | 'info';
+type ToastType = "success" | "error" | "warning" | "info";
 
 interface Toast {
   id: string;
@@ -20,40 +20,50 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    throw new Error("useToast must be used within a ToastProvider");
   }
   return context;
 };
 
-export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timeoutRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const showToast = useCallback((type: ToastType, message: string) => {
     const id = Math.random().toString(36).substring(7);
     setToasts((prev) => [...prev, { id, type, message }]);
 
     // Auto-hide after 5 seconds
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       hideToast(id);
+      timeoutRefs.current.delete(id);
     }, 5000);
+    timeoutRefs.current.set(id, timeoutId);
   }, []);
 
   const hideToast = useCallback((id: string) => {
+    const timeoutId = timeoutRefs.current.get(id);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutRefs.current.delete(id);
+    }
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
   const getToastColor = (type: ToastType) => {
     switch (type) {
-      case 'success':
-        return 'green';
-      case 'error':
-        return 'red';
-      case 'warning':
-        return 'amber';
-      case 'info':
-        return 'blue';
+      case "success":
+        return "green";
+      case "error":
+        return "red";
+      case "warning":
+        return "amber";
+      case "info":
+        return "blue";
       default:
-        return 'blue';
+        return "blue";
     }
   };
 
@@ -73,7 +83,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               <Alert
                 color={getToastColor(toast.type)}
                 className="min-w-[300px]"
-                dismissible
+                open={true}
                 onClose={() => hideToast(toast.id)}
               >
                 {toast.message}
@@ -84,4 +94,4 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       </div>
     </ToastContext.Provider>
   );
-}; 
+};

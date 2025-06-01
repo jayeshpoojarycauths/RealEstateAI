@@ -1,15 +1,18 @@
-import { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuthContext } from '../../contexts/AuthContext';
-import { Role } from '../../types/auth';
-import { LoadingSpinner } from './LoadingStates';
+import { ReactNode } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuthContext } from "../../contexts/AuthContext";
+import { Role } from "../../types/auth";
+import { LoadingSpinner } from "./LoadingStates";
 
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRoles?: Role[];
 }
 
-export const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({
+  children,
+  requiredRoles,
+}: ProtectedRouteProps) => {
   const { user, isLoading } = useAuthContext();
   const location = useLocation();
 
@@ -28,4 +31,4 @@ export const ProtectedRoute = ({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   return <>{children}</>;
-}; 
+};

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import React, { useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Card,
   CardHeader,
@@ -24,21 +24,23 @@ const resetSchema = z.object({
     .transform((val) => val.toLowerCase().trim()),
 });
 
-const newPasswordSchema = z.object({
-  password: z
-    .string()
-    .min(1, "Password is required")
-    .min(8, "Password must be at least 8 characters")
-    .max(100, "Password must be less than 100 characters")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
-    ),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const newPasswordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(1, "Password is required")
+      .min(8, "Password must be at least 8 characters")
+      .max(100, "Password must be less than 100 characters")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type ResetFormData = z.infer<typeof resetSchema>;
 type NewPasswordFormData = z.infer<typeof newPasswordSchema>;
@@ -46,9 +48,16 @@ type NewPasswordFormData = z.infer<typeof newPasswordSchema>;
 export const PasswordReset: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  const token = searchParams.get("token");
   const { requestPasswordReset, resetPassword, error: authError } = useAuth();
-  const { getButtonProps, getCardProps, getCardBodyProps, getCardHeaderProps, getTypographyProps, getInputProps } = useMaterialTailwind();
+  const {
+    getButtonProps,
+    getCardProps,
+    getCardBodyProps,
+    getCardHeaderProps,
+    getTypographyProps,
+    getInputProps,
+  } = useMaterialTailwind();
   const [isRequestSent, setIsRequestSent] = useState(false);
   const [isResetComplete, setIsResetComplete] = useState(false);
 
@@ -64,7 +73,10 @@ export const PasswordReset: React.FC = () => {
   const {
     register: registerNewPassword,
     handleSubmit: handleNewPasswordSubmit,
-    formState: { errors: newPasswordErrors, isSubmitting: isNewPasswordSubmitting },
+    formState: {
+      errors: newPasswordErrors,
+      isSubmitting: isNewPasswordSubmitting,
+    },
     setError: setNewPasswordError,
   } = useForm<NewPasswordFormData>({
     resolver: zodResolver(newPasswordSchema),
@@ -94,7 +106,7 @@ export const PasswordReset: React.FC = () => {
     try {
       await resetPassword(token, data.password);
       setIsResetComplete(true);
-      setTimeout(() => navigate('/login'), 3000);
+      setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
       setNewPasswordError("root", {
         type: "manual",
@@ -108,13 +120,23 @@ export const PasswordReset: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card {...getCardProps()} className="w-full max-w-md">
           <CardHeader {...getCardHeaderProps()} className="text-center">
-            <Typography {...getTypographyProps()} variant="h4" color="blue-gray">
+            <Typography
+              {...getTypographyProps()}
+              variant="h4"
+              color="blue-gray"
+            >
               Password Reset Complete
             </Typography>
           </CardHeader>
           <CardBody {...getCardBodyProps()}>
-            <Typography {...getTypographyProps()} variant="paragraph" color="gray" className="text-center">
-              Your password has been reset successfully. You will be redirected to the login page.
+            <Typography
+              {...getTypographyProps()}
+              variant="paragraph"
+              color="gray"
+              className="text-center"
+            >
+              Your password has been reset successfully. You will be redirected
+              to the login page.
             </Typography>
           </CardBody>
         </Card>
@@ -127,13 +149,23 @@ export const PasswordReset: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card {...getCardProps()} className="w-full max-w-md">
           <CardHeader {...getCardHeaderProps()} className="text-center">
-            <Typography {...getTypographyProps()} variant="h4" color="blue-gray">
+            <Typography
+              {...getTypographyProps()}
+              variant="h4"
+              color="blue-gray"
+            >
               Check Your Email
             </Typography>
           </CardHeader>
           <CardBody {...getCardBodyProps()}>
-            <Typography {...getTypographyProps()} variant="paragraph" color="gray" className="text-center">
-              If an account exists with the email you provided, you will receive a password reset link.
+            <Typography
+              {...getTypographyProps()}
+              variant="paragraph"
+              color="gray"
+              className="text-center"
+            >
+              If an account exists with the email you provided, you will receive
+              a password reset link.
             </Typography>
           </CardBody>
         </Card>
@@ -146,12 +178,19 @@ export const PasswordReset: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card {...getCardProps()} className="w-full max-w-md">
           <CardHeader {...getCardHeaderProps()} className="text-center">
-            <Typography {...getTypographyProps()} variant="h4" color="blue-gray">
+            <Typography
+              {...getTypographyProps()}
+              variant="h4"
+              color="blue-gray"
+            >
               Reset Your Password
             </Typography>
           </CardHeader>
           <CardBody {...getCardBodyProps()}>
-            <form onSubmit={handleNewPasswordSubmit(onNewPasswordSubmit)} className="space-y-6">
+            <form
+              onSubmit={handleNewPasswordSubmit(onNewPasswordSubmit)}
+              className="space-y-6"
+            >
               <div>
                 <Input
                   {...getInputProps()}
@@ -160,13 +199,15 @@ export const PasswordReset: React.FC = () => {
                   {...registerNewPassword("password")}
                   error={!!newPasswordErrors.password}
                   aria-invalid={!!newPasswordErrors.password}
-                  aria-describedby={newPasswordErrors.password ? "password-error" : undefined}
+                  aria-describedby={
+                    newPasswordErrors.password ? "password-error" : undefined
+                  }
                 />
                 {newPasswordErrors.password && (
-                  <Typography 
-                    {...getTypographyProps()} 
-                    variant="small" 
-                    color="red" 
+                  <Typography
+                    {...getTypographyProps()}
+                    variant="small"
+                    color="red"
                     className="mt-1"
                     id="password-error"
                   >
@@ -183,13 +224,17 @@ export const PasswordReset: React.FC = () => {
                   {...registerNewPassword("confirmPassword")}
                   error={!!newPasswordErrors.confirmPassword}
                   aria-invalid={!!newPasswordErrors.confirmPassword}
-                  aria-describedby={newPasswordErrors.confirmPassword ? "confirm-password-error" : undefined}
+                  aria-describedby={
+                    newPasswordErrors.confirmPassword
+                      ? "confirm-password-error"
+                      : undefined
+                  }
                 />
                 {newPasswordErrors.confirmPassword && (
-                  <Typography 
-                    {...getTypographyProps()} 
-                    variant="small" 
-                    color="red" 
+                  <Typography
+                    {...getTypographyProps()}
+                    variant="small"
+                    color="red"
                     className="mt-1"
                     id="confirm-password-error"
                   >
@@ -199,10 +244,10 @@ export const PasswordReset: React.FC = () => {
               </div>
 
               {(newPasswordErrors.root || authError) && (
-                <Typography 
-                  {...getTypographyProps()} 
-                  variant="small" 
-                  color="red" 
+                <Typography
+                  {...getTypographyProps()}
+                  variant="small"
+                  color="red"
                   className="text-center"
                   role="alert"
                 >
@@ -235,7 +280,10 @@ export const PasswordReset: React.FC = () => {
           </Typography>
         </CardHeader>
         <CardBody {...getCardBodyProps()}>
-          <form onSubmit={handleRequestSubmit(onRequestSubmit)} className="space-y-6">
+          <form
+            onSubmit={handleRequestSubmit(onRequestSubmit)}
+            className="space-y-6"
+          >
             <div>
               <Input
                 {...getInputProps()}
@@ -244,13 +292,15 @@ export const PasswordReset: React.FC = () => {
                 {...registerRequest("email")}
                 error={!!requestErrors.email}
                 aria-invalid={!!requestErrors.email}
-                aria-describedby={requestErrors.email ? "email-error" : undefined}
+                aria-describedby={
+                  requestErrors.email ? "email-error" : undefined
+                }
               />
               {requestErrors.email && (
-                <Typography 
-                  {...getTypographyProps()} 
-                  variant="small" 
-                  color="red" 
+                <Typography
+                  {...getTypographyProps()}
+                  variant="small"
+                  color="red"
                   className="mt-1"
                   id="email-error"
                 >
@@ -260,10 +310,10 @@ export const PasswordReset: React.FC = () => {
             </div>
 
             {(requestErrors.root || authError) && (
-              <Typography 
-                {...getTypographyProps()} 
-                variant="small" 
-                color="red" 
+              <Typography
+                {...getTypographyProps()}
+                variant="small"
+                color="red"
                 className="text-center"
                 role="alert"
               >
@@ -285,4 +335,4 @@ export const PasswordReset: React.FC = () => {
       </Card>
     </div>
   );
-}; 
+};

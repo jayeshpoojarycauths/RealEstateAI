@@ -6,14 +6,14 @@ import {
   SafeTypography as Typography,
   SafeButton as Button,
 } from "../components/SafeMTW";
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   UserGroupIcon,
   BuildingOfficeIcon,
   CurrencyDollarIcon,
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import api from '../services/api';
+import api from "../services/api";
 import { useMaterialTailwind } from "../hooks/useMaterialTailwind";
 
 const statIcons = {
@@ -24,14 +24,20 @@ const statIcons = {
 };
 
 const reportEndpoints = {
-  Daily: '/reports/daily',
-  Weekly: '/reports/weekly',
-  Monthly: '/reports/monthly',
-  Quarterly: '/reports/quarterly',
+  Daily: "/reports/daily",
+  Weekly: "/reports/weekly",
+  Monthly: "/reports/monthly",
+  Quarterly: "/reports/quarterly",
 };
 
 export const DashboardPage: React.FC = () => {
-  const { getButtonProps, getCardProps, getCardBodyProps, getCardHeaderProps, getTypographyProps } = useMaterialTailwind();
+  const {
+    getButtonProps,
+    getCardProps,
+    getCardBodyProps,
+    getCardHeaderProps,
+    getTypographyProps,
+  } = useMaterialTailwind();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,10 +50,12 @@ export const DashboardPage: React.FC = () => {
       setLoading(true);
       setError("");
       try {
-        const response = await api.get('/stats/stats');
+        const response = await api.get("/stats/stats");
         setStats(response.data);
       } catch (e: any) {
-        setError(e?.response?.data?.detail || 'Failed to fetch dashboard stats');
+        setError(
+          e?.response?.data?.detail || "Failed to fetch dashboard stats",
+        );
       } finally {
         setLoading(false);
       }
@@ -65,42 +73,50 @@ export const DashboardPage: React.FC = () => {
       setReportSuccess(`${type} report generated!`);
       // Optionally, handle the report data (download, show modal, etc.)
     } catch (e: any) {
-      setReportError(e?.response?.data?.detail || `Failed to generate ${type} report`);
+      setReportError(
+        e?.response?.data?.detail || `Failed to generate ${type} report`,
+      );
     } finally {
       setReportLoading(false);
     }
   };
 
-  const statCards = stats ? [
-    {
-      title: "Total Leads",
-      value: stats.lead_stats?.total_leads ?? "-",
-      change: stats.lead_stats?.change ?? "",
-      icon: UserGroupIcon,
-      color: "blue",
-    },
-    {
-      title: "Active Projects",
-      value: stats.project_stats?.active_projects ?? "-",
-      change: stats.project_stats?.change ?? "",
-      icon: BuildingOfficeIcon,
-      color: "green",
-    },
-    {
-      title: "Revenue",
-      value: stats.project_stats?.revenue ? `$${stats.project_stats.revenue.toLocaleString()}` : "-",
-      change: stats.project_stats?.revenue_change ?? "",
-      icon: CurrencyDollarIcon,
-      color: "amber",
-    },
-    {
-      title: "Conversion Rate",
-      value: stats.lead_stats?.conversion_rate ? `${stats.lead_stats.conversion_rate}%` : "-",
-      change: stats.lead_stats?.conversion_rate_change ?? "",
-      icon: ChartBarIcon,
-      color: "purple",
-    },
-  ] : [];
+  const statCards = stats
+    ? [
+        {
+          title: "Total Leads",
+          value: stats.lead_stats?.total_leads ?? "-",
+          change: stats.lead_stats?.change ?? "",
+          icon: UserGroupIcon,
+          color: "blue",
+        },
+        {
+          title: "Active Projects",
+          value: stats.project_stats?.active_projects ?? "-",
+          change: stats.project_stats?.change ?? "",
+          icon: BuildingOfficeIcon,
+          color: "green",
+        },
+        {
+          title: "Revenue",
+          value: stats.project_stats?.revenue
+            ? `$${stats.project_stats.revenue.toLocaleString()}`
+            : "-",
+          change: stats.project_stats?.revenue_change ?? "",
+          icon: CurrencyDollarIcon,
+          color: "amber",
+        },
+        {
+          title: "Conversion Rate",
+          value: stats.lead_stats?.conversion_rate
+            ? `${stats.lead_stats.conversion_rate}%`
+            : "-",
+          change: stats.lead_stats?.conversion_rate_change ?? "",
+          icon: ChartBarIcon,
+          color: "purple",
+        },
+      ]
+    : [];
 
   return (
     <div className="space-y-6">
@@ -119,7 +135,7 @@ export const DashboardPage: React.FC = () => {
                 disabled={reportLoading}
               >
                 <ChartBarIcon className="h-5 w-5" />
-                {reportLoading ? 'Generating...' : 'Generate Report'}
+                {reportLoading ? "Generating..." : "Generate Report"}
               </Button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content
@@ -140,13 +156,18 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-
-      {reportError && <div className="text-red-600 font-medium">{reportError}</div>}
-      {reportSuccess && <div className="text-green-600 font-medium">{reportSuccess}</div>}
+      {reportError && (
+        <div className="text-red-600 font-medium">{reportError}</div>
+      )}
+      {reportSuccess && (
+        <div className="text-green-600 font-medium">{reportSuccess}</div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center h-40">
-          <span className="text-blue-gray-400 text-lg">Loading dashboard...</span>
+          <span className="text-blue-gray-400 text-lg">
+            Loading dashboard...
+          </span>
         </div>
       ) : error ? (
         <div className="flex items-center justify-center h-40">
@@ -211,7 +232,11 @@ export const DashboardPage: React.FC = () => {
             </Typography>
           </CardHeader>
           <CardBody {...getCardBodyProps()}>
-            <Typography variant="paragraph" color="blue-gray" {...getTypographyProps()}>
+            <Typography
+              variant="paragraph"
+              color="blue-gray"
+              {...getTypographyProps()}
+            >
               Content coming soon...
             </Typography>
           </CardBody>
@@ -229,7 +254,11 @@ export const DashboardPage: React.FC = () => {
             </Typography>
           </CardHeader>
           <CardBody {...getCardBodyProps()}>
-            <Typography variant="paragraph" color="blue-gray" {...getTypographyProps()}>
+            <Typography
+              variant="paragraph"
+              color="blue-gray"
+              {...getTypographyProps()}
+            >
               Content coming soon...
             </Typography>
           </CardBody>
@@ -237,4 +266,4 @@ export const DashboardPage: React.FC = () => {
       </div>
     </div>
   );
-}; 
+};

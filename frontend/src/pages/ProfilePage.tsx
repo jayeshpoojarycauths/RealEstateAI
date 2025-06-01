@@ -9,8 +9,8 @@ import {
   Spinner,
   Alert,
 } from "@material-tailwind/react";
-import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+import { useAuth } from "../contexts/AuthContext";
+import api from "../services/api";
 import { useMaterialTailwind } from "../hooks/useMaterialTailwind";
 
 interface UserProfile {
@@ -40,7 +40,7 @@ const defaultEventHandlers = {
   onResize: undefined,
   onResizeCapture: undefined,
   onPointerEnterCapture: undefined,
-  onPointerLeaveCapture: undefined
+  onPointerLeaveCapture: undefined,
 };
 
 export const ProfilePage: React.FC = () => {
@@ -59,11 +59,18 @@ export const ProfilePage: React.FC = () => {
     confirm_password: "",
   });
   const { token } = useAuth();
-  const { getButtonProps, getCardProps, getCardBodyProps, getCardHeaderProps, getTypographyProps, getInputProps } = useMaterialTailwind();
+  const {
+    getButtonProps,
+    getCardProps,
+    getCardBodyProps,
+    getCardHeaderProps,
+    getTypographyProps,
+    getInputProps,
+  } = useMaterialTailwind();
 
   const fetchProfile = React.useCallback(async () => {
     try {
-      const response = await api.get<UserProfile>('/api/v1/users/me', {
+      const response = await api.get<UserProfile>("/api/v1/users/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProfileData({
@@ -85,7 +92,7 @@ export const ProfilePage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setProfileData(prev => ({
+    setProfileData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -97,7 +104,7 @@ export const ProfilePage: React.FC = () => {
     setSuccess("");
 
     try {
-      await api.put('/api/v1/users/me', profileData, {
+      await api.put("/api/v1/users/me", profileData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSuccess("Profile updated successfully");
@@ -118,12 +125,16 @@ export const ProfilePage: React.FC = () => {
     }
 
     try {
-      await api.put('/api/v1/users/me/password', {
-        current_password: passwordData.current_password,
-        new_password: passwordData.new_password,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.put(
+        "/api/v1/users/me/password",
+        {
+          current_password: passwordData.current_password,
+          new_password: passwordData.new_password,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       setSuccess("Password updated successfully");
       setPasswordData({
         current_password: "",
@@ -207,7 +218,7 @@ export const ProfilePage: React.FC = () => {
               <Input
                 type="tel"
                 label="Phone"
-                value={profileData.phone || ''}
+                value={profileData.phone || ""}
                 onChange={handleInputChange}
                 {...getInputProps()}
               />
@@ -282,4 +293,4 @@ export const ProfilePage: React.FC = () => {
   );
 };
 
-export default ProfilePage; 
+export default ProfilePage;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Card,
   CardHeader,
@@ -7,10 +7,10 @@ import {
   Button,
   Input,
   Spinner,
-} from '@material-tailwind/react';
-import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+} from "@material-tailwind/react";
+import { ArrowUpTrayIcon } from "@heroicons/react/24/outline";
+import { useAuth } from "../contexts/AuthContext";
+import api from "../services/api";
 import { useMaterialTailwind } from "../hooks/useMaterialTailwind";
 
 interface UploadResponse {
@@ -23,7 +23,7 @@ const defaultEventHandlers = {
   onResize: undefined,
   onResizeCapture: undefined,
   onPointerEnterCapture: undefined,
-  onPointerLeaveCapture: undefined
+  onPointerLeaveCapture: undefined,
 };
 
 export const LeadUploadPage: React.FC = () => {
@@ -32,7 +32,14 @@ export const LeadUploadPage: React.FC = () => {
   const [response, setResponse] = useState<UploadResponse | null>(null);
   const [error, setError] = useState("");
   const { token } = useAuth();
-  const { getButtonProps, getCardProps, getCardBodyProps, getCardHeaderProps, getTypographyProps, getInputProps } = useMaterialTailwind();
+  const {
+    getButtonProps,
+    getCardProps,
+    getCardBodyProps,
+    getCardHeaderProps,
+    getTypographyProps,
+    getInputProps,
+  } = useMaterialTailwind();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -57,9 +64,9 @@ export const LeadUploadPage: React.FC = () => {
     formData.append("file", file);
 
     try {
-      const result = await api.post<UploadResponse>('/leads/upload', formData, {
+      const result = await api.post<UploadResponse>("/leads/upload", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       });
@@ -162,7 +169,10 @@ export const LeadUploadPage: React.FC = () => {
                 >
                   {uploading ? (
                     <div className="flex items-center">
-                      <Spinner className="h-4 w-4 mr-2" {...defaultEventHandlers} />
+                      <Spinner
+                        className="h-4 w-4 mr-2"
+                        {...defaultEventHandlers}
+                      />
                       Uploading...
                     </div>
                   ) : (
@@ -178,21 +188,34 @@ export const LeadUploadPage: React.FC = () => {
       {response && (
         <div className="mt-6 space-y-4">
           <div className="bg-green-50 p-4 rounded-lg">
-            <Typography variant="small" className="font-medium text-green-800" {...getTypographyProps()}>
-              Upload Complete: {response.success_count} leads imported successfully
+            <Typography
+              variant="small"
+              className="font-medium text-green-800"
+              {...getTypographyProps()}
+            >
+              Upload Complete: {response.success_count} leads imported
+              successfully
             </Typography>
           </div>
-          
+
           {response.error_count > 0 && (
             <>
               <div className="bg-amber-50 p-4 rounded-lg">
-                <Typography variant="small" className="font-medium text-amber-800" {...getTypographyProps()}>
+                <Typography
+                  variant="small"
+                  className="font-medium text-amber-800"
+                  {...getTypographyProps()}
+                >
                   {response.error_count} errors occurred during import
                 </Typography>
               </div>
               {response.errors && response.errors.length > 0 && (
                 <div className="bg-red-50 p-4 rounded-lg">
-                  <Typography variant="small" className="font-medium text-red-800" {...getTypographyProps()}>
+                  <Typography
+                    variant="small"
+                    className="font-medium text-red-800"
+                    {...getTypographyProps()}
+                  >
                     Error Details:
                   </Typography>
                   <ul className="mt-2 list-disc list-inside">
@@ -212,4 +235,4 @@ export const LeadUploadPage: React.FC = () => {
   );
 };
 
-export default LeadUploadPage; 
+export default LeadUploadPage;

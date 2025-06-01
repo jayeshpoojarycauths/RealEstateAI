@@ -18,7 +18,7 @@ class PasswordValidation(BaseModel):
             raise ValueError('Password must contain at least one special character')
         return v
 
-class UserCreate(BaseModel):
+# class UserCreateValidation(BaseModel):
     email: EmailStr
     username: constr(min_length=3, max_length=50)
     password: str

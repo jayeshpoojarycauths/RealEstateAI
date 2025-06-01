@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -25,7 +25,11 @@ interface VoiceSelectorProps {
   className?: string;
 }
 
-export function VoiceSelector({ value, onChange, className }: VoiceSelectorProps) {
+export function VoiceSelector({
+  value,
+  onChange,
+  className,
+}: VoiceSelectorProps) {
   const [voices, setVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -34,8 +38,8 @@ export function VoiceSelector({ value, onChange, className }: VoiceSelectorProps
 
   const fetchVoices = React.useCallback(async () => {
     try {
-      const response = await fetch('/api/v1/tts/voices');
-      if (!response.ok) throw new Error('Failed to fetch voices');
+      const response = await fetch("/api/v1/tts/voices");
+      if (!response.ok) throw new Error("Failed to fetch voices");
       const data = await response.json();
       setVoices(data);
     } catch (error) {
@@ -61,21 +65,21 @@ export function VoiceSelector({ value, onChange, className }: VoiceSelectorProps
 
     setPreviewLoading(true);
     try {
-      const response = await fetch('/api/v1/tts/preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/v1/tts/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: "Hello! This is a preview of my voice.",
           voice_id: voiceId,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to generate preview');
+      if (!response.ok) throw new Error("Failed to generate preview");
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const newAudio = new Audio(url);
-      
+
       newAudio.onended = () => {
         URL.revokeObjectURL(url);
         setAudio(null);
@@ -112,7 +116,7 @@ export function VoiceSelector({ value, onChange, className }: VoiceSelectorProps
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => audio ? stopPreview() : handlePreview(value)}
+                onClick={() => (audio ? stopPreview() : handlePreview(value))}
                 disabled={previewLoading}
               >
                 {previewLoading ? (
@@ -125,12 +129,8 @@ export function VoiceSelector({ value, onChange, className }: VoiceSelectorProps
               </Button>
             )}
           </div>
-          
-          <Select
-            value={value}
-            onValueChange={onChange}
-            disabled={loading}
-          >
+
+          <Select value={value} onValueChange={onChange} disabled={loading}>
             <SelectTrigger>
               <SelectValue placeholder="Select a voice" />
             </SelectTrigger>
@@ -157,4 +157,4 @@ export function VoiceSelector({ value, onChange, className }: VoiceSelectorProps
       </CardContent>
     </Card>
   );
-} 
+}

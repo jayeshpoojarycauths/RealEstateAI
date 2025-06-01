@@ -1,22 +1,31 @@
-import React from 'react';
-import { Card, CardBody } from '@material-tailwind/react';
+import React from "react";
+import { Card, CardBody } from "@material-tailwind/react";
 
 interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   color?: string;
 }
 
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', color = 'blue' }) => {
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+  size = "md",
+  color = "blue",
+}) => {
   const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12',
+    sm: "w-4 h-4",
+    md: "w-8 h-8",
+    lg: "w-12 h-12",
   };
 
   return (
     <div className="flex justify-center items-center">
       <div
-        className={`${sizeClasses[size]} border-4 border-gray-200 border-t-${color}-500 rounded-full animate-spin`}
+        className={`${sizeClasses[size]} border-4 border-gray-200 ${
+          {
+            blue: "border-t-blue-500",
+            red: "border-t-red-500",
+            green: "border-t-green-500",
+          }[color]
+        } rounded-full animate-spin`}
       />
     </div>
   );
@@ -48,7 +57,10 @@ interface LoadingTableProps {
   rows: number;
 }
 
-export const LoadingTable: React.FC<LoadingTableProps> = ({ columns, rows }) => {
+export const LoadingTable: React.FC<LoadingTableProps> = ({
+  columns,
+  rows,
+}) => {
   return (
     <div className="w-full overflow-x-auto">
       <table className="w-full">
@@ -82,7 +94,10 @@ interface LoadingOverlayProps {
   message?: string;
 }
 
-export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ show, message = 'Loading...' }) => {
+export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
+  show,
+  message = "Loading...",
+}) => {
   if (!show) return null;
 
   return (
@@ -93,4 +108,4 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({ show, message = 
       </div>
     </div>
   );
-}; 
+};

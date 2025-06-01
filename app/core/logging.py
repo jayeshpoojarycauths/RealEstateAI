@@ -13,17 +13,22 @@ from concurrent.futures import ThreadPoolExecutor
 import shutil
 import gzip
 
-# Create logs directory structure
-LOGS_DIR = Path("logs")
-LOGS_DIR.mkdir(exist_ok=True)
-BACKEND_LOGS_DIR = LOGS_DIR / "backend"
-BACKEND_LOGS_DIR.mkdir(exist_ok=True)
-AUDIT_LOGS_DIR = LOGS_DIR / "audit"
-AUDIT_LOGS_DIR.mkdir(exist_ok=True)
-ERROR_LOGS_DIR = LOGS_DIR / "error"
-ERROR_LOGS_DIR.mkdir(exist_ok=True)
-ARCHIVE_DIR = LOGS_DIR / "archive"
-ARCHIVE_DIR.mkdir(exist_ok=True)
+# Determine the application's base directory
+BASE_DIR = Path(__file__).resolve().parent.parent.parent  # Adjust as needed for your structure
+LOGS_DIR = BASE_DIR / "logs"
+
+try:
+    LOGS_DIR.mkdir(exist_ok=True)
+    BACKEND_LOGS_DIR = LOGS_DIR / "backend"
+    BACKEND_LOGS_DIR.mkdir(exist_ok=True)
+    AUDIT_LOGS_DIR = LOGS_DIR / "audit"
+    AUDIT_LOGS_DIR.mkdir(exist_ok=True)
+    ERROR_LOGS_DIR = LOGS_DIR / "error"
+    ERROR_LOGS_DIR.mkdir(exist_ok=True)
+    ARCHIVE_DIR = LOGS_DIR / "archive"
+    ARCHIVE_DIR.mkdir(exist_ok=True)
+except OSError as e:
+    raise RuntimeError(f"Failed to create log directories: {e}")
 
 # Log retention settings
 LOG_RETENTION_DAYS = 30
@@ -86,9 +91,9 @@ class JSONFormatter(logging.Formatter):
             "line": record.lineno,
         }
         
-        # Add extra fields
+        # Add extra fields, but exclude 'request' (handled separately)
         for key, value in record.__dict__.items():
-            if key not in log_data and not key.startswith('_'):
+            if key not in log_data and not key.startswith('_') and key != "request":
                 log_data[key] = value
         
         # Add request context if available

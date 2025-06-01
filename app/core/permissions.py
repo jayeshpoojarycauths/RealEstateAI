@@ -1,8 +1,9 @@
 from enum import Enum
-from typing import List, Dict, Set, Optional
-from fastapi import Depends, HTTPException, status
-from .exceptions import AuthorizationException, MessageCode
-from .messages import Messages
+from typing import Dict, Set
+from fastapi import Depends
+from app.core.exceptions import AuthorizationException, MessageCode
+from app.core.messages import Messages
+from app.core.deps import get_current_user
 
 class Role(str, Enum):
     """User roles in the system."""

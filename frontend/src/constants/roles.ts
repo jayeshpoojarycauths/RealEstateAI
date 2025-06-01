@@ -3,21 +3,21 @@
  * These roles are used for access control and permissions
  */
 export const ROLES = {
-    ADMIN: 'admin',
-    AGENT: 'agent',
-    CUSTOMER: 'customer',
+  ADMIN: "admin",
+  AGENT: "agent",
+  CUSTOMER: "customer",
 } as const;
 
-export type Role = typeof ROLES[keyof typeof ROLES];
+export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 /**
  * Role hierarchy for access control
  * Higher roles inherit permissions from lower roles
  */
 export const ROLE_HIERARCHY: Record<Role, Role[]> = {
-    [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.AGENT, ROLES.CUSTOMER],
-    [ROLES.AGENT]: [ROLES.AGENT, ROLES.CUSTOMER],
-    [ROLES.CUSTOMER]: [ROLES.CUSTOMER],
+  [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.AGENT, ROLES.CUSTOMER],
+  [ROLES.AGENT]: [ROLES.AGENT, ROLES.CUSTOMER],
+  [ROLES.CUSTOMER]: [ROLES.CUSTOMER],
 };
 
 /**
@@ -27,7 +27,7 @@ export const ROLE_HIERARCHY: Record<Role, Role[]> = {
  * @returns boolean indicating if the user has access
  */
 export const hasRoleAccess = (userRole: Role, requiredRole: Role): boolean => {
-    return ROLE_HIERARCHY[userRole]?.includes(requiredRole) || false;
+  return ROLE_HIERARCHY[userRole]?.includes(requiredRole) || false;
 };
 
 /**
@@ -36,6 +36,9 @@ export const hasRoleAccess = (userRole: Role, requiredRole: Role): boolean => {
  * @param requiredRoles - Array of roles that grant access
  * @returns boolean indicating if the user has access
  */
-export const hasAnyRoleAccess = (userRole: Role, requiredRoles: Role[]): boolean => {
-    return requiredRoles.some((role) => hasRoleAccess(userRole, role));
-}; 
+export const hasAnyRoleAccess = (
+  userRole: Role,
+  requiredRoles: Role[],
+): boolean => {
+  return requiredRoles.some((role) => hasRoleAccess(userRole, role));
+};

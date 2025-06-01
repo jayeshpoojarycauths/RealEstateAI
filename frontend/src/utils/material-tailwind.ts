@@ -1,4 +1,11 @@
-import { ButtonProps, CardProps, CardBodyProps, CardHeaderProps, TypographyProps, InputProps } from "@material-tailwind/react";
+import {
+  ButtonProps,
+  CardProps,
+  CardBodyProps,
+  CardHeaderProps,
+  TypographyProps,
+  InputProps,
+} from "@material-tailwind/react";
 
 export const defaultProps = {
   button: {
@@ -37,4 +44,4 @@ export const defaultProps = {
     onPointerEnterCapture: undefined,
     onPointerLeaveCapture: undefined,
   } as InputProps,
-}; 
+};

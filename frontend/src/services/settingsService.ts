@@ -20,12 +20,10 @@ export interface UpdateSettingsDto extends Partial<UserSettings> {
 
 export const settingsService = {
     getCurrentUserSettings: async () => {
-        const response = await api.get<UserSettings>('/settings/current');
-        return response.data;
-    },
+export interface UpdateSettingsDto extends Partial<UserSettings> {}
 
-    updateSettings: async (settings: UpdateSettingsDto) => {
-        const response = await api.put<UserSettings>(`/settings/${settings.userId}`, settings);
-        return response.data;
-    },
+ updateSettings: async (userId: string, settings: UpdateSettingsDto) => {
+    const response = await api.put<UserSettings>(`/settings/${userId}`, settings);
+     return response.data;
+ },
 }; 

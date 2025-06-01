@@ -21,6 +21,7 @@ class UserBase(BaseModel):
     first_name: constr(min_length=1, max_length=50)
     last_name: constr(min_length=1, max_length=50)
     role: Role
+    username: constr(min_length=3, max_length=50)
 
 class UserCreate(UserBase):
     """Schema for creating a new user."""
@@ -34,6 +35,7 @@ class UserUpdate(BaseModel):
     last_name: Optional[constr(min_length=1, max_length=50)] = None
     password: Optional[constr(min_length=8, max_length=100)] = None
     role: Optional[Role] = None
+    username: Optional[constr(min_length=3, max_length=50)] = None
     is_active: Optional[bool] = None
 
 class User(UserBase):

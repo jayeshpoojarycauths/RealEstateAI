@@ -1,6 +1,6 @@
-import React from 'react';
-import { LeadUpload } from '../components/outreach/LeadUpload';
-import { OutreachLogs } from '../components/outreach/OutreachLogs';
+import React from "react";
+import { LeadUpload } from "../components/outreach/LeadUpload";
+import { OutreachLogs } from "../components/outreach/OutreachLogs";
 
 export function OutreachPage() {
   return (
@@ -9,4 +9,4 @@ export function OutreachPage() {
       <OutreachLogs />
     </div>
   );
-} 
+}
