@@ -6,16 +6,19 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from twilio.rest import Client
 import openai
-from datetime import datetime
+from datetime import datetime, timedelta
 import asyncio
 import logging
-from app.outreach.schemas.outreach import LeadUpload
+from app.outreach.schemas.outreach import LeadUpload, OutreachCreate, OutreachUpdate, OutreachTemplateCreate, OutreachTemplateUpdate, CommunicationPreferenceCreate, CommunicationPreferenceUpdate, OutreachFilter, OutreachTemplateFilter
 from app.services.ai import AIService
 from app.services.email import EmailService
 from app.services.sms import SMSService
 from app.core.audit import AuditLogger
-from app.outreach.models.outreach import *
+from app.outreach.models.outreach import Outreach, OutreachTemplate, CommunicationPreference
+from app.shared.core.exceptions import NotFoundError, ValidationError
+from app.shared.core.audit import AuditService
 import uuid
+from sqlalchemy import func, and_, or_, case
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +33,7 @@ class OutreachService:
         self.email_service = EmailService()
         self.sms_service = SMSService()
         self.audit_logger = AuditLogger(db, customer)
+        self.audit = AuditService(db)
 
     async def trigger_outreach(self, lead: Lead) -> None:
         """
@@ -340,66 +344,375 @@ class OutreachService:
             .all()
         )
 
-    async def create_outreach(
-        self,
-        lead_id: str,
-        channel: OutreachChannel,
-        message: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> OutreachLog:
-        """
-        Create a new outreach record.
-        """
-        outreach = OutreachLog(
-            lead_id=lead_id,
-            channel=channel,
-            message=message,
-            status=OutreachStatus.PENDING,
-            customer_id=self.customer.id,
-            outreach_metadata=metadata or {}
+    def create_outreach(self, outreach: OutreachCreate) -> Outreach:
+        """Create a new outreach attempt."""
+        db_outreach = Outreach(
+            lead_id=outreach.lead_id,
+            channel=outreach.channel,
+            message=outreach.message,
+            subject=outreach.subject,
+            template_id=outreach.template_id,
+            variables=outreach.variables,
+            status=OutreachStatus.PENDING
         )
-        
-        self.db.add(outreach)
+        self.db.add(db_outreach)
         self.db.commit()
-        self.db.refresh(outreach)
+        self.db.refresh(db_outreach)
         
-        await self.audit_logger.log_action(
-            action="create",
+        self.audit.log_activity(
             entity_type="outreach",
-            entity_id=outreach.id,
-            details={
-                "lead_id": lead_id,
-                "channel": channel,
-                "status": OutreachStatus.PENDING
-            }
+            entity_id=str(db_outreach.id),
+            action="create",
+            details={"channel": outreach.channel.value}
         )
         
+        return db_outreach
+
+    def get_outreach(self, outreach_id: uuid.UUID) -> Outreach:
+        """Get an outreach attempt by ID."""
+        outreach = self.db.query(Outreach).filter(Outreach.id == outreach_id).first()
+        if not outreach:
+            raise NotFoundError(f"Outreach with ID {outreach_id} not found")
         return outreach
 
-    async def get_outreach_logs(
-        self,
-        lead_id: Optional[str] = None,
-        channel: Optional[OutreachChannel] = None,
-        status: Optional[OutreachStatus] = None,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
-    ) -> List[OutreachLog]:
-        """
-        Get outreach logs for the current customer with filtering.
-        """
-        query = self.db.query(OutreachLog).filter(
-            OutreachLog.customer_id == self.customer.id
+    def update_outreach(self, outreach_id: uuid.UUID, outreach: OutreachUpdate) -> Outreach:
+        """Update an outreach attempt."""
+        db_outreach = self.get_outreach(outreach_id)
+        
+        for field, value in outreach.dict(exclude_unset=True).items():
+            setattr(db_outreach, field, value)
+        
+        self.db.commit()
+        self.db.refresh(db_outreach)
+        
+        self.audit.log_activity(
+            entity_type="outreach",
+            entity_id=str(outreach_id),
+            action="update",
+            details={"status": outreach.status.value if outreach.status else None}
         )
+        
+        return db_outreach
 
-        if lead_id:
-            query = query.filter(OutreachLog.lead_id == lead_id)
-        if channel:
-            query = query.filter(OutreachLog.channel == channel)
-        if status:
-            query = query.filter(OutreachLog.status == status)
+    def list_outreach(self, filter_params: OutreachFilter) -> List[Outreach]:
+        """List outreach attempts with filtering."""
+        query = self.db.query(Outreach)
+        
+        if filter_params.channel:
+            query = query.filter(Outreach.channel == filter_params.channel)
+        if filter_params.status:
+            query = query.filter(Outreach.status == filter_params.status)
+        if filter_params.start_date:
+            query = query.filter(Outreach.created_at >= filter_params.start_date)
+        if filter_params.end_date:
+            query = query.filter(Outreach.created_at <= filter_params.end_date)
+        if filter_params.search:
+            search = f"%{filter_params.search}%"
+            query = query.filter(
+                or_(
+                    Outreach.message.ilike(search),
+                    Outreach.subject.ilike(search)
+                )
+            )
+        
+        return query.order_by(Outreach.created_at.desc()).all()
+
+    def create_template(self, template: OutreachTemplateCreate) -> OutreachTemplate:
+        """Create a new outreach template."""
+        db_template = OutreachTemplate(**template.dict())
+        self.db.add(db_template)
+        self.db.commit()
+        self.db.refresh(db_template)
+        
+        self.audit.log_activity(
+            entity_type="outreach_template",
+            entity_id=str(db_template.id),
+            action="create",
+            details={"channel": template.channel.value}
+        )
+        
+        return db_template
+
+    def get_template(self, template_id: uuid.UUID) -> OutreachTemplate:
+        """Get a template by ID."""
+        template = self.db.query(OutreachTemplate).filter(OutreachTemplate.id == template_id).first()
+        if not template:
+            raise NotFoundError(f"Template with ID {template_id} not found")
+        return template
+
+    def update_template(self, template_id: uuid.UUID, template: OutreachTemplateUpdate) -> OutreachTemplate:
+        """Update a template."""
+        db_template = self.get_template(template_id)
+        
+        for field, value in template.dict(exclude_unset=True).items():
+            setattr(db_template, field, value)
+        
+        self.db.commit()
+        self.db.refresh(db_template)
+        
+        self.audit.log_activity(
+            entity_type="outreach_template",
+            entity_id=str(template_id),
+            action="update"
+        )
+        
+        return db_template
+
+    def list_templates(self, filter_params: OutreachTemplateFilter) -> List[OutreachTemplate]:
+        """List templates with filtering."""
+        query = self.db.query(OutreachTemplate)
+        
+        if filter_params.channel:
+            query = query.filter(OutreachTemplate.channel == filter_params.channel)
+        if filter_params.is_active is not None:
+            query = query.filter(OutreachTemplate.is_active == filter_params.is_active)
+        if filter_params.search:
+            search = f"%{filter_params.search}%"
+            query = query.filter(
+                or_(
+                    OutreachTemplate.name.ilike(search),
+                    OutreachTemplate.description.ilike(search),
+                    OutreachTemplate.body.ilike(search)
+                )
+            )
+        
+        return query.order_by(OutreachTemplate.created_at.desc()).all()
+
+    def create_communication_preference(self, preference: CommunicationPreferenceCreate) -> CommunicationPreference:
+        """Create communication preferences for a customer."""
+        db_preference = CommunicationPreference(**preference.dict())
+        self.db.add(db_preference)
+        self.db.commit()
+        self.db.refresh(db_preference)
+        
+        self.audit.log_activity(
+            entity_type="communication_preference",
+            entity_id=str(db_preference.id),
+            action="create",
+            details={"default_channel": preference.default_channel.value}
+        )
+        
+        return db_preference
+
+    def get_communication_preference(self, customer_id: uuid.UUID) -> CommunicationPreference:
+        """Get communication preferences for a customer."""
+        preference = self.db.query(CommunicationPreference).filter(
+            CommunicationPreference.customer_id == customer_id
+        ).first()
+        if not preference:
+            raise NotFoundError(f"Communication preferences for customer {customer_id} not found")
+        return preference
+
+    def update_communication_preference(
+        self, customer_id: uuid.UUID, preference: CommunicationPreferenceUpdate
+    ) -> CommunicationPreference:
+        """Update communication preferences for a customer."""
+        db_preference = self.get_communication_preference(customer_id)
+        
+        for field, value in preference.dict(exclude_unset=True).items():
+            setattr(db_preference, field, value)
+        
+        self.db.commit()
+        self.db.refresh(db_preference)
+        
+        self.audit.log_activity(
+            entity_type="communication_preference",
+            entity_id=str(db_preference.id),
+            action="update",
+            details={"default_channel": preference.default_channel.value}
+        )
+        
+        return db_preference
+
+    def log_outreach(self, outreach_id: uuid.UUID, status: OutreachStatus, error_message: Optional[str] = None) -> OutreachLog:
+        """Log an outreach attempt."""
+        outreach = self.get_outreach(outreach_id)
+        
+        log = OutreachLog(
+            lead_id=outreach.lead_id,
+            customer_id=outreach.customer_id,
+            channel=outreach.channel,
+            status=status,
+            message=outreach.message,
+            error_message=error_message
+        )
+        
+        if status == OutreachStatus.SENT:
+            log.sent_at = datetime.utcnow()
+        
+        self.db.add(log)
+        self.db.commit()
+        self.db.refresh(log)
+        
+        return log
+
+    def get_outreach_stats(self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None) -> Dict[str, Any]:
+        """Get outreach statistics."""
+        query = self.db.query(Outreach)
+        
         if start_date:
-            query = query.filter(OutreachLog.created_at >= start_date)
+            query = query.filter(Outreach.created_at >= start_date)
         if end_date:
-            query = query.filter(OutreachLog.created_at <= end_date)
+            query = query.filter(Outreach.created_at <= end_date)
+        
+        total = query.count()
+        successful = query.filter(Outreach.status == OutreachStatus.SENT).count()
+        failed = query.filter(Outreach.status == OutreachStatus.FAILED).count()
+        
+        channel_distribution = {}
+        for channel in OutreachChannel:
+            count = query.filter(Outreach.channel == channel).count()
+            channel_distribution[channel.value] = count
+        
+        success_rate_by_channel = {}
+        for channel in OutreachChannel:
+            channel_total = query.filter(Outreach.channel == channel).count()
+            if channel_total > 0:
+                channel_success = query.filter(
+                    and_(
+                        Outreach.channel == channel,
+                        Outreach.status == OutreachStatus.SENT
+                    )
+                ).count()
+                success_rate_by_channel[channel.value] = channel_success / channel_total
+            else:
+                success_rate_by_channel[channel.value] = 0.0
+        
+        retry_rate = query.filter(Outreach.retry_count > 0).count() / total if total > 0 else 0
+        
+        error_distribution = {}
+        error_query = self.db.query(
+            Outreach.error_message,
+            func.count(Outreach.id).label('count')
+        ).filter(
+            Outreach.error_message.isnot(None)
+        ).group_by(Outreach.error_message)
+        
+        for error, count in error_query.all():
+            error_distribution[error] = count
+        
+        return {
+            "total_outreach": total,
+            "successful_outreach": successful,
+            "failed_outreach": failed,
+            "channel_distribution": channel_distribution,
+            "success_rate_by_channel": success_rate_by_channel,
+            "retry_rate": retry_rate,
+            "error_distribution": error_distribution
+        }
 
-        return query.order_by(OutreachLog.created_at.desc()).all() 
+    def get_outreach_analytics(self, days: int = 30) -> Dict[str, Any]:
+        """Get detailed outreach analytics."""
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # Get trends
+        trends = []
+        for channel in OutreachChannel:
+            for status in OutreachStatus:
+                daily_counts = self.db.query(
+                    func.date(Outreach.created_at).label('date'),
+                    func.count(Outreach.id).label('count')
+                ).filter(
+                    and_(
+                        Outreach.created_at >= start_date,
+                        Outreach.created_at <= end_date,
+                        Outreach.channel == channel,
+                        Outreach.status == status
+                    )
+                ).group_by(
+                    func.date(Outreach.created_at)
+                ).all()
+                
+                for date, count in daily_counts:
+                    trends.append({
+                        "date": date.strftime("%Y-%m-%d"),
+                        "count": count,
+                        "channel": channel,
+                        "status": status
+                    })
+        
+        # Get channel performance
+        channel_performance = {}
+        for channel in OutreachChannel:
+            channel_stats = self.db.query(
+                func.count(Outreach.id).label('total'),
+                func.avg(
+                    func.extract('epoch', Outreach.sent_at - Outreach.created_at)
+                ).label('avg_response_time'),
+                func.count(
+                    case([(Outreach.status == OutreachStatus.SENT, 1)])
+                ).label('successful')
+            ).filter(
+                and_(
+                    Outreach.created_at >= start_date,
+                    Outreach.created_at <= end_date,
+                    Outreach.channel == channel
+                )
+            ).first()
+            
+            channel_performance[channel.value] = {
+                "total": channel_stats.total,
+                "success_rate": channel_stats.successful / channel_stats.total if channel_stats.total > 0 else 0,
+                "avg_response_time": channel_stats.avg_response_time
+            }
+        
+        # Get time distribution
+        time_distribution = {}
+        for hour in range(24):
+            count = self.db.query(Outreach).filter(
+                and_(
+                    Outreach.created_at >= start_date,
+                    Outreach.created_at <= end_date,
+                    func.extract('hour', Outreach.created_at) == hour
+                )
+            ).count()
+            time_distribution[f"{hour:02d}:00"] = count
+        
+        # Get success metrics
+        success_metrics = {
+            "overall_success_rate": self.db.query(Outreach).filter(
+                and_(
+                    Outreach.created_at >= start_date,
+                    Outreach.created_at <= end_date,
+                    Outreach.status == OutreachStatus.SENT
+                )
+            ).count() / self.db.query(Outreach).filter(
+                and_(
+                    Outreach.created_at >= start_date,
+                    Outreach.created_at <= end_date
+                )
+            ).count(),
+            "avg_retry_count": self.db.query(
+                func.avg(Outreach.retry_count)
+            ).filter(
+                and_(
+                    Outreach.created_at >= start_date,
+                    Outreach.created_at <= end_date
+                )
+            ).scalar() or 0
+        }
+        
+        # Get error analysis
+        error_analysis = {}
+        error_query = self.db.query(
+            Outreach.error_message,
+            func.count(Outreach.id).label('count')
+        ).filter(
+            and_(
+                Outreach.created_at >= start_date,
+                Outreach.created_at <= end_date,
+                Outreach.error_message.isnot(None)
+            )
+        ).group_by(Outreach.error_message)
+        
+        for error, count in error_query.all():
+            error_analysis[error] = count
+        
+        return {
+            "trends": trends,
+            "channel_performance": channel_performance,
+            "time_distribution": time_distribution,
+            "success_metrics": success_metrics,
+            "error_analysis": error_analysis
+        } 

@@ -1,32 +1,42 @@
-# Real Estate CRM - Multi-Tenant AI Outreach & Scraping System
+# Real Estate AI Platform
 
-A multi-tenant Real Estate CRM application that enables AI-powered communication and property lead scraping for multiple customers (firms).
+A modern real estate platform with AI-powered features, role-based access control, and comprehensive property management.
 
-## Features
+## 🚀 Quick Start
 
-- Multi-tenant architecture with tenant isolation
-- Lead management with AI-powered outreach
-- Real estate property scraping
-- Role-based access control (RBAC)
-- Multiple communication channels (SMS, Email, WhatsApp, Telegram)
-- Automated scraping scheduler
+### Prerequisites
 
-## Tech Stack
+- Node.js 18+ and npm
+- Python 3.9+ and pip
+- PostgreSQL 13+
+- Redis (for background jobs)
 
-- Backend: FastAPI + PostgreSQL + SQLAlchemy
-- Frontend: Streamlit
-- Authentication: JWT-based
-- Scraping: BeautifulSoup + Selenium
-- Communication: Twilio (SMS/call), SendGrid (email)
-- Task Scheduler: Celery/APScheduler
+### Frontend Setup
 
-## Setup
-
-1. Create a virtual environment:
+1. Install dependencies:
 ```bash
+cd frontend
+npm install
+```
+
+2. Create `.env` file:
+```env
+VITE_API_URL=http://localhost:8000
+VITE_WS_URL=ws://localhost:8000
+```
+
+3. Start development server:
+```bash
+npm run dev
+```
+
+### Backend Setup
+
+1. Create and activate virtual environment:
+```bash
+cd backend
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 2. Install dependencies:
@@ -35,193 +45,153 @@ pip install -r requirements.txt
 ```
 
 3. Set up environment variables:
-Create a `.env` file in the root directory with the following variables:
-```
-POSTGRES_SERVER=localhost
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_password
-POSTGRES_DB=real_estate_crm
-SECRET_KEY=your_secret_key
-SENDGRID_API_KEY=your_sendgrid_key
-TWILIO_ACCOUNT_SID=your_twilio_sid
-TWILIO_AUTH_TOKEN=your_twilio_token
+```bash
+cp .env.example .env
+# Edit .env with your configuration
 ```
 
-4. Initialize the database:
+4. Initialize database:
 ```bash
 alembic upgrade head
 ```
 
-5. Run the application:
+5. Start the server:
 ```bash
 uvicorn app.main:app --reload
 ```
 
-## API Documentation
+## 🔐 Role-Based Access Control
 
-Once the application is running, you can access the API documentation at:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+### Role Hierarchy
 
-## Multi-Tenant Architecture
+The platform implements a hierarchical role system:
 
-The system uses a shared database with tenant isolation through the `customer_id` foreign key in all relevant tables. Each tenant (customer) has their own:
-- Users
-- Roles and permissions
-- Leads
-- Real estate projects
-- Outreach logs
+- **Admin**: Full system access
+  - Can manage all properties
+  - Can view audit logs
+  - Can manage users
+  - Can access all features
 
-## Security
+- **Agent**: Property management access
+  - Can manage assigned properties
+  - Can view property analytics
+  - Can communicate with customers
 
-- JWT-based authentication
-- Password hashing with bcrypt
-- Role-based access control
-- Tenant isolation at the database level
+- **Customer**: Limited access
+  - Can view available properties
+  - Can save favorites
+  - Can contact agents
 
-## Contributing
+### Permission Inheritance
+
+Higher roles inherit permissions from lower roles:
+```
+Admin > Agent > Customer
+```
+
+## 🧪 Testing
+
+### Unit Tests
+
+Run frontend unit tests:
+```bash
+cd frontend
+npm test
+```
+
+Run backend unit tests:
+```bash
+cd backend
+pytest
+```
+
+### E2E Tests
+
+Run Cypress tests:
+```bash
+cd frontend
+npm run cypress:open
+```
+
+## 📦 Mock Data
+
+### Frontend Fixtures
+
+Mock data is available in `frontend/src/mocks/`:
+- `properties.ts`: Sample property listings
+- `users.ts`: User profiles with different roles
+- `auditLogs.ts`: System activity logs
+
+### Backend Seeds
+
+Initialize test data:
+```bash
+cd backend
+python scripts/seed_data.py
+```
+
+## 🔒 Security Features
+
+1. **Token Management**
+   - JWT-based authentication
+   - Automatic token refresh
+   - Token expiration handling
+
+2. **Request Protection**
+   - Request signing for critical actions
+   - Nonce-based replay protection
+   - Rate limiting
+
+3. **Audit Logging**
+   - Comprehensive activity tracking
+   - IP address logging
+   - User action history
+
+## 🛠️ Development Guidelines
+
+### Code Style
+
+- Frontend: ESLint + Prettier
+  ```bash
+  npm run lint
+  npm run format
+  ```
+
+- Backend: Black + isort
+  ```bash
+  black .
+  isort .
+  ```
+
+### Git Workflow
+
+1. Create feature branch
+2. Write tests
+3. Implement feature
+4. Run tests
+5. Create pull request
+
+### API Documentation
+
+- OpenAPI docs available at `/docs`
+- Swagger UI at `/swagger`
+- ReDoc at `/redoc`
+
+## 📚 Additional Resources
+
+- [Material Tailwind Documentation](https://material-tailwind.com/)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [React Query Documentation](https://tanstack.com/query/latest)
+- [Cypress Documentation](https://docs.cypress.io/)
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create your feature branch
 3. Commit your changes
 4. Push to the branch
-5. Create a Pull Request
+5. Create a pull request
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Testing
-
-### Setup
-
-1. Install test dependencies:
-```bash
-pip install -r requirements-test.txt
-```
-
-2. Create a test database:
-```bash
-# For PostgreSQL
-createdb real_estate_test
-
-# For SQLite (default for tests)
-# No setup needed, tests will create the database automatically
-```
-
-### Running Tests
-
-#### Basic Test Commands
-
-```bash
-# Run all tests
-pytest
-
-# Run tests with coverage report
-pytest --cov=app
-
-# Run tests in parallel
-pytest -n auto
-
-# Run tests with HTML report
-pytest --html=report.html
-```
-
-#### Test Categories
-
-```bash
-# Run only unit tests
-pytest -m unit
-
-# Run only integration tests
-pytest -m integration
-
-# Run only API tests
-pytest -m api
-
-# Run only scraping tests
-pytest -m scraping
-
-# Run only database tests
-pytest -m db
-
-# Run all tests except slow ones
-pytest -m "not slow"
-```
-
-#### Debugging Tests
-
-```bash
-# Run tests with detailed output
-pytest -v
-
-# Show print statements
-pytest -s
-
-# Run specific test file
-pytest tests/test_scraper.py
-
-# Run specific test function
-pytest tests/test_scraper.py::test_magicbricks_scraper
-
-# Run tests with debugger on failure
-pytest --pdb
-```
-
-#### Test Reports
-
-```bash
-# Generate coverage report
-pytest --cov=app --cov-report=html
-
-# Generate test report
-pytest --html=report.html
-
-# Show slowest tests
-pytest --durations=10
-```
-
-### Test Configuration
-
-The project uses `pytest.ini` for test configuration. Key settings include:
-
-- Test file patterns: `test_*.py`, `*_test.py`
-- Test markers for different test types
-- Coverage reporting
-- Environment variables
-- Logging settings
-- Timeout settings
-- Parallel execution settings
-
-### Writing Tests
-
-1. Place test files in the `tests` directory
-2. Name test files with `test_` prefix
-3. Use appropriate markers for test categorization
-4. Follow the test naming convention:
-   - Test files: `test_*.py`
-   - Test classes: `Test*`
-   - Test functions: `test_*`
-
-Example test structure:
-```python
-import pytest
-
-@pytest.mark.unit
-def test_some_function():
-    # Test code here
-    pass
-
-@pytest.mark.integration
-class TestSomeFeature:
-    def test_feature_behavior(self):
-        # Test code here
-        pass
-```
-
-### Continuous Integration
-
-The project includes GitHub Actions workflows for:
-- Running tests on push and pull requests
-- Generating and uploading coverage reports
-- Running linting and type checking 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 

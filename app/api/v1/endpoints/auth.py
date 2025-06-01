@@ -3,12 +3,18 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, verify_password, get_password_hash
 from app.models.models import User
-from app.schemas.auth import Token, TokenPayload
+from app.schemas.auth import Token, TokenPayload, UserRegister, UserResponse
 from app.shared.core.sms import send_mfa_code_sms
 from datetime import datetime, timedelta
 from app.core.config import settings
+from app.db.session import get_db
+from app.models.customer import Customer
+from app.models.role import Role
+from app.core.email import send_verification_email
+from app.core.captcha import verify_captcha
+from app.core.security import generate_verification_token
 import logging
 
 router = APIRouter()
@@ -100,4 +106,116 @@ async def verify_mfa_code(
             current_user.id, expires_delta=access_token_expires
         ),
         "token_type": "bearer",
-    } 
+    }
+
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def register(
+    user_data: UserRegister,
+    db: Session = Depends(get_db),
+    captcha_token: str = None
+):
+    """
+    Register a new user with email verification and CAPTCHA.
+    """
+    try:
+        # Verify CAPTCHA if enabled
+        if settings.ENABLE_CAPTCHA:
+            if not captcha_token:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="CAPTCHA token is required"
+                )
+            if not await verify_captcha(captcha_token):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid CAPTCHA"
+                )
+
+        # Check if user already exists
+        if db.query(User).filter(User.email == user_data.email).first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+
+        # Get admin role
+        admin_role = db.query(Role).filter(Role.name == "admin").first()
+        if not admin_role:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Admin role not found"
+            )
+
+        # Create customer
+        customer = Customer(
+            name=user_data.company_name,
+            status="active"
+        )
+        db.add(customer)
+        db.flush()  # Get customer ID without committing
+
+        # Create user
+        user = User(
+            email=user_data.email,
+            first_name=user_data.first_name,
+            last_name=user_data.last_name,
+            hashed_password=get_password_hash(user_data.password),
+            role_id=admin_role.id,
+            customer_id=customer.id,
+            is_active=False,  # User needs to verify email first
+            verification_token=generate_verification_token()
+        )
+        db.add(user)
+        db.flush()  # Get user ID without committing
+
+        # Send verification email
+        if settings.ENABLE_EMAIL_VERIFICATION:
+            await send_verification_email(
+                email_to=user.email,
+                token=user.verification_token
+            )
+
+        # Commit all changes
+        db.commit()
+        db.refresh(user)
+
+        logger.info(f"New user registered: {user.email}")
+
+        return UserResponse(
+            id=user.id,
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            customer_id=user.customer_id,
+            is_active=user.is_active,
+            requires_verification=settings.ENABLE_EMAIL_VERIFICATION
+        )
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Registration error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred during registration"
+        )
+
+@router.post("/verify-email/{token}", status_code=status.HTTP_200_OK)
+async def verify_email(token: str, db: Session = Depends(get_db)):
+    """
+    Verify user's email address.
+    """
+    user = db.query(User).filter(User.verification_token == token).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification token"
+        )
+
+    user.is_active = True
+    user.verification_token = None
+    db.commit()
+
+    return {"message": "Email verified successfully"} 

@@ -1,164 +1,107 @@
-import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import config from '../config';
-import { useApi } from './useApi';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../config/api';
+import { AuthResponse, LoginCredentials, RegisterData, User } from '../types/auth';
+import { useToast } from '../components/common/Toast';
+import { logger } from '../utils/logger';
 
-interface AuthState {
-  token: string | null;
-  requiresMFA: boolean;
-  error: string | null;
-}
-
-interface MFASetupResponse {
-  secret_key: string;
-  qr_code_url: string;
-  backup_codes: string[];
-}
+const TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'auth_refresh_token';
+const USER_KEY = 'auth_user';
 
 export const useAuth = () => {
-  const [state, setState] = useState<AuthState>({
-    token: localStorage.getItem('token'),
-    requiresMFA: false,
-    error: null,
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const [user, setUser] = useState<User | null>(() => {
+    const storedUser = localStorage.getItem(USER_KEY);
+    return storedUser ? JSON.parse(storedUser) : null;
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { post } = useApi();
-
-  const login = useCallback(async (email: string, password: string, rememberMe: boolean) => {
+  const login = useCallback(async (credentials: LoginCredentials) => {
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
-
-      const response = await post(
-        '/auth/login',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        }
-      );
-
-      const { access_token, requires_mfa } = response.data;
-
-      if (config.ENABLE_MFA && requires_mfa) {
-        setState(prev => ({ ...prev, requiresMFA: true }));
-        return;
-      }
-
-      if (access_token) {
-        localStorage.setItem('token', access_token);
-        setState({
-          token: access_token,
-          requiresMFA: false,
-          error: null,
-        });
-      }
-    } catch (error: any) {
-      setState(prev => ({
-        ...prev,
-        error: error.response?.data?.detail || 'An error occurred during login',
-      }));
-      throw error;
+      setIsLoading(true);
+      setError(null);
+      const { data } = await api.post<AuthResponse>('/auth/login', credentials);
+      localStorage.setItem(TOKEN_KEY, data.token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      setUser(data.user);
+      showToast('success', 'Login successful');
+      navigate('/dashboard');
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
+      showToast('error', 'Login failed: ' + error.message);
+      logger.error('Login failed:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [post]);
+  }, [navigate, showToast]);
 
-  const verifyMFA = useCallback(async (code: string) => {
+  const register = useCallback(async (data: RegisterData) => {
     try {
-      const response = await post('/auth/mfa/verify', { code });
-      const { access_token } = response.data;
-
-      if (access_token) {
-        localStorage.setItem('token', access_token);
-        setState({
-          token: access_token,
-          requiresMFA: false,
-          error: null,
-        });
-      }
-    } catch (error: any) {
-      setState(prev => ({
-        ...prev,
-        error: error.response?.data?.detail || 'Invalid MFA code',
-      }));
-      throw error;
+      setIsLoading(true);
+      setError(null);
+      await api.post('/auth/register', data);
+      showToast('success', 'Registration successful. Please login.');
+      navigate('/login');
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
+      showToast('error', 'Registration failed: ' + error.message);
+      logger.error('Registration failed:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [post]);
+  }, [navigate, showToast]);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    setState({
-      token: null,
-      requiresMFA: false,
-      error: null,
-    });
-  }, []);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    setUser(null);
+    showToast('success', 'Logged out successfully');
+    navigate('/login');
+  }, [navigate, showToast]);
 
-  const setupMFA = async () => {
+  const refreshToken = useCallback(async () => {
     try {
-      const response = await axios.post<MFASetupResponse>(
-        `${config.apiUrl}/auth/setup-mfa`,
-        {},
-        { withCredentials: true }
-      );
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  };
+      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+      if (!refreshToken) {
+        throw new Error('No refresh token found');
+      }
 
-  const enableMFA = async (code: string) => {
-    try {
-      await axios.post(
-        `${config.apiUrl}/auth/enable-mfa`,
-        { code },
-        { withCredentials: true }
-      );
-    } catch (error) {
-      throw error;
-    }
-  };
+      const { data } = await api.post<AuthResponse>('/auth/refresh', {
+        refreshToken,
+      });
 
-  const requestPasswordReset = async (email: string) => {
-    try {
-      await axios.post(
-        `${config.apiUrl}/auth/request-password-reset`,
-        { email }
-      );
-    } catch (error) {
-      throw error;
+      localStorage.setItem(TOKEN_KEY, data.token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      setUser(data.user);
+    } catch (err) {
+      const error = err as Error;
+      logger.error('Token refresh failed:', error);
+      logout();
     }
-  };
+  }, [logout]);
 
-  const resetPassword = async (token: string, newPassword: string) => {
-    try {
-      await axios.post(
-        `${config.apiUrl}/auth/reset-password`,
-        { token, new_password: newPassword }
-      );
-    } catch (error) {
-      throw error;
+  useEffect(() => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      refreshToken();
     }
-  };
-
-  const getAuthHeaders = () => {
-    return {
-      'X-CSRF-Token': axios.defaults.headers.common['X-CSRF-Token'],
-    };
-  };
+  }, [refreshToken]);
 
   return {
-    token: state.token,
-    requiresMFA: state.requiresMFA,
-    error: state.error,
+    user,
+    isLoading,
+    error,
     login,
+    register,
     logout,
-    verifyMFA,
-    setupMFA,
-    enableMFA,
-    requestPasswordReset,
-    resetPassword,
-    getAuthHeaders,
+    refreshToken,
   };
 }; 

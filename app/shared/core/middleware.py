@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 import time
 from app.shared.core.config import settings
+from fastapi.responses import Response
+from starlette.types import ASGIApp
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
@@ -35,6 +37,24 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         
         # Process request
         response = await call_next(request)
+        return response
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp):
+        super().__init__(app)
+
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        
+        # Add security headers
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        
         return response
 
 # Create middleware instance

@@ -1,78 +1,56 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { DashboardLayout } from './layouts/DashboardLayout';
-import { DashboardPage } from './pages/DashboardPage';
-import { LeadsPage } from './pages/LeadsPage';
-import { LeadUploadPage } from './pages/LeadUploadPage';
-import { ProjectsPage } from './pages/ProjectsPage';
-import { LoginPage } from './pages/LoginPage';
-import { PrivateRoute } from './components/PrivateRoute';
-import { useMaterialTailwind } from './hooks/useMaterialTailwind';
-import { Typography } from '@material-tailwind/react';
-import { ProfilePage } from './pages/ProfilePage';
-import { OutreachPage } from './pages/OutreachPage';
-import { Stats } from './pages/Stats';
-import { MFAVerification } from './components/auth/MFAVerification';
-import { SimpleLayout } from './layouts/SimpleLayout';
-import { LeadsNewPage } from './pages/LeadsNewPage';
-import { LeadsImportExportPage } from './pages/LeadsImportExportPage';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ToastProvider } from './components/common/Toast';
+import { AuthProvider } from './contexts/AuthContext';
+import { AppRoutes } from './routes';
+import { Layout } from './components/Layout';
+import { Role } from './types/auth';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { UserManagement } from './pages/admin/UserManagement';
+import { Unauthorized } from './pages/Unauthorized';
+import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
+import { Properties } from './pages/Properties';
+import { Customers } from './pages/Customers';
+import { AuditLogs } from './pages/admin/AuditLogs';
+import { logger } from './utils/logger';
 
-const router = {
-  future: {
-    v7_startTransition: true,
-    v7_relativeSplatPath: true,
-  },
-};
+// Create a client
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            refetchOnWindowFocus: false,
+            retry: 1,
+            staleTime: 5 * 60 * 1000, // 5 minutes
+        },
+    },
+});
 
-const App: React.FC = () => {
-  const { getTypographyProps } = useMaterialTailwind();
+/**
+ * Main application component with role-based routing
+ * 
+ * Routes are protected based on user roles:
+ * - Public routes: /login, /unauthorized
+ * - Admin-only routes: /admin/*
+ * - Manager+ routes: /customers
+ * - All authenticated users: /dashboard, /properties
+ */
+function App() {
+    logger.info('Application started');
 
-  return (
-    <BrowserRouter future={router.future}>
-      <Routes>
-        {/* Auth routes: use SimpleLayout */}
-        <Route element={<SimpleLayout />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/mfa-verify" element={<MFAVerification />} />
-        </Route>
-
-        {/* Dashboard routes: use DashboardLayout and PrivateRoute */}
-        <Route element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
-          <Route index element={<Navigate to="/leads" replace />} />
-          <Route path="leads" element={<LeadsPage />} />
-          <Route path="leads/new" element={<LeadsNewPage />} />
-          <Route path="leads/import-export" element={<LeadsImportExportPage />} />
-          <Route path="leads/upload" element={<LeadUploadPage />} />
-          <Route path="projects" element={<ProjectsPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="outreach" element={<OutreachPage />} />
-          <Route path="stats" element={<Stats />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-        </Route>
-
-        {/* 404 route */}
-        <Route
-          path="*"
-          element={
-            <div className="flex items-center justify-center h-full">
-              <Typography
-                variant="h4"
-                color="blue-gray"
-                {...getTypographyProps() as any}
-                onResize={undefined}
-                onResizeCapture={undefined}
-                onPointerEnterCapture={undefined}
-                onPointerLeaveCapture={undefined}
-                placeholder={undefined}
-              >
-                404 - Page Not Found
-              </Typography>
-            </div>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
-  );
-};
+    return (
+        <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+                <AuthProvider>
+                    <ToastProvider>
+                        <Layout>
+                            <AppRoutes />
+                        </Layout>
+                    </ToastProvider>
+                </AuthProvider>
+            </BrowserRouter>
+        </QueryClientProvider>
+    );
+}
 
 export default App; 

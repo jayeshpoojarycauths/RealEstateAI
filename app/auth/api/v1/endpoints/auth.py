@@ -10,13 +10,16 @@ import qrcode
 import io
 import base64
 from sqlalchemy import and_, func
-
-from app.shared.core import security
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from app.shared.core.exceptions import RateLimitError, AuthenticationError
 from app.shared.core.config import settings
 from app.shared.db.session import get_db
-from app.models.models import User, RefreshToken, LoginAttempt, MFASettings, PasswordReset
-from app.auth.schemas.user import (
-    Token, User as UserSchema, MFASettings as MFASettingsSchema,
+from app.models.models import User
+from app.auth.models.auth import RefreshToken, LoginAttempt, MFASettings, PasswordReset
+from app.auth.schemas.auth import (
+    Token, MFASettings as MFASettingsSchema,
     PasswordResetRequest, PasswordReset as PasswordResetSchema,
     MFASetupResponse, MFAVerify, MFABackupCode
 )
@@ -29,10 +32,15 @@ from app.shared.core.security import create_access_token
 
 router = APIRouter()
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 # Rate limiting constants
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_ATTEMPT_WINDOW = 15  # minutes
 LOCKOUT_DURATION = 30  # minutes
+MFA_ATTEMPT_WINDOW = 5  # minutes
+MAX_MFA_ATTEMPTS = 3
 
 def check_rate_limit(db: Session, email: str, ip_address: str) -> None:
     """Check if user has exceeded login attempt limits"""
@@ -44,9 +52,22 @@ def check_rate_limit(db: Session, email: str, ip_address: str) -> None:
     ).count()
 
     if recent_attempts >= MAX_LOGIN_ATTEMPTS:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        raise RateLimitError(
             detail=f"Too many login attempts. Please try again in {LOCKOUT_DURATION} minutes."
+        )
+
+def check_mfa_rate_limit(db: Session, user_id: str) -> None:
+    """Check if user has exceeded MFA verification attempts"""
+    recent_attempts = db.query(LoginAttempt).filter(
+        and_(
+            LoginAttempt.user_id == user_id,
+            LoginAttempt.attempt_time >= datetime.utcnow() - timedelta(minutes=MFA_ATTEMPT_WINDOW)
+        )
+    ).count()
+
+    if recent_attempts >= MAX_MFA_ATTEMPTS:
+        raise RateLimitError(
+            detail=f"Too many MFA verification attempts. Please try again in {MFA_ATTEMPT_WINDOW} minutes."
         )
 
 def record_login_attempt(
@@ -74,19 +95,23 @@ def generate_csrf_token() -> str:
     return secrets.token_urlsafe(32)
 
 @router.post("/login", response_model=Token)
+@limiter.limit("5/minute")
 async def login(
+    request: Request,
     db: Session = Depends(get_db),
     form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     """Login for access token."""
     auth_service = AuthService(db)
-    user = await auth_service.authenticate_user(form_data.username, form_data.password)
+    user = await auth_service.authenticate_user(
+        email=form_data.username,
+        password=form_data.password,
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthenticationError(detail="Incorrect username or password")
     
     if user.mfa_enabled:
         return {
@@ -102,20 +127,24 @@ async def login(
     }
 
 @router.post("/verify-mfa", response_model=Token)
+@limiter.limit("3/minute")
 async def verify_mfa(
-    *,
+    request: Request,
     db: Session = Depends(get_db),
     mfa_data: MFAVerify
 ) -> Any:
     """Verify MFA code and get access token."""
+    # Get user from token
+    user = await get_current_active_user(request)
+    
     auth_service = AuthService(db)
-    user = await auth_service.verify_mfa(mfa_data.code, mfa_data.method)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid MFA code",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    if not await auth_service.verify_mfa(
+        user=user,
+        code=mfa_data.code,
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent", "")
+    ):
+        raise AuthenticationError(detail="Invalid MFA code")
     
     return {
         "access_token": create_access_token(user.id),
@@ -141,35 +170,24 @@ async def generate_backup_codes(
     return await auth_service.generate_backup_codes(current_user)
 
 @router.post("/enable-mfa")
-def enable_mfa(
+async def enable_mfa(
     mfa_data: MFAVerify,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ) -> Any:
     """Enable MFA after verification"""
-    mfa_settings = db.query(MFASettings).filter(MFASettings.user_id == current_user.id).first()
-    if not mfa_settings:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="MFA not set up"
-        )
-
-    # Verify TOTP code
-    totp = pyotp.TOTP(mfa_settings.secret_key)
-    if not totp.verify(mfa_data.code):
+    auth_service = AuthService(db)
+    if not await auth_service.enable_mfa(current_user, mfa_data.code):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid MFA code"
         )
 
-    # Enable MFA
-    mfa_settings.is_enabled = True
-    db.commit()
-
     return {"message": "MFA enabled successfully"}
 
 @router.post("/request-password-reset")
-def request_password_reset(
+@limiter.limit("3/hour")
+async def request_password_reset(
     reset_request: PasswordResetRequest,
     db: Session = Depends(get_db)
 ) -> Any:
@@ -199,7 +217,7 @@ def request_password_reset(
     return {"message": "If your email is registered, you will receive a password reset link"}
 
 @router.post("/reset-password")
-def reset_password(
+async def reset_password(
     reset_data: PasswordResetSchema,
     db: Session = Depends(get_db)
 ) -> Any:
@@ -294,10 +312,11 @@ def refresh_token(
     }
 
 @router.post("/logout")
-def logout(
-    request: Request,
-    response: Response,
-    db: Session = Depends(get_db)
+async def logout(
+    request: Request = Depends(),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+    response: Response = Depends()
 ) -> Any:
     """
     Logout user by clearing tokens and revoking refresh token
@@ -309,12 +328,38 @@ def logout(
             RefreshToken.token == refresh_token
         ).first()
         if db_refresh_token:
-            db_refresh_token.is_revoked = True
-            db.commit()
+            auth_service = AuthService(db)
+            await auth_service.invalidate_session(
+                session_id=str(db_refresh_token.id),
+                reason="user_logout"
+            )
 
     # Clear all auth cookies
     response.delete_cookie("access_token", httponly=True, secure=True, samesite="lax", path="/")
     response.delete_cookie("refresh_token", httponly=True, secure=True, samesite="lax", path="/")
     response.delete_cookie("csrf_token", secure=True, samesite="lax", path="/")
 
-    return {"message": "Successfully logged out"} 
+    return {"message": "Successfully logged out"}
+
+@router.post("/change-password")
+async def change_password(
+    request: Request,
+    current_password: str,
+    new_password: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> Any:
+    """Change user's password."""
+    auth_service = AuthService(db)
+    success = await auth_service.change_password(
+        user=current_user,
+        current_password=current_password,
+        new_password=new_password,
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent", "")
+    )
+    
+    if not success:
+        raise AuthenticationError(detail="Invalid current password")
+        
+    return {"message": "Password changed successfully"} 

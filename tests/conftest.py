@@ -1,12 +1,14 @@
 import os
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from app.models.base import Base
 from app.shared.core.config import Settings
 from app.models.models import User, Customer, Role, Permission, ScrapingConfig
 from datetime import datetime
 import uuid
+from app.core.config import settings
+from app.db.session import get_db
 
 # Create test settings instance
 test_settings = Settings(
@@ -15,29 +17,48 @@ test_settings = Settings(
     DB_ECHO=False  # Disable SQL echo during tests
 )
 
-@pytest.fixture(scope="session")
-def engine():
-    return create_engine(test_settings.get_database_url)
+# Create test database engine
+TEST_SQLALCHEMY_DATABASE_URL = settings.SQLALCHEMY_DATABASE_URL + "_test"
+engine = create_engine(TEST_SQLALCHEMY_DATABASE_URL)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @pytest.fixture(scope="session")
-def tables(engine):
-    Base.metadata.create_all(engine)
-    yield
-    Base.metadata.drop_all(engine)
+def db_engine():
+    """Create a test database engine."""
+    Base.metadata.create_all(bind=engine)
+    yield engine
+    Base.metadata.drop_all(bind=engine)
 
-@pytest.fixture
-def db_session(engine, tables):
-    """Creates a new database session for a test."""
-    connection = engine.connect()
+@pytest.fixture(scope="function")
+def db_session(db_engine):
+    """Create a fresh database session for each test."""
+    connection = db_engine.connect()
     transaction = connection.begin()
-    Session = sessionmaker(bind=connection)
-    session = Session()
-
+    session = TestingSessionLocal(bind=connection)
+    
     yield session
-
+    
     session.close()
     transaction.rollback()
     connection.close()
+
+@pytest.fixture(scope="function")
+def client(db_session):
+    """Create a test client with a database session."""
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+    
+    from app.main import app
+    app.dependency_overrides[get_db] = override_get_db
+    
+    from fastapi.testclient import TestClient
+    with TestClient(app) as test_client:
+        yield test_client
+    
+    app.dependency_overrides.clear()
 
 @pytest.fixture
 def test_customer(db_session):

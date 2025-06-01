@@ -1,106 +1,101 @@
 # API Documentation
 
 ## Base URL
-All API endpoints are prefixed with `/api/v1/`
+All API endpoints are prefixed with the base URL configured in the environment:
+```
+VITE_API_BASE_URL=http://localhost:8000
+```
 
 ## Authentication
-All endpoints require authentication using a JWT token in the Authorization header:
+All endpoints except `/auth/login` and `/auth/register` require authentication using a Bearer token. The token should be included in the Authorization header:
 ```
 Authorization: Bearer <token>
 ```
 
 ## Endpoints
 
-### Stats
-- `GET /stats/price-trends/`
-  - Query parameters:
-    - `start_date` (optional): Start date in ISO format
-    - `end_date` (optional): End date in ISO format
-    - `location` (optional): Filter by location
-    - `property_type` (optional): Filter by property type
+### Authentication
+- `POST /auth/login` - User login
+- `POST /auth/register` - User registration
+- `POST /auth/refresh` - Refresh access token
+- `GET /auth/me` - Get current user
+- `POST /auth/verify-email` - Verify email address
+- `POST /auth/resend-verification` - Resend verification email
+- `POST /auth/reset-password` - Reset password
 
-- `GET /stats/lead-quality/`
-  - Query parameters:
-    - `start_date` (optional): Start date in ISO format
-    - `end_date` (optional): End date in ISO format
+### Users
+- `GET /users` - List users
+- `POST /users` - Create user
+- `GET /users/:id` - Get user by ID
+- `PUT /users/:id` - Update user
+- `DELETE /users/:id` - Delete user
+- `GET /users/me` - Get current user profile
+- `PUT /users/me/password` - Update password
 
-- `GET /stats/lead-score/`
-  - Returns distribution of leads by score buckets
+### Properties
+- `GET /properties` - List properties
+- `POST /properties` - Create property
+- `GET /properties/:id` - Get property by ID
+- `PUT /properties/:id` - Update property
+- `DELETE /properties/:id` - Delete property
+- `GET /properties/stats` - Get property statistics
 
-- `GET /stats/conversion-funnel/`
-  - Returns lead conversion funnel data
+### Customers
+- `GET /customers` - List customers
+- `POST /customers` - Create customer
+- `GET /customers/:id` - Get customer by ID
+- `PUT /customers/:id` - Update customer
+- `DELETE /customers/:id` - Delete customer
 
-### Communication
-- `GET /communication/preferences/`
-  - Get communication preferences for current customer
+### Analytics
+- `GET /analytics` - Get analytics overview
+- `GET /analytics/lead-scores` - Get lead score analytics
+- `GET /analytics/conversion-funnel` - Get conversion funnel data
+- `GET /analytics/price-trends` - Get property price trends
 
-- `POST /communication/preferences/`
-  - Create communication preferences
-  - Request body: `CommunicationPreferencesCreate`
-
-- `PUT /communication/preferences/`
-  - Update communication preferences
-  - Request body: `CommunicationPreferencesUpdate`
-
-- `POST /communication/send/{lead_id}/`
-  - Send message to a lead
-  - Path parameters:
-    - `lead_id`: UUID of the lead
-  - Request body:
-    - `message`: Message content
-    - `channel`: Communication channel (sms, email, whatsapp, telegram, voice)
-
-- `POST /communication/send-bulk/`
-  - Send message to multiple leads
-  - Request body:
-    - `lead_ids`: Array of lead UUIDs
-    - `message`: Message content
-    - `channel`: Communication channel
+### Platform (Admin Only)
+- `GET /platform/tenants` - List tenants
+- `POST /platform/tenants` - Create tenant
+- `GET /platform/settings` - Get system settings
+- `PUT /platform/settings` - Update system settings
 
 ### Audit
-- `GET /audit/logs/`
-  - Get audit logs with filtering
-  - Query parameters:
-    - `resource_type` (optional): Filter by resource type
-    - `resource_id` (optional): Filter by resource ID
-    - `action` (optional): Filter by action
-    - `start_date` (optional): Filter by start date
-    - `end_date` (optional): Filter by end date
-    - `user_id` (optional): Filter by user ID
-    - `skip` (optional): Number of records to skip
-    - `limit` (optional): Maximum number of records to return
+- `GET /audit/logs` - Get audit logs
 
-## Data Types
+## Role-Based Access Control
 
-### UUID Fields
-All ID fields in the API use UUID format. This includes:
-- Lead IDs
-- Customer IDs
-- User IDs
-- Resource IDs
-- Communication preference IDs
-- Audit log IDs
+The API implements role-based access control with the following roles:
+- `PLATFORM_ADMIN` - Platform-level administration
+- `SUPERADMIN` - Tenant-level super administration
+- `ADMIN` - Tenant-level administration
+- `MANAGER` - Property management
+- `AGENT` - Property agent
+- `ANALYST` - Analytics access
+- `AUDITOR` - Audit log access
 
-### Communication Channels
-Available communication channels:
-- `sms`: SMS messages
-- `email`: Email messages
-- `whatsapp`: WhatsApp messages
-- `telegram`: Telegram messages
-- `voice`: Voice calls
+Each endpoint has specific role requirements that are enforced by the API.
 
-## Error Responses
-All error responses follow this format:
+## Error Handling
+
+The API uses standard HTTP status codes and returns error responses in the following format:
 ```json
 {
-  "detail": "Error message"
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": {} // Optional additional error details
+  }
 }
 ```
 
-Common HTTP status codes:
-- 200: Success
-- 400: Bad Request
-- 401: Unauthorized
-- 403: Forbidden
-- 404: Not Found
-- 500: Internal Server Error 
+## Rate Limiting
+
+API requests are rate-limited based on the following configuration:
+- `VITE_API_RATE_LIMIT`: Maximum requests per window (default: 100)
+- `VITE_API_RATE_WINDOW`: Time window in milliseconds (default: 60000)
+
+## File Upload
+
+File uploads are subject to the following restrictions:
+- `VITE_MAX_FILE_SIZE`: Maximum file size in bytes (default: 10MB)
+- `VITE_ALLOWED_FILE_TYPES`: Comma-separated list of allowed MIME types 

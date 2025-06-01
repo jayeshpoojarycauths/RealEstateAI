@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, constr
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
+from app.core.rbac import Role
 
 class TokenPayload(BaseModel):
     sub: str  # Subject (user ID)
@@ -15,16 +16,25 @@ class Token(BaseModel):
     csrf_token: str
 
 class UserBase(BaseModel):
+    """Base user schema."""
     email: EmailStr
-    is_active: Optional[bool] = True
-    is_superuser: bool = False
+    first_name: constr(min_length=1, max_length=50)
+    last_name: constr(min_length=1, max_length=50)
+    role: Role
 
 class UserCreate(UserBase):
+    """Schema for creating a new user."""
     password: constr(min_length=8, max_length=100)
     customer_id: UUID
 
-class UserUpdate(UserBase):
+class UserUpdate(BaseModel):
+    """Schema for updating a user."""
+    email: Optional[EmailStr] = None
+    first_name: Optional[constr(min_length=1, max_length=50)] = None
+    last_name: Optional[constr(min_length=1, max_length=50)] = None
     password: Optional[constr(min_length=8, max_length=100)] = None
+    role: Optional[Role] = None
+    is_active: Optional[bool] = None
 
 class User(UserBase):
     id: UUID
@@ -72,4 +82,12 @@ class MFAVerify(BaseModel):
     code: str
 
 class MFABackupCode(BaseModel):
-    code: str 
+    code: str
+
+class UserResponse(UserBase):
+    """Schema for user response."""
+    id: int
+    is_active: bool
+
+    class Config:
+        from_attributes = True 

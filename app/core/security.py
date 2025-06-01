@@ -11,6 +11,7 @@ from app.core.password_utils import verify_password, get_password_hash
 from app.core.constants import ALGORITHM
 from app.api import deps
 from sqlalchemy.orm import Session
+import uuid
 
 # Security constants
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
@@ -21,28 +22,31 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def create_access_token(
-    subject: Union[str, Any], expires_delta: timedelta = None
+    subject: Union[str, Any],
+    expires_delta: Optional[timedelta] = None,
+    jti: Optional[str] = None
 ) -> str:
-    """
-    Create a JWT access token.
-    
-    Args:
-        subject: The subject of the token (usually user ID)
-        expires_delta: Optional expiration time delta
-        
-    Returns:
-        str: The encoded JWT token
-    """
+    """Create a JWT access token with JTI claim."""
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        expire = datetime.utcnow() + timedelta(minutes=15)
     
-    to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
+    # Generate JTI if not provided
+    if not jti:
+        jti = str(uuid.uuid4())
+    
+    to_encode = {
+        "exp": expire,
+        "sub": str(subject),
+        "jti": jti,
+        "iat": datetime.utcnow()
+    }
+    
     encoded_jwt = jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=ALGORITHM
+        to_encode,
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM
     )
     return encoded_jwt
 
@@ -58,28 +62,11 @@ def create_refresh_token(
     return encoded_jwt
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify a password against a hash.
-    
-    Args:
-        plain_password: The plain text password
-        hashed_password: The hashed password
-        
-    Returns:
-        bool: True if the password matches the hash
-    """
+    """Verify a password against its hash."""
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    """
-    Hash a password.
-    
-    Args:
-        password: The plain text password
-        
-    Returns:
-        str: The hashed password
-    """
+    """Generate password hash."""
     return pwd_context.hash(password)
 
 class UserRole:

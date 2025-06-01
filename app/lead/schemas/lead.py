@@ -1,7 +1,8 @@
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from uuid import UUID
+from enum import Enum
 
 # --- Upload Schemas ---
 class LeadUploadResponse(BaseModel):
@@ -16,15 +17,36 @@ class LeadBulkCreate(BaseModel):
     leads: List['LeadCreate']
 
 # --- Create/Update Schemas ---
+class LeadSource(str, Enum):
+    WEBSITE = "website"
+    REFERRAL = "referral"
+    SOCIAL = "social"
+    DIRECT = "direct"
+    OTHER = "other"
+
+class LeadStatus(str, Enum):
+    NEW = "new"
+    CONTACTED = "contacted"
+    QUALIFIED = "qualified"
+    PROPOSAL = "proposal"
+    NEGOTIATION = "negotiation"
+    CLOSED = "closed"
+    LOST = "lost"
+
+class LeadPriority(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
 class LeadBase(BaseModel):
-    """Base fields for a lead."""
     name: str
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
-    location: Optional[str] = None
-    budget: Optional[str] = None
-    property_type: Optional[str] = None
+    source: Optional[LeadSource] = None
+    status: LeadStatus = LeadStatus.NEW
     notes: Optional[str] = None
+    assigned_to: Optional[str] = None
 
 class LeadCreate(LeadBase):
     """Schema for creating a new lead."""
@@ -42,21 +64,24 @@ class LeadActivityCreate(LeadActivityBase):
     lead_id: UUID
 
 class LeadActivityResponse(LeadActivityBase):
-    id: UUID
-    lead_id: UUID
-    user_id: UUID
+    id: int
+    lead_id: int
+    user_id: Optional[int]
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: Optional[datetime]
 
     class Config:
         from_attributes = True
 
 class LeadResponse(LeadBase):
-    id: UUID
-    customer_id: UUID
+    id: int
+    customer_id: str
+    created_by: Optional[str]
+    updated_by: Optional[str]
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: Optional[datetime]
     activities: List[LeadActivityResponse] = []
+    score: Optional[float] = None
 
     class Config:
         from_attributes = True
@@ -66,22 +91,27 @@ class LeadListResponse(BaseModel):
     total: int
 
 class LeadFilter(BaseModel):
-    status: Optional[str] = None
-    source: Optional[str] = None
-    search: Optional[str] = None
+    status: Optional[LeadStatus] = None
+    source: Optional[LeadSource] = None
+    assigned_to: Optional[str] = None
 
 class LeadStats(BaseModel):
     total_leads: int
-    active_leads: int
-    converted_leads: int
-    leads_by_source: dict
-    leads_by_status: dict
+    leads_by_status: Dict[str, int]
+    leads_by_source: Dict[str, int]
+    leads_by_priority: Dict[str, int]
+    average_score: float
+    conversion_rate: float
 
 # --- Response/Read Schemas ---
 class LeadInDBBase(LeadBase):
     """Base fields for a lead as stored in the database."""
-    id: UUID
-    customer_id: UUID
+    id: int
+    customer_id: str
+    created_by: Optional[str]
+    updated_by: Optional[str]
+    created_at: datetime
+    updated_at: Optional[datetime]
 
     class Config:
         from_attributes = True

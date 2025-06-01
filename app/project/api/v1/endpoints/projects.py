@@ -1,5 +1,5 @@
 from typing import Any, List, Optional, Dict
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, status
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, status, Path
 from sqlalchemy.orm import Session
 from uuid import UUID
 from datetime import datetime
@@ -12,7 +12,9 @@ from app.api.deps import get_current_user, get_current_customer
 from app.project.schemas.project import (
     ProjectCreate, ProjectUpdate, ProjectResponse, ProjectFilter,
     ProjectStats, ProjectAnalytics, ProjectLeadCreate, ProjectLeadResponse,
-    ProjectListResponse
+    ProjectListResponse, ProjectList, ProjectFeature, ProjectFeatureCreate,
+    ProjectImage, ProjectImageCreate, ProjectAmenity, ProjectAmenityCreate,
+    ProjectLead
 )
 from app.project.services.project import ProjectService
 from app.core.pagination import PaginationParams, get_pagination_params
@@ -23,6 +25,7 @@ from app.schemas.property import (
     RealEstateProjectList,
     RealEstateProject
 )
+from app.shared.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter(
     prefix="/projects",
@@ -110,178 +113,227 @@ async def get_properties(
     properties = query.offset(skip).limit(limit).all()
     return properties
 
-@router.get("/", response_model=RealEstateProjectList)
-async def get_projects(
-    skip: int = 0,
-    limit: int = 100,
+@router.get("/", response_model=ProjectList)
+async def list_projects(
+    *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    current_customer: Customer = Depends(get_current_customer)
-) -> RealEstateProjectList:
-    """Get list of real estate projects."""
+    current_customer: dict = Depends(get_current_customer),
+    filter_params: ProjectFilter = Depends(),
+    pagination: PaginationParams = Depends(),
+    current_user: dict = Depends(get_current_user)
+):
+    """List all projects for the current customer with filtering."""
     project_service = ProjectService(db)
-    return await project_service.get_projects(
-        customer_id=current_customer.id,
-        skip=skip,
-        limit=limit
+    projects = await project_service.list_projects(
+        customer_id=current_customer["id"],
+        filter_params=filter_params,
+        pagination=pagination
     )
+    total = len(projects)  # In a real app, you'd want to get the total count separately
+    return ProjectList(items=projects, total=total)
 
-@router.post("/", response_model=RealEstateProject)
+@router.post("/", response_model=Project)
 async def create_project(
-    project: RealEstateProjectCreate,
+    *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    current_customer: Customer = Depends(get_current_customer)
-) -> RealEstateProject:
-    """Create a new real estate project."""
+    project_in: ProjectCreate,
+    current_customer: dict = Depends(get_current_customer),
+    current_user: dict = Depends(get_current_user)
+):
+    """Create a new project."""
     project_service = ProjectService(db)
-    return await project_service.create_project(
-        customer_id=current_customer.id,
-        project=project
-    )
+    try:
+        project = await project_service.create_project(
+            project_in=project_in,
+            customer_id=current_customer["id"],
+            user_id=current_user["id"]
+        )
+        return project
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/{project_id}", response_model=RealEstateProject)
+@router.get("/{project_id}", response_model=Project)
 async def get_project(
-    project_id: int,
+    *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    current_customer: Customer = Depends(get_current_customer)
-) -> RealEstateProject:
-    """Get a specific real estate project."""
+    project_id: UUID = Path(...),
+    current_customer: dict = Depends(get_current_customer),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific project."""
     project_service = ProjectService(db)
-    project = await project_service.get_project(project_id)
-    if not project or project.customer_id != current_customer.id:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return project
+    try:
+        project = await project_service.get_project(
+            project_id=project_id,
+            customer_id=current_customer["id"]
+        )
+        return project
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-@router.put("/{project_id}", response_model=RealEstateProject)
+@router.put("/{project_id}", response_model=Project)
 async def update_project(
-    project_id: int,
-    project: RealEstateProjectUpdate,
+    *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    current_customer: Customer = Depends(get_current_customer)
-) -> RealEstateProject:
-    """Update a real estate project."""
+    project_id: UUID = Path(...),
+    project_in: ProjectUpdate,
+    current_customer: dict = Depends(get_current_customer),
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a project."""
     project_service = ProjectService(db)
-    updated_project = await project_service.update_project(
-        project_id=project_id,
-        customer_id=current_customer.id,
-        project=project
-    )
-    if not updated_project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return updated_project
+    try:
+        project = await project_service.update_project(
+            project_id=project_id,
+            project_in=project_in,
+            customer_id=current_customer["id"],
+            user_id=current_user["id"]
+        )
+        return project
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{project_id}")
 async def delete_project(
-    project_id: int,
+    *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    current_customer: Customer = Depends(get_current_customer)
-) -> Dict[str, Any]:
-    """Delete a real estate project."""
-    project_service = ProjectService(db)
-    success = await project_service.delete_project(
-        project_id=project_id,
-        customer_id=current_customer.id
-    )
-    if not success:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return {"status": "success", "message": "Project deleted successfully"}
-
-@router.get("/{project_id}/stats", response_model=ProjectStats)
-async def get_project_stats(
-    project_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(viewer_required())
+    project_id: UUID = Path(...),
+    current_customer: dict = Depends(get_current_customer),
+    current_user: dict = Depends(get_current_user)
 ):
-    """
-    Get project statistics.
-    
-    - **project_id**: ID of the project
-    - **current_user**: Current authenticated user
-    
-    Returns project statistics including lead counts and conversion rates.
-    """
+    """Delete a project."""
     project_service = ProjectService(db)
-    stats = await project_service.get_project_stats(project_id, current_user.customer_id)
-    if not stats:
-        raise HTTPException(status_code=404, detail="Project not found")
+    try:
+        success = await project_service.delete_project(
+            project_id=project_id,
+            customer_id=current_customer["id"],
+            user_id=current_user["id"]
+        )
+        return {"success": success}
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.post("/{project_id}/features", response_model=ProjectFeature)
+async def add_feature(
+    *,
+    db: Session = Depends(get_db),
+    project_id: UUID = Path(...),
+    feature_in: ProjectFeatureCreate,
+    current_customer: dict = Depends(get_current_customer),
+    current_user: dict = Depends(get_current_user)
+):
+    """Add a feature to a project."""
+    project_service = ProjectService(db)
+    try:
+        feature = await project_service.add_feature(
+            project_id=project_id,
+            feature_in=feature_in,
+            customer_id=current_customer["id"],
+            user_id=current_user["id"]
+        )
+        return feature
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/{project_id}/images", response_model=ProjectImage)
+async def add_image(
+    *,
+    db: Session = Depends(get_db),
+    project_id: UUID = Path(...),
+    image_in: ProjectImageCreate,
+    current_customer: dict = Depends(get_current_customer),
+    current_user: dict = Depends(get_current_user)
+):
+    """Add an image to a project."""
+    project_service = ProjectService(db)
+    try:
+        image = await project_service.add_image(
+            project_id=project_id,
+            image_in=image_in,
+            customer_id=current_customer["id"],
+            user_id=current_user["id"]
+        )
+        return image
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/{project_id}/amenities", response_model=ProjectAmenity)
+async def add_amenity(
+    *,
+    db: Session = Depends(get_db),
+    project_id: UUID = Path(...),
+    amenity_in: ProjectAmenityCreate,
+    current_customer: dict = Depends(get_current_customer),
+    current_user: dict = Depends(get_current_user)
+):
+    """Add an amenity to a project."""
+    project_service = ProjectService(db)
+    try:
+        amenity = await project_service.add_amenity(
+            project_id=project_id,
+            amenity_in=amenity_in,
+            customer_id=current_customer["id"],
+            user_id=current_user["id"]
+        )
+        return amenity
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/{project_id}/leads", response_model=ProjectLead)
+async def assign_lead(
+    *,
+    db: Session = Depends(get_db),
+    project_id: UUID = Path(...),
+    lead_in: ProjectLeadCreate,
+    current_customer: dict = Depends(get_current_customer),
+    current_user: dict = Depends(get_current_user)
+):
+    """Assign a lead to a project."""
+    project_service = ProjectService(db)
+    try:
+        lead_assignment = await project_service.assign_lead(
+            project_id=project_id,
+            lead_in=lead_in,
+            customer_id=current_customer["id"]
+        )
+        return lead_assignment
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/stats", response_model=ProjectStats)
+async def get_project_stats(
+    *,
+    db: Session = Depends(get_db),
+    current_customer: dict = Depends(get_current_customer),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get project statistics."""
+    project_service = ProjectService(db)
+    stats = await project_service.get_project_stats(
+        customer_id=current_customer["id"]
+    )
     return stats
 
-@router.get("/{project_id}/analytics", response_model=ProjectAnalytics)
+@router.get("/analytics", response_model=ProjectAnalytics)
 async def get_project_analytics(
-    project_id: int,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(viewer_required())
+    current_customer: dict = Depends(get_current_customer),
+    current_user: dict = Depends(get_current_user)
 ):
-    """
-    Get project analytics with date range filtering.
-    
-    - **project_id**: ID of the project
-    - **start_date**: Start date for analytics (YYYY-MM-DD)
-    - **end_date**: End date for analytics (YYYY-MM-DD)
-    - **current_user**: Current authenticated user
-    
-    Returns project analytics including lead trends and status distribution.
-    """
+    """Get project analytics."""
     project_service = ProjectService(db)
     analytics = await project_service.get_project_analytics(
-        project_id,
-        current_user.customer_id,
-        start_date,
-        end_date
+        customer_id=current_customer["id"]
     )
-    if not analytics:
-        raise HTTPException(status_code=404, detail="Project not found")
-    return analytics
-
-@router.post("/{project_id}/leads/{lead_id}", status_code=status.HTTP_201_CREATED)
-async def assign_lead_to_project(
-    project_id: int,
-    lead_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(agent_required())
-):
-    """
-    Assign a lead to a project.
-    
-    - **project_id**: ID of the project
-    - **lead_id**: ID of the lead to assign
-    - **current_user**: Current authenticated user (must be agent, manager, or admin)
-    
-    Returns success message.
-    """
-    project_service = ProjectService(db)
-    success = await project_service.assign_lead(
-        project_id, lead_id, current_user.customer_id
-    )
-    if not success:
-        raise HTTPException(status_code=404, detail="Project or lead not found")
-    return {"message": "Lead assigned successfully"}
-
-@router.delete("/{project_id}/leads/{lead_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_lead_from_project(
-    project_id: int,
-    lead_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(agent_required())
-):
-    """
-    Remove a lead from a project.
-    
-    - **project_id**: ID of the project
-    - **lead_id**: ID of the lead to remove
-    - **current_user**: Current authenticated user (must be agent, manager, or admin)
-    
-    Returns no content on success.
-    """
-    project_service = ProjectService(db)
-    success = await project_service.remove_lead(
-        project_id, lead_id, current_user.customer_id
-    )
-    if not success:
-        raise HTTPException(status_code=404, detail="Project or lead not found") 
+    return analytics 

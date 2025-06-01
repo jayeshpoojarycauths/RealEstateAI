@@ -194,8 +194,24 @@ export const LoginPage: React.FC = () => {
               className="font-semibold tracking-wide text-base transition-transform duration-150 ease-in-out hover:scale-105"
               {...(getButtonProps() as any)}
             >
-              {isSubmitting ? "Signing in..." : "Sign In"}
+              {isSubmitting ? "Signing In..." : "Sign In"}
             </Button>
+
+            <Typography
+              variant="small"
+              color="gray"
+              className="text-center mt-4"
+              {...(getTypographyProps() as any)}
+            >
+              Don't have an account?{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/register")}
+                className="text-blue-500 hover:text-blue-700 font-medium"
+              >
+                Create Account
+              </button>
+            </Typography>
           </form>
         </CardBody>
       </Card>

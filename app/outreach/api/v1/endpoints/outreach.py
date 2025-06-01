@@ -1,5 +1,5 @@
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status, UploadFile, File, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
 import pandas as pd
@@ -13,7 +13,10 @@ from app.core.deps import get_current_user
 from app.outreach.schemas.outreach import (
     OutreachCreate, OutreachResponse, OutreachFilter,
     OutreachStats, OutreachAnalytics, OutreachRequest, OutreachLogResponse, LeadUpload, OutreachChannel, OutreachStatus,
-    InteractionLogCreate, InteractionLogResponse
+    InteractionLogCreate, InteractionLogResponse,
+    OutreachUpdate, OutreachTemplate, OutreachTemplateCreate, OutreachTemplateUpdate,
+    CommunicationPreference, CommunicationPreferenceCreate, CommunicationPreferenceUpdate,
+    OutreachList, OutreachTemplateList
 )
 from app.outreach.services.outreach import OutreachService
 from app.core.pagination import PaginationParams, get_pagination_params
@@ -515,28 +518,143 @@ async def get_outreach_logs(
         for log in logs
     ]
 
-@router.post("/", response_model=OutreachResponse)
-async def create_outreach(
-    *,
-    db: Session = Depends(get_db),
-    outreach_in: OutreachCreate,
-    current_user = Depends(get_current_active_user),
-    current_customer: Customer = Depends(get_current_customer)
-):
-    """Create a new outreach for the current customer."""
-    # Get communication preferences
-    preferences = db.query(CommunicationPreferences).filter(
-        CommunicationPreferences.customer_id == current_customer.id
-    ).first()
-    if not preferences:
-        raise HTTPException(status_code=404, detail="Communication preferences not found")
-    
-    # Create outreach
-    outreach = Outreach(
-        **outreach_in.dict(),
-        customer_id=current_customer.id
+@router.post("/outreach", response_model=Outreach)
+def create_outreach(
+    outreach: OutreachCreate,
+    db: Session = Depends(get_db)
+) -> Outreach:
+    """Create a new outreach attempt."""
+    service = OutreachService(db)
+    return service.create_outreach(outreach)
+
+@router.get("/outreach/{outreach_id}", response_model=Outreach)
+def get_outreach(
+    outreach_id: UUID,
+    db: Session = Depends(get_db)
+) -> Outreach:
+    """Get an outreach attempt by ID."""
+    service = OutreachService(db)
+    return service.get_outreach(outreach_id)
+
+@router.put("/outreach/{outreach_id}", response_model=Outreach)
+def update_outreach(
+    outreach_id: UUID,
+    outreach: OutreachUpdate,
+    db: Session = Depends(get_db)
+) -> Outreach:
+    """Update an outreach attempt."""
+    service = OutreachService(db)
+    return service.update_outreach(outreach_id, outreach)
+
+@router.get("/outreach", response_model=OutreachList)
+def list_outreach(
+    channel: Optional[str] = None,
+    status: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db)
+) -> OutreachList:
+    """List outreach attempts with filtering."""
+    service = OutreachService(db)
+    filter_params = OutreachFilter(
+        channel=channel,
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+        search=search
     )
-    db.add(outreach)
-    db.commit()
-    db.refresh(outreach)
-    return outreach 
+    items = service.list_outreach(filter_params)
+    return OutreachList(items=items, total=len(items))
+
+@router.post("/templates", response_model=OutreachTemplate)
+def create_template(
+    template: OutreachTemplateCreate,
+    db: Session = Depends(get_db)
+) -> OutreachTemplate:
+    """Create a new outreach template."""
+    service = OutreachService(db)
+    return service.create_template(template)
+
+@router.get("/templates/{template_id}", response_model=OutreachTemplate)
+def get_template(
+    template_id: UUID,
+    db: Session = Depends(get_db)
+) -> OutreachTemplate:
+    """Get a template by ID."""
+    service = OutreachService(db)
+    return service.get_template(template_id)
+
+@router.put("/templates/{template_id}", response_model=OutreachTemplate)
+def update_template(
+    template_id: UUID,
+    template: OutreachTemplateUpdate,
+    db: Session = Depends(get_db)
+) -> OutreachTemplate:
+    """Update a template."""
+    service = OutreachService(db)
+    return service.update_template(template_id, template)
+
+@router.get("/templates", response_model=OutreachTemplateList)
+def list_templates(
+    channel: Optional[str] = None,
+    is_active: Optional[bool] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db)
+) -> OutreachTemplateList:
+    """List templates with filtering."""
+    service = OutreachService(db)
+    filter_params = OutreachTemplateFilter(
+        channel=channel,
+        is_active=is_active,
+        search=search
+    )
+    items = service.list_templates(filter_params)
+    return OutreachTemplateList(items=items, total=len(items))
+
+@router.post("/preferences", response_model=CommunicationPreference)
+def create_communication_preference(
+    preference: CommunicationPreferenceCreate,
+    db: Session = Depends(get_db)
+) -> CommunicationPreference:
+    """Create communication preferences for a customer."""
+    service = OutreachService(db)
+    return service.create_communication_preference(preference)
+
+@router.get("/preferences/{customer_id}", response_model=CommunicationPreference)
+def get_communication_preference(
+    customer_id: UUID,
+    db: Session = Depends(get_db)
+) -> CommunicationPreference:
+    """Get communication preferences for a customer."""
+    service = OutreachService(db)
+    return service.get_communication_preference(customer_id)
+
+@router.put("/preferences/{customer_id}", response_model=CommunicationPreference)
+def update_communication_preference(
+    customer_id: UUID,
+    preference: CommunicationPreferenceUpdate,
+    db: Session = Depends(get_db)
+) -> CommunicationPreference:
+    """Update communication preferences for a customer."""
+    service = OutreachService(db)
+    return service.update_communication_preference(customer_id, preference)
+
+@router.get("/stats", response_model=OutreachStats)
+def get_outreach_stats(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+) -> OutreachStats:
+    """Get outreach statistics."""
+    service = OutreachService(db)
+    return service.get_outreach_stats(start_date, end_date)
+
+@router.get("/analytics", response_model=OutreachAnalytics)
+def get_outreach_analytics(
+    days: int = Query(30, ge=1, le=365),
+    db: Session = Depends(get_db)
+) -> OutreachAnalytics:
+    """Get detailed outreach analytics."""
+    service = OutreachService(db)
+    return service.get_outreach_analytics(days) 

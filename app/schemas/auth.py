@@ -1,5 +1,5 @@
 from typing import Optional, List
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, constr
 from datetime import datetime
 
 class Token(BaseModel):
@@ -7,15 +7,28 @@ class Token(BaseModel):
     token_type: str
 
 class TokenPayload(BaseModel):
-    sub: Optional[str] = None
+    sub: Optional[int] = None
     exp: Optional[datetime] = None
     customer_id: Optional[str] = None
 
 class UserBase(BaseModel):
-    email: Optional[EmailStr] = None
-    is_active: Optional[bool] = True
-    is_superuser: bool = False
-    full_name: Optional[str] = None
+    email: EmailStr
+    first_name: str
+    last_name: str
+
+class UserRegister(UserBase):
+    company_name: str
+    password: constr(min_length=8)
+    captcha_token: Optional[str] = None
+
+class UserResponse(UserBase):
+    id: int
+    customer_id: int
+    is_active: bool
+    requires_verification: bool
+
+    class Config:
+        from_attributes = True
 
 class UserCreate(UserBase):
     email: EmailStr

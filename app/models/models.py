@@ -121,6 +121,7 @@ class User(BaseModel):
     )
     lead_activities = relationship("LeadActivity", back_populates="user")
     user_communication_preferences = relationship("UserCommunicationPreference", back_populates="user")
+    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"
@@ -527,3 +528,22 @@ class ScrapedLead(BaseModel):
     source = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow) 
+
+class UserSession(BaseModel):
+    __tablename__ = "user_sessions"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    refresh_token = Column(String, unique=True, nullable=False)
+    jti = Column(String, unique=True, nullable=False)  # JWT ID for token tracking
+    device_info = Column(JSON, nullable=True)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_activity = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    
+    # Relationships
+    user = relationship("User", back_populates="sessions") 

@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import json
 
 from app.models.models import Lead, User, Customer
-from app.lead.models.lead_activity import LeadActivity
+from app.lead.models.lead import LeadActivity, LeadScore, ActivityType
 from app.lead.schemas.lead import (
     LeadCreate,
     LeadUpdate,
@@ -31,6 +31,8 @@ from app.shared.core.security import UserRole
 from app.shared.core.pagination import PaginationParams
 from app.services.ai import AIService
 import logging
+from app.shared.core.exceptions import ValidationError, NotFoundError
+from app.shared.core.audit import AuditService
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +40,7 @@ class LeadService:
     def __init__(self, db: Session):
         self.db = db
         self.ai_service = AIService()
+        self.audit_service = AuditService(db)
 
     # --- Consolidated Upload Logic ---
     def validate_lead_data(self, data: Dict[str, Any]) -> List[str]:
@@ -165,44 +168,100 @@ class LeadService:
         query = query.offset(pagination.offset).limit(pagination.limit)
         return query.all()
 
-    async def create_lead(self, lead: LeadCreate, customer_id: int) -> Lead:
-        # Check for duplicate email for this customer
-        if lead.email:
-            existing = self.db.query(Lead).filter(Lead.email == lead.email, Lead.customer_id == customer_id).first()
-            if existing:
-                raise HTTPException(status_code=400, detail="A lead with this email already exists.")
-        db_lead = Lead(**lead.dict(), customer_id=customer_id)
-        self.db.add(db_lead)
+    async def create_lead(self, lead_data: LeadCreate, customer_id: int) -> Lead:
+        """Create a new lead."""
+        lead = Lead(
+            **lead_data.dict(),
+            customer_id=customer_id,
+            created_at=datetime.utcnow()
+        )
+        self.db.add(lead)
         self.db.commit()
-        self.db.refresh(db_lead)
-        return db_lead
+        self.db.refresh(lead)
+        
+        # Log activity
+        self._log_activity(
+            lead=lead,
+            user_id="system",
+            activity_type=ActivityType.NOTE,
+            description="Lead created"
+        )
+        
+        # Log audit
+        self.audit_service.log_lead_creation(
+            lead=lead,
+            user_id="system",
+            customer_id=customer_id
+        )
+        
+        return lead
 
     async def get_lead(self, lead_id: int, customer_id: int) -> Optional[Lead]:
-        return self.db.query(Lead).filter(
+        """Get a lead by ID."""
+        lead = self.db.query(Lead).filter(
             Lead.id == lead_id,
             Lead.customer_id == customer_id
         ).first()
+        
+        if not lead:
+            raise NotFoundError(detail="Lead not found")
+            
+        return lead
 
     async def update_lead(
         self,
         lead_id: int,
-        lead: LeadUpdate,
+        lead_data: LeadUpdate,
         customer_id: int
     ) -> Optional[Lead]:
-        db_lead = await self.get_lead(lead_id, customer_id)
-        if not db_lead:
-            return None
-        for key, value in lead.dict(exclude_unset=True).items():
-            setattr(db_lead, key, value)
+        """Update a lead."""
+        lead = await self.get_lead(lead_id, customer_id)
+        
+        # Track changes for audit
+        changes = {}
+        for field, value in lead_data.dict(exclude_unset=True).items():
+            if getattr(lead, field) != value:
+                changes[field] = {
+                    "old": getattr(lead, field),
+                    "new": value
+                }
+                setattr(lead, field, value)
+        
+        lead.updated_at = datetime.utcnow()
         self.db.commit()
-        self.db.refresh(db_lead)
-        return db_lead
+        self.db.refresh(lead)
+        
+        # Log activity
+        if changes:
+            self._log_activity(
+                lead=lead,
+                user_id="system",
+                activity_type=ActivityType.STATUS_CHANGE,
+                description=f"Lead updated: {', '.join(changes.keys())}"
+            )
+            
+            # Log audit
+            self.audit_service.log_lead_update(
+                lead=lead,
+                user_id="system",
+                customer_id=customer_id,
+                changes=changes
+            )
+        
+        return lead
 
     async def delete_lead(self, lead_id: int, customer_id: int) -> bool:
-        db_lead = await self.get_lead(lead_id, customer_id)
-        if not db_lead:
-            return False
-        self.db.delete(db_lead)
+        """Delete a lead."""
+        lead = await self.get_lead(lead_id, customer_id)
+        
+        # Log audit before deletion
+        self.audit_service.log_lead_deletion(
+            lead=lead,
+            user_id="system",
+            customer_id=customer_id
+        )
+        
+        self.db.delete(lead)
         self.db.commit()
         return True
 
@@ -273,4 +332,85 @@ class LeadService:
             "created": created,
             "updated": updated,
             "errors": errors
-        } 
+        }
+
+    def _log_activity(
+        self,
+        lead: Lead,
+        user_id: str,
+        activity_type: ActivityType,
+        description: str
+    ) -> None:
+        """Log a lead activity."""
+        activity = LeadActivity(
+            lead_id=lead.id,
+            user_id=user_id,
+            activity_type=activity_type,
+            description=description
+        )
+        self.db.add(activity)
+        self.db.commit()
+
+    async def assign_lead(
+        self,
+        lead_id: int,
+        user_id: str,
+        assigned_by: str,
+        customer_id: int
+    ) -> Lead:
+        """Assign a lead to a user."""
+        lead = await self.get_lead(lead_id, customer_id)
+        
+        if lead.assigned_to == user_id:
+            return lead
+            
+        old_assignee = lead.assigned_to
+        lead.assigned_to = user_id
+        lead.updated_by = assigned_by
+        self.db.commit()
+        self.db.refresh(lead)
+        
+        # Log activity
+        self._log_activity(
+            lead=lead,
+            user_id=assigned_by,
+            activity_type=ActivityType.ASSIGNMENT,
+            description=f"Lead assigned to user {user_id}"
+        )
+        
+        # Log audit
+        self.audit_service.log_lead_assignment(
+            lead=lead,
+            assigned_by=assigned_by,
+            assigned_to=user_id,
+            customer_id=customer_id,
+            previous_assignee=old_assignee
+        )
+        
+        return lead
+
+    async def update_lead_score(
+        self,
+        lead_id: int,
+        score: float,
+        scoring_factors: Dict[str, Any],
+        customer_id: int
+    ) -> LeadScore:
+        """Update a lead's score."""
+        lead = await self.get_lead(lead_id, customer_id)
+        
+        if not lead.score:
+            lead_score = LeadScore(
+                lead_id=lead.id,
+                score=score,
+                scoring_factors=scoring_factors,
+                last_updated=datetime.utcnow()
+            )
+            self.db.add(lead_score)
+        else:
+            lead.score.score = score
+            lead.score.scoring_factors = scoring_factors
+            lead.score.last_updated = datetime.utcnow()
+            
+        self.db.commit()
+        return lead.score 

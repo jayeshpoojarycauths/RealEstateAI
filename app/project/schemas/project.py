@@ -1,9 +1,9 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from datetime import datetime
 from enum import Enum
 from uuid import UUID
-from app.models.models import ProjectStatus
+from app.project.models.project import ProjectType, ProjectStatus
 
 # --- Enums ---
 class ProjectType(str, Enum):
@@ -13,7 +13,7 @@ class ProjectType(str, Enum):
     LAND = "land"
     RENTAL = "rental"
 
-# --- Create/Update Schemas ---
+# --- Base Schemas ---
 class ProjectBase(BaseModel):
     """Base fields required for all project operations."""
     name: str = Field(..., min_length=1, max_length=100)
@@ -29,6 +29,15 @@ class ProjectBase(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     budget: Optional[float] = None
+    
+    # Location fields
+    address: str = Field(..., min_length=1, max_length=200)
+    city: str = Field(..., min_length=1, max_length=100)
+    state: str = Field(..., min_length=1, max_length=100)
+    zip_code: str = Field(..., min_length=1, max_length=20)
+    country: str = Field(..., min_length=1, max_length=100)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class ProjectCreate(ProjectBase):
     """Schema for creating a new project."""
@@ -49,53 +58,154 @@ class ProjectUpdate(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     budget: Optional[float] = None
+    
+    # Location fields
+    address: Optional[str] = Field(None, min_length=1, max_length=200)
+    city: Optional[str] = Field(None, min_length=1, max_length=100)
+    state: Optional[str] = Field(None, min_length=1, max_length=100)
+    zip_code: Optional[str] = Field(None, min_length=1, max_length=20)
+    country: Optional[str] = Field(None, min_length=1, max_length=100)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
-# --- Response/Read Schemas ---
-class ProjectInDBBase(ProjectBase):
-    """Base fields for a project as stored in the database."""
+# --- Feature Schemas ---
+class ProjectFeatureBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    value: str = Field(..., min_length=1, max_length=500)
+    description: Optional[str] = None
+
+class ProjectFeatureCreate(ProjectFeatureBase):
+    project_id: UUID
+
+class ProjectFeatureUpdate(ProjectFeatureBase):
+    pass
+
+class ProjectFeature(ProjectFeatureBase):
     id: UUID
-    customer_id: UUID
+    project_id: UUID
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime]
 
     class Config:
         from_attributes = True
 
-class Project(ProjectInDBBase):
-    """Full project model for API responses."""
+# --- Image Schemas ---
+class ProjectImageBase(BaseModel):
+    url: str = Field(..., min_length=1, max_length=500)
+    caption: Optional[str] = Field(None, max_length=200)
+    is_primary: bool = False
+    order: int = 0
+
+class ProjectImageCreate(ProjectImageBase):
+    project_id: UUID
+
+class ProjectImageUpdate(ProjectImageBase):
     pass
 
-# --- Filtering Schemas ---
+class ProjectImage(ProjectImageBase):
+    id: UUID
+    project_id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+# --- Amenity Schemas ---
+class ProjectAmenityBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = None
+    category: str = Field(..., min_length=1, max_length=100)
+    icon: Optional[str] = Field(None, max_length=100)
+
+class ProjectAmenityCreate(ProjectAmenityBase):
+    project_id: UUID
+
+class ProjectAmenityUpdate(ProjectAmenityBase):
+    pass
+
+class ProjectAmenity(ProjectAmenityBase):
+    id: UUID
+    project_id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+# --- Lead Assignment Schemas ---
+class ProjectLeadBase(BaseModel):
+    status: str = Field(..., min_length=1, max_length=50)
+    notes: Optional[str] = None
+
+class ProjectLeadCreate(ProjectLeadBase):
+    project_id: UUID
+    lead_id: UUID
+    assigned_by: UUID
+
+class ProjectLeadUpdate(ProjectLeadBase):
+    pass
+
+class ProjectLead(ProjectLeadBase):
+    id: UUID
+    project_id: UUID
+    lead_id: UUID
+    assigned_by: UUID
+    assigned_at: datetime
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+# --- Response Schemas ---
+class Project(ProjectBase):
+    id: UUID
+    customer_id: UUID
+    created_by: UUID
+    updated_by: UUID
+    created_at: datetime
+    updated_at: Optional[datetime]
+    features: List[ProjectFeature] = []
+    images: List[ProjectImage] = []
+    amenities_list: List[ProjectAmenity] = []
+    leads: List[ProjectLead] = []
+
+    class Config:
+        from_attributes = True
+
+class ProjectList(BaseModel):
+    items: List[Project]
+    total: int
+
+# --- Filter Schemas ---
 class ProjectFilter(BaseModel):
-    """Schema for filtering projects in queries."""
-    status: Optional[ProjectStatus] = None
     type: Optional[ProjectType] = None
-    search: Optional[str] = None
+    status: Optional[ProjectStatus] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    min_price: Optional[float] = None
+    max_price: Optional[float] = None
+    amenities: Optional[List[str]] = None
 
-# --- Analytics/Stats Schemas ---
+# --- Stats Schemas ---
 class ProjectStats(BaseModel):
-    """Key metrics for project performance."""
     total_projects: int
-    active_projects: int
-    completed_projects: int
-    total_budget: float
-    average_budget: float
+    projects_by_type: Dict[str, int]
+    projects_by_status: Dict[str, int]
+    projects_by_city: Dict[str, int]
+    total_value: float
+    average_project_value: float
+    total_leads: int
+    conversion_rate: float
 
-class LeadTrend(BaseModel):
-    """Time-series data for lead generation."""
-    date: str
-    count: int
-
-class StatusDistribution(BaseModel):
-    """Distribution of leads across different statuses."""
-    status: str
-    count: int
-
+# --- Analytics Schemas ---
 class ProjectAnalytics(BaseModel):
-    """Comprehensive analytics data for a project."""
-    projects_by_status: dict
-    projects_by_month: dict
-    budget_distribution: dict
+    lead_trends: List[Dict[str, Any]]
+    status_distribution: List[Dict[str, Any]]
+    value_distribution: List[Dict[str, Any]]
+    location_distribution: List[Dict[str, Any]]
+    amenity_popularity: List[Dict[str, Any]]
 
 class RealEstateProjectBase(BaseModel):
     name: str

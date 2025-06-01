@@ -1,56 +1,55 @@
 from typing import List, Optional, Union
 from pydantic_settings import BaseSettings
-from pydantic import AnyHttpUrl, validator, EmailStr
+from pydantic import AnyHttpUrl, validator, EmailStr, PostgresDsn
 import secrets
 from functools import lru_cache
 import json
 import os
+from pathlib import Path
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Real Estate CRM"
     VERSION: str = "1.0.0"
-    API_V1_STR: str = "/v1"
+    API_V1_STR: str = "/api/v1"
     
     # Security
     SECRET_KEY: str = secrets.token_urlsafe(32)
+    ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    ALGORITHM: str = "HS256" 
+    ALLOWED_HOSTS: List[str] = ["*"]
+    BACKEND_CORS_ORIGINS: List[str] = ["*"]
     
-    # CORS
-    BACKEND_CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",  # React dev server
-        "http://localhost:8000",  # FastAPI dev server
-        "https://yourdomain.com",  # Production domain
-    ]
-
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
-        if isinstance(v, str):
-            if v.startswith("["):
-                try:
-                    return json.loads(v)
-                except json.JSONDecodeError:
-                    return [i.strip() for i in v.split(",")]
-            return [i.strip() for i in v.split(",")]
-        return v
-
     # Database
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = ""
-    POSTGRES_DB: str = "real_estate_crm"
-    SQLALCHEMY_DATABASE_URI: Optional[str] = None
-    
+    POSTGRES_SERVER: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+    SQLALCHEMY_DATABASE_URI: Optional[PostgresDsn] = None
+
+    @validator("SQLALCHEMY_DATABASE_URI", pre=True)
+    def assemble_db_connection(cls, v: Optional[str], values: dict) -> Any:
+        if isinstance(v, str):
+            return v
+        return PostgresDsn.build(
+            scheme="postgresql",
+            user=values.get("POSTGRES_USER"),
+            password=values.get("POSTGRES_PASSWORD"),
+            host=values.get("POSTGRES_SERVER"),
+            path=f"/{values.get('POSTGRES_DB') or ''}",
+        )
+
     # Frontend
     FRONTEND_URL: str = "http://localhost:3000"
     
     # Email
     SMTP_TLS: bool = True
-    SMTP_PORT: int = 587
-    SMTP_HOST: str = "smtp.gmail.com"
-    SMTP_USER: str = "your-email@gmail.com"
-    SMTP_PASSWORD: str = "your-app-password"
+    SMTP_PORT: Optional[int] = None
+    SMTP_HOST: Optional[str] = None
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    EMAILS_FROM_EMAIL: Optional[str] = None
+    EMAILS_FROM_NAME: Optional[str] = None
     MAIL_USERNAME: str = "your-email@gmail.com"  # Alias for SMTP_USER
     MAIL_PASSWORD: str = "your-app-password"  # Alias for SMTP_PASSWORD
     MAIL_FROM: str = "your-email@gmail.com"
@@ -69,12 +68,35 @@ class Settings(BaseSettings):
     MAIL_DEBUG: bool = False
     
     # SMS
-    TWILIO_ACCOUNT_SID: Optional[str] = None
-    TWILIO_AUTH_TOKEN: Optional[str] = None
-    TWILIO_PHONE_NUMBER: Optional[str] = None
-    TWILIO_TEST_ACCOUNT_SID: Optional[str] = None
-    TWILIO_TEST_AUTH_TOKEN: Optional[str] = None
-    
+    SMS_PROVIDER: Optional[str] = None
+    SMS_API_KEY: Optional[str] = None
+    SMS_FROM_NUMBER: Optional[str] = None
+
+    # File Storage
+    UPLOAD_DIR: Path = Path("uploads")
+    MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
+    ALLOWED_EXTENSIONS: List[str] = ["jpg", "jpeg", "png", "pdf", "doc", "docx"]
+
+    # Rate Limiting
+    RATE_LIMIT_PER_MINUTE: int = 60
+    RATE_LIMIT_PER_HOUR: int = 1000
+
+    # MFA
+    MFA_ISSUER: str = "Real Estate CRM"
+    MFA_TOKEN_EXPIRE_MINUTES: int = 5
+    MFA_BACKUP_CODES_COUNT: int = 10
+
+    # Logging
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    LOG_FILE: Optional[str] = "app.log"
+
+    # Cache
+    REDIS_HOST: Optional[str] = None
+    REDIS_PORT: Optional[int] = 6379
+    REDIS_PASSWORD: Optional[str] = None
+    REDIS_DB: int = 0
+
     # OpenAI
     OPENAI_API_KEY: str = ""
 
@@ -84,10 +106,6 @@ class Settings(BaseSettings):
     # Scraping
     SCRAPER_PROXY_URL: str = ""
     SCRAPE_INTERVAL_HOURS: int = 24
-
-    # Rate Limiting
-    RATE_LIMIT_REQUESTS: int = 5
-    RATE_LIMIT_WINDOW_SECONDS: int = 60
 
     # Database pool settings
     DB_POOL_SIZE: int = 20

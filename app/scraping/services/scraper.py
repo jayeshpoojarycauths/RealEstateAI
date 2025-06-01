@@ -1,12 +1,13 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Type
 import requests
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_
 from app.models.models import RealEstateProject, ScrapingConfig, Lead
 from uuid import UUID
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 from abc import ABC, abstractmethod
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -23,6 +24,15 @@ from app.scraping.schemas.scraping import *
 from app.scraping.services.base import BaseScraper
 from app.scraping.services.ninety_nine_acres import NinetyNineAcresScraper
 from app.scraping.services.facebook_marketplace import FacebookMarketplaceScraper
+from app.scraping.models.scraping import (
+    ScrapingJob,
+    ScrapingResult,
+    ScrapingSource,
+    ScrapingStatus
+)
+from app.shared.core.exceptions import NotFoundError, ValidationError
+from app.scraping.services.scheduler import ScrapingScheduler
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -255,101 +265,243 @@ class CommonFloorScraper(BaseScraper):
         }
 
 class ScraperService:
+    """Service for managing property scrapers."""
+
     def __init__(self, db: Session):
         self.db = db
-        self.scheduler = BackgroundScheduler()
-        self.scheduler.start()
-        self.scrapers = {
-            'magicbricks': MagicBricksScraper,
-            'housing': HousingScraper,
-            'proptiger': PropTigerScraper,
-            'commonfloor': CommonFloorScraper
+        self.scrapers: Dict[ScrapingSource, Type[BaseScraper]] = {
+            ScrapingSource.MAGICBRICKS: MagicBricksScraper,
+            # Add other scrapers here as they are implemented
         }
+        self.scheduler = ScrapingScheduler(db)
 
-    def get_scraper(self, source: str, config: ScrapingConfig) -> BaseScraper:
-        """Get the appropriate scraper for the source."""
-        if source not in self.scrapers:
-            raise ValueError(f"Unsupported source: {source}")
+    async def create_config(self, config_data: Dict[str, Any], customer_id: str) -> ScrapingConfig:
+        """Create a new scraping configuration."""
+        config = ScrapingConfig(
+            id=str(uuid.uuid4()),
+            customer_id=customer_id,
+            enabled_sources=config_data.get('enabled_sources', []),
+            locations=config_data.get('locations', []),
+            property_types=config_data.get('property_types', []),
+            price_range_min=config_data.get('price_range_min'),
+            price_range_max=config_data.get('price_range_max'),
+            max_pages_per_source=config_data.get('max_pages_per_source', 10),
+            scraping_delay=config_data.get('scraping_delay', 5),
+            max_retries=config_data.get('max_retries', 3),
+            proxy_enabled=config_data.get('proxy_enabled', False),
+            proxy_url=config_data.get('proxy_url'),
+            user_agent=config_data.get('user_agent'),
+            auto_scrape_enabled=config_data.get('auto_scrape_enabled', False),
+            auto_scrape_interval=config_data.get('auto_scrape_interval', 24)
+        )
         
-        return self.scrapers[source](config)
+        self.db.add(config)
+        self.db.commit()
+        
+        # Schedule if auto-scrape is enabled
+        if config.auto_scrape_enabled:
+            self.scheduler.schedule_config(config)
+        
+        return config
 
-    async def scrape_all_sources_async(self, customer_id: str) -> Dict[str, List[Dict[str, Any]]]:
-        """Asynchronously scrape properties from all enabled sources."""
+    async def get_config(self, config_id: str, customer_id: str) -> ScrapingConfig:
+        """Get a scraping configuration."""
         config = self.db.query(ScrapingConfig).filter(
+            ScrapingConfig.id == config_id,
             ScrapingConfig.customer_id == customer_id
         ).first()
         
         if not config:
-            raise ValueError(f"No scraping configuration found for customer {customer_id}")
+            raise NotFoundError(f"Scraping configuration not found: {config_id}")
         
-        tasks = []
-        for source in config.enabled_sources:
-            scraper = self.get_scraper(source, config)
-            for location in config.locations:
-                for property_type in config.property_types:
-                    tasks.append(self._scrape_source_async(scraper, location, property_type))
-        
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        return self._process_async_results(results)
+        return config
 
-    async def _scrape_source_async(self, scraper: BaseScraper, location: str, property_type: str) -> Dict[str, Any]:
-        """Asynchronously scrape a single source."""
-        try:
-            properties = await asyncio.to_thread(scraper.scrape_properties, location, property_type)
-            return {
-                'source': scraper.__class__.__name__,
-                'location': location,
-                'property_type': property_type,
-                'properties': properties,
-                'status': 'success'
-            }
-        except Exception as e:
-            logger.error(f"Error scraping {scraper.__class__.__name__}: {str(e)}")
-            return {
-                'source': scraper.__class__.__name__,
-                'location': location,
-                'property_type': property_type,
-                'properties': [],
-                'status': 'error',
-                'error': str(e)
-            }
+    async def list_configs(self, customer_id: str, skip: int = 0, limit: int = 100) -> List[ScrapingConfig]:
+        """List scraping configurations for a customer."""
+        return self.db.query(ScrapingConfig).filter(
+            ScrapingConfig.customer_id == customer_id
+        ).offset(skip).limit(limit).all()
 
-    def _process_async_results(self, results: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-        """Process and organize async scraping results."""
-        processed_results = {}
-        for result in results:
-            if isinstance(result, Exception):
-                logger.error(f"Scraping task failed: {str(result)}")
-                continue
-            
-            source = result['source']
-            if source not in processed_results:
-                processed_results[source] = []
-            
-            processed_results[source].extend(result['properties'])
+    async def update_config(self, config_id: str, config_data: Dict[str, Any], customer_id: str) -> ScrapingConfig:
+        """Update a scraping configuration."""
+        config = await self.get_config(config_id, customer_id)
         
-        return processed_results
+        # Update fields
+        for key, value in config_data.items():
+            if hasattr(config, key):
+                setattr(config, key, value)
+        
+        self.db.commit()
+        
+        # Update scheduler
+        if config.auto_scrape_enabled:
+            self.scheduler.schedule_config(config)
+        else:
+            self.scheduler.unschedule_config(config.id)
+        
+        return config
 
-    def scrape_all_sources(self, customer_id: str) -> Dict[str, List[Dict[str, Any]]]:
-        """Scrape properties from all enabled sources."""
-        return asyncio.run(self.scrape_all_sources_async(customer_id))
+    async def delete_config(self, config_id: str, customer_id: str):
+        """Delete a scraping configuration."""
+        config = await self.get_config(config_id, customer_id)
+        
+        # Remove from scheduler
+        self.scheduler.unschedule_config(config.id)
+        
+        # Delete from database
+        self.db.delete(config)
+        self.db.commit()
 
-    def schedule_scraping(self, customer_id: str, interval_hours: int = 24):
-        """Schedule automatic scraping."""
-        job_id = f"scraping_{customer_id}"
-        
-        if self.scheduler.get_job(job_id):
-            self.scheduler.remove_job(job_id)
-        
-        self.scheduler.add_job(
-            self.scrape_all_sources,
-            CronTrigger(hour=f"*/{interval_hours}"),
-            id=job_id,
-            args=[customer_id]
+    async def run_scraping_job(self, config_id: str, source: ScrapingSource, location: str, property_type: str) -> ScrapingJob:
+        """Run a scraping job for a specific source and location."""
+        # Get scraping configuration
+        config = self.db.query(ScrapingConfig).filter(ScrapingConfig.id == config_id).first()
+        if not config:
+            raise NotFoundError(f"Scraping configuration not found: {config_id}")
+
+        # Create scraping job
+        job = ScrapingJob(
+            id=str(uuid.uuid4()),
+            config_id=config_id,
+            source=source,
+            location=location,
+            property_type=property_type,
+            status=ScrapingStatus.PENDING
         )
+        self.db.add(job)
+        self.db.commit()
 
-    def stop_scraping(self, customer_id: str):
-        """Stop automatic scraping."""
-        job_id = f"scraping_{customer_id}"
-        if self.scheduler.get_job(job_id):
-            self.scheduler.remove_job(job_id) 
+        try:
+            # Get appropriate scraper
+            scraper_class = self.scrapers.get(source)
+            if not scraper_class:
+                raise ValidationError(f"No scraper implementation for source: {source}")
+
+            # Initialize and run scraper
+            async with scraper_class(self.db, config) as scraper:
+                results = await scraper.run(location, property_type)
+                
+                # Update job status
+                job.status = ScrapingStatus.COMPLETED
+                job.items_scraped = len(results)
+                job.completed_at = datetime.utcnow()
+                self.db.commit()
+
+                return job
+
+        except Exception as e:
+            logger.error(f"Scraping job failed: {str(e)}")
+            job.status = ScrapingStatus.FAILED
+            job.error_message = str(e)
+            job.completed_at = datetime.utcnow()
+            self.db.commit()
+            raise
+
+    async def run_scheduled_jobs(self) -> None:
+        """Run all scheduled scraping jobs."""
+        # Get all active configurations
+        configs = self.db.query(ScrapingConfig).filter(
+            ScrapingConfig.auto_scrape_enabled == True
+        ).all()
+
+        for config in configs:
+            # Check if it's time to run
+            if not self._should_run_scheduled_job(config):
+                continue
+
+            # Run jobs for each enabled source and location
+            for source in config.enabled_sources:
+                for location in config.locations:
+                    for property_type in config.property_types:
+                        try:
+                            await self.run_scraping_job(
+                                config.id,
+                                source,
+                                location,
+                                property_type
+                            )
+                        except Exception as e:
+                            logger.error(f"Failed to run scheduled job: {str(e)}")
+                            continue
+
+    def _should_run_scheduled_job(self, config: ScrapingConfig) -> bool:
+        """Check if a scheduled job should run based on its interval."""
+        if not config.last_run_at:
+            return True
+
+        interval = timedelta(hours=config.auto_scrape_interval)
+        return datetime.utcnow() - config.last_run_at >= interval
+
+    def get_job_status(self, job_id: str) -> ScrapingJob:
+        """Get the status of a scraping job."""
+        job = self.db.query(ScrapingJob).filter(ScrapingJob.id == job_id).first()
+        if not job:
+            raise NotFoundError(f"Scraping job not found: {job_id}")
+        return job
+
+    def list_jobs(
+        self,
+        config_id: Optional[str] = None,
+        source: Optional[ScrapingSource] = None,
+        status: Optional[ScrapingStatus] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[ScrapingJob]:
+        """List scraping jobs with optional filters."""
+        query = self.db.query(ScrapingJob)
+
+        if config_id:
+            query = query.filter(ScrapingJob.config_id == config_id)
+        if source:
+            query = query.filter(ScrapingJob.source == source)
+        if status:
+            query = query.filter(ScrapingJob.status == status)
+        if start_date:
+            query = query.filter(ScrapingJob.created_at >= start_date)
+        if end_date:
+            query = query.filter(ScrapingJob.created_at <= end_date)
+
+        return query.order_by(ScrapingJob.created_at.desc()).offset(skip).limit(limit).all()
+
+    def get_job_results(
+        self,
+        job_id: str,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[ScrapingResult]:
+        """Get results for a specific scraping job."""
+        return self.db.query(ScrapingResult).filter(
+            ScrapingResult.job_id == job_id
+        ).offset(skip).limit(limit).all()
+
+    def get_scraping_stats(self, config_id: str) -> Dict[str, Any]:
+        """Get scraping statistics for a configuration."""
+        # Get all jobs for this configuration
+        jobs = self.db.query(ScrapingJob).filter(
+            ScrapingJob.config_id == config_id
+        ).all()
+
+        total_jobs = len(jobs)
+        completed_jobs = sum(1 for job in jobs if job.status == ScrapingStatus.COMPLETED)
+        failed_jobs = sum(1 for job in jobs if job.status == ScrapingStatus.FAILED)
+        total_items = sum(job.items_scraped for job in jobs)
+
+        # Calculate success rate
+        success_rate = (completed_jobs / total_jobs * 100) if total_jobs > 0 else 0
+
+        # Get source distribution
+        source_distribution = {}
+        for job in jobs:
+            source = job.source.value
+            source_distribution[source] = source_distribution.get(source, 0) + 1
+
+        return {
+            'total_jobs': total_jobs,
+            'completed_jobs': completed_jobs,
+            'failed_jobs': failed_jobs,
+            'total_items': total_items,
+            'success_rate': success_rate,
+            'source_distribution': source_distribution
+        } 
