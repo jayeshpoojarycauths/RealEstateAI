@@ -27,7 +27,8 @@ router = APIRouter()
 async def upload_leads(
     file: UploadFile = File(...),
     db: Session = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_active_user),
+    current_customer: Customer = Depends(deps.get_current_customer)
 ):
     """
     Upload leads from CSV or Excel file.
@@ -74,8 +75,12 @@ async def upload_leads(
                     customer_id=current_user.customer_id
                 )
                 
-                lead = Lead(**lead_data.dict())
-                db.add(lead)
+                lead_service = LeadService(db)
+                lead = await lead_service.create_lead(
+                    lead_data=lead_data,
+                    customer_id=str(current_customer.id),
+                    user_id=str(current_user.id)
+                )
                 success_count += 1
             except Exception as e:
                 error_count += 1

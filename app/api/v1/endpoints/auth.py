@@ -4,14 +4,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
 from app.core.security import create_access_token, verify_password, get_password_hash
-from app.models.models import User
+from app.models.models import User, Customer, Role
 from app.schemas.auth import Token, TokenPayload, UserRegister, UserResponse
 from app.shared.core.sms import send_mfa_code_sms
 from datetime import datetime, timedelta
 from app.core.config import settings
 from app.db.session import get_db
-from app.models.customer import Customer
-from app.models.role import Role
 from app.core.email import send_verification_email
 from app.core.captcha import verify_captcha
 from app.core.security import generate_verification_token

@@ -3,6 +3,7 @@ import logging
 from bs4 import BeautifulSoup
 import re
 from datetime import datetime
+import asyncio
 from app.scraping.services.base import BaseScraper
 from app.scraping.models.scraping import ScrapingSource
 

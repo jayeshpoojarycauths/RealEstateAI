@@ -1,11 +1,11 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.core.database import get_db
+from app.db.session import SessionLocal
+from app.models.models import User
 from app.core.rbac import Role, Permission, require_admin, permission_service
 from app.core.exceptions import ResourceNotFoundException, MessageCode
 from app.core.logging import logger, audit_logger
-from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserResponse
 from app.core.security import get_password_hash
 from app.core.messages import Messages
@@ -15,7 +15,7 @@ router = APIRouter()
 @router.post("/", response_model=UserResponse)
 async def create_user(
     user_data: UserCreate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(SessionLocal),
     current_user: User = Depends(require_admin)
 ):
     """Create a new user."""
@@ -66,7 +66,7 @@ async def create_user(
 async def list_users(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: Session = Depends(SessionLocal),
     current_user: User = Depends(permission_service.require_permission(Permission.READ_USER))
 ):
     """List all users."""
@@ -76,7 +76,7 @@ async def list_users(
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(SessionLocal),
     current_user: User = Depends(permission_service.require_permission(Permission.READ_USER))
 ):
     """Get a specific user."""
@@ -93,7 +93,7 @@ async def get_user(
 async def update_user(
     user_id: int,
     user_data: UserUpdate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(SessionLocal),
     current_user: User = Depends(permission_service.require_permission(Permission.UPDATE_USER))
 ):
     """Update a user."""
@@ -129,7 +129,7 @@ async def update_user(
 @router.delete("/{user_id}")
 async def delete_user(
     user_id: int,
-    db: Session = Depends(get_db),
+    db: Session = Depends(SessionLocal),
     current_user: User = Depends(permission_service.require_permission(Permission.DELETE_USER))
 ):
     """Delete a user."""

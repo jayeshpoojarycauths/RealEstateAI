@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Role, User } from '../../types/auth';
+import { Role } from '../../types/auth';
 import { useUsers } from '../../hooks/useUsers';
 import { logger } from '../../utils/logger';
 import {

@@ -378,16 +378,16 @@ class ScraperService:
                 raise ValidationError(f"No scraper implementation for source: {source}")
 
             # Initialize and run scraper
-            async with scraper_class(self.db, config) as scraper:
-                results = await scraper.run(location, property_type)
+            scraper = scraper_class(config)
+            results = await scraper.scrape_properties(location, property_type)
                 
-                # Update job status
-                job.status = ScrapingStatus.COMPLETED
-                job.items_scraped = len(results)
-                job.completed_at = datetime.utcnow()
-                self.db.commit()
+            # Update job status
+            job.status = ScrapingStatus.COMPLETED
+            job.items_scraped = len(results)
+            job.completed_at = datetime.utcnow()
+            self.db.commit()
 
-                return job
+            return job
 
         except Exception as e:
             logger.error(f"Scraping job failed: {str(e)}")

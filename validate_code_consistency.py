@@ -25,7 +25,8 @@ patterns = {
 results = []
 
 for search_dir in search_dirs:
-    root = Path(f"/mnt/data/{search_dir}")
+    base_path = Path.cwd()  # or use environment variable
+    root = base_path / search_dir
     if not root.exists():
         continue
     for file_path in root.rglob("*"):
@@ -39,7 +40,7 @@ for search_dir in search_dirs:
             for pattern in checks:
                 for match in pattern.finditer(text):
                     results.append({
-                        "file": str(file_path.relative_to("/mnt/data")),
+                        "file": str(file_path.relative_to(base_path)),
                         "category": category,
                         "line": text.count('\n', 0, match.start()) + 1,
                         "snippet": text[match.start():match.end()]

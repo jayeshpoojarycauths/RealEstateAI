@@ -1,19 +1,37 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
 import {
-  api,
   API_ENDPOINTS,
   ApiResponse,
-  ApiError,
   PaginatedResponse,
 } from "../config/api";
 import { logger } from "../utils/logger";
+
+// Define ApiError as a class for use as a value
+export class ApiError extends Error {
+  status: number;
+  errors?: Record<string, string[]>;
+  constructor(status: number, message: string, errors?: Record<string, string[]>) {
+    super(message);
+    this.status = status;
+    this.errors = errors;
+    Object.setPrototypeOf(this, ApiError.prototype);
+  }
+}
 
 class ApiClient {
   private static instance: ApiClient;
   private client: AxiosInstance;
 
   private constructor() {
-    this.client = axios.create(API_CLIENT_CONFIG);
+    this.client = axios.create({
+      baseURL: import.meta.env.VITE_API_BASE_URL,
+      timeout: import.meta.env.VITE_API_TIMEOUT
+        ? Number(import.meta.env.VITE_API_TIMEOUT)
+        : 30000,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
     this.setupInterceptors();
   }
 
@@ -30,6 +48,7 @@ class ApiClient {
       (config) => {
         const token = localStorage.getItem("token");
         if (token) {
+          config.headers = config.headers || {};
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -79,10 +98,20 @@ class ApiClient {
         }
 
         // Handle other errors
+        let message = "An unexpected error occurred";
+        let errors: Record<string, string[]> | undefined = undefined;
+        if (error.response?.data && typeof error.response.data === "object") {
+          if ("message" in error.response.data) {
+            message = (error.response.data as any).message;
+          }
+          if ("errors" in error.response.data) {
+            errors = (error.response.data as any).errors;
+          }
+        }
         const apiError = new ApiError(
           error.response?.status || 500,
-          error.response?.data?.message || "An unexpected error occurred",
-          error.response?.data,
+          message,
+          errors,
         );
 
         logger.error("API error:", apiError);
@@ -91,7 +120,7 @@ class ApiClient {
     );
   }
 
-  public async get<T>(url: string, options?: RequestOptions): Promise<T> {
+  public async get<T>(url: string, options?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.get<T>(url, options);
     return response.data;
   }
@@ -99,7 +128,7 @@ class ApiClient {
   public async post<T>(
     url: string,
     data?: any,
-    options?: RequestOptions,
+    options?: AxiosRequestConfig,
   ): Promise<T> {
     const response = await this.client.post<T>(url, data, options);
     return response.data;
@@ -108,7 +137,7 @@ class ApiClient {
   public async put<T>(
     url: string,
     data?: any,
-    options?: RequestOptions,
+    options?: AxiosRequestConfig,
   ): Promise<T> {
     const response = await this.client.put<T>(url, data, options);
     return response.data;
@@ -117,13 +146,13 @@ class ApiClient {
   public async patch<T>(
     url: string,
     data?: any,
-    options?: RequestOptions,
+    options?: AxiosRequestConfig,
   ): Promise<T> {
     const response = await this.client.patch<T>(url, data, options);
     return response.data;
   }
 
-  public async delete<T>(url: string, options?: RequestOptions): Promise<T> {
+  public async delete<T>(url: string, options?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.delete<T>(url, options);
     return response.data;
   }
@@ -131,7 +160,7 @@ class ApiClient {
   public async upload<T>(
     url: string,
     formData: FormData,
-    options?: RequestOptions,
+    options?: AxiosRequestConfig,
   ): Promise<T> {
     const response = await this.client.post<T>(url, formData, {
       ...options,
@@ -145,10 +174,3 @@ class ApiClient {
 }
 
 export const apiClient = ApiClient.getInstance();
-
-function handleError(error: unknown): string {
-  if (typeof error === "object" && error && "message" in error) {
-    return (error as { message: string }).message;
-  }
-  return "Unknown error";
-}

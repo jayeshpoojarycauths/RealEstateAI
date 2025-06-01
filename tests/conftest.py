@@ -18,7 +18,7 @@ test_settings = Settings(
 )
 
 # Create test database engine
-TEST_SQLALCHEMY_DATABASE_URL = settings.SQLALCHEMY_DATABASE_URL + "_test"
+TEST_SQLALCHEMY_DATABASE_URL = test_settings.get_database_url()  # or similar helper
 engine = create_engine(TEST_SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

@@ -34,7 +34,7 @@ export const menuItems: MenuItem[] = [
     path: "/dashboard",
     label: "Dashboard",
     icon: HomeIcon,
-    roles: [Role.ADMIN, Role.MANAGER, Role.AGENT, Role.CUSTOMER],
+    roles: [Role.ADMIN, Role.MANAGER, Role.AGENT],
   },
   {
     path: "/admin",
@@ -60,7 +60,7 @@ export const menuItems: MenuItem[] = [
     path: "/properties",
     label: "Properties",
     icon: BuildingOfficeIcon,
-    roles: [Role.ADMIN, Role.MANAGER, Role.AGENT, Role.CUSTOMER],
+    roles: [Role.ADMIN, Role.MANAGER, Role.AGENT],
   },
   {
     path: "/customers",

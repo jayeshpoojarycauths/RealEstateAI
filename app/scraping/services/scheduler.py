@@ -9,6 +9,7 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from app.scraping.services.scraper import ScraperService
 from app.scraping.models.scraping import ScrapingConfig, ScrapingStatus
 from app.shared.core.config import settings
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -89,16 +90,18 @@ class ScrapingScheduler:
     async def _run_config_jobs(self, config_id: str):
         """Run all scraping jobs for a configuration."""
         try:
-            config = self.db.query(ScrapingConfig).filter(
-                ScrapingConfig.id == config_id
-            ).first()
+            config = await asyncio.to_thread(
+                lambda: self.db.query(ScrapingConfig).filter(
+                    ScrapingConfig.id == config_id
+                ).first()
+            )
             
             if not config or not config.auto_scrape_enabled:
                 return
 
             # Update last run time
             config.last_run_at = datetime.utcnow()
-            self.db.commit()
+            await asyncio.to_thread(self.db.commit)
 
             # Run jobs for each enabled source and location
             for source in config.enabled_sources:

@@ -13,6 +13,7 @@ from fake_useragent import UserAgent
 import aiohttp
 from tenacity import retry, stop_after_attempt, wait_exponential
 from ratelimit import limits, sleep_and_retry
+from aiolimiter import AsyncLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class BaseScraper(ABC):
         self.ua = UserAgent()
         self.session = None
         self.job = None
+        self.rate_limiter = AsyncLimiter(max_rate=10, time_period=60)
 
     async def __aenter__(self):
         """Initialize aiohttp session."""
@@ -49,30 +51,28 @@ class BaseScraper(ABC):
         return random.choice(self.proxies) if self.proxies and self.config.proxy_enabled else None
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    @sleep_and_retry
-    @limits(calls=10, period=60)
-    async def make_request(self, url: str, headers: Optional[Dict[str, str]] = None) -> Optional[str]:
-        """Make HTTP request with retry logic and rate limiting."""
-        if not self.session:
-            raise RuntimeError("Scraper session not initialized. Use 'async with' context manager.")
+    async def make_request(self, url: str, headers: Optional[dict] = None) -> Optional[str]:
+        async with self.rate_limiter:
+            if not self.session:
+                raise RuntimeError("Scraper session not initialized. Use 'async with' context manager.")
 
-        proxy = self.get_random_proxy()
-        proxy_url = f"http://{proxy}" if proxy else None
+            proxy = self.get_random_proxy()
+            proxy_url = f"http://{proxy}" if proxy else None
 
-        try:
-            async with self.session.get(
-                url,
-                headers=headers,
-                proxy=proxy_url,
-                timeout=self.config.scraping_delay
-            ) as response:
-                if response.status == 200:
-                    return await response.text()
-                logger.error(f"Request failed for {url}: {response.status}")
-                return None
-        except Exception as e:
-            logger.error(f"Request error for {url}: {str(e)}")
-            raise
+            try:
+                async with self.session.get(
+                    url,
+                    headers=headers,
+                    proxy=proxy_url,
+                    timeout=self.config.scraping_delay
+                ) as response:
+                    if response.status == 200:
+                        return await response.text()
+                    logger.error(f"Request failed for {url}: {response.status}")
+                    return None
+            except Exception as e:
+                logger.error(f"Request error for {url}: {str(e)}")
+                raise
 
     @abstractmethod
     async def scrape(self, location: str, property_type: str) -> List[Dict[str, Any]]:
@@ -145,8 +145,9 @@ class BaseScraper(ABC):
             self.update_job_status(ScrapingStatus.FAILED, 0, str(e))
 
     async def run(self, location: str, property_type: str) -> List[Dict[str, Any]]:
-        """Run the scraper with proper job tracking."""
         try:
+            if not self.job:
+                self.create_job(self.config.source, location, property_type)
             self.update_job_status(ScrapingStatus.RUNNING)
             results = await self.scrape(location, property_type)
             self.save_results(results)
