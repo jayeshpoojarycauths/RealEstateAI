@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 import logging
 import pandas as pd
 import numpy as np
-from app.lead.models import Lead, LeadActivity
-from app.lead.schemas.lead import LeadCreate, LeadUpdate
+from app.lead.models.lead import Lead, LeadStatus, LeadSource
+from app.lead.models import LeadActivity
 from app.shared.core.tenant import get_customer_id
 from app.shared.core.security import UserRole
 from app.lead.models.lead import Lead, LeadStatus, LeadSource

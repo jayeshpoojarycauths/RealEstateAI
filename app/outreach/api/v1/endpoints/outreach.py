@@ -10,7 +10,7 @@ from app.shared.api.deps import get_db
 from app.shared.core.security.security import get_current_customer
 from app.lead.models import Lead
 from app.shared.models.customer import Customer
-from app.shared.models.outreach import OutreachLog, Outreach, InteractionLog, OutreachChannel
+from app.shared.models.outreach import OutreachLog, Outreach, InteractionLog, CommunicationPreferences, OutreachChannel
 
 from app.shared.core.communication import CommunicationBaseService
 from app.shared.core.auth import (

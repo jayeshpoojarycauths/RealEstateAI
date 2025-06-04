@@ -16,10 +16,11 @@ from app.main import app
 from app.shared.core.exceptions import NotFoundException
 from app.shared.models.outreach import OutreachCampaign
 from app.outreach.schemas.outreach import OutreachUpdate
+from app.shared.models.customer import Customer
 
 @pytest.fixture
-def outreach_service(db_session: Session):
-    return OutreachService(db_session)
+def outreach_service(db_session: Session, test_customer: Customer):
+    return OutreachService(db_session, test_customer)
 
 @pytest.fixture
 def test_lead(db_session: Session, test_customer):

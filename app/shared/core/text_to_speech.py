@@ -1,94 +1,129 @@
+from typing import Optional, Dict, Any
 import os
-import requests
+import json
+import hashlib
+from datetime import datetime, timedelta
 from pathlib import Path
+import httpx
 from fastapi import HTTPException
 from app.shared.core.config import settings
-import hashlib
-import time
+
+RATE_LIMIT = 100  # requests per minute
 
 class TextToSpeechService:
     """Service for text-to-speech conversion using ElevenLabs API."""
     
-    RATE_LIMIT = 100  # Maximum requests per minute
-    
     def __init__(self):
+        # Validate required settings
         self.api_key = settings.ELEVENLABS_API_KEY
-        self.model_id = settings.ELEVENLABS_MODEL_ID
-        self.output_format = settings.ELEVENLABS_OUTPUT_FORMAT
-        self.cache_dir = Path(settings.ELEVENLABS_AUDIO_CACHE_DIR)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self._request_counts = {}
-
-    def generate_audio(self, text: str, voice_id: str, client_ip: str) -> bytes:
-        """Generate audio from text using ElevenLabs API."""
-        if not self._check_rate_limit(client_ip):
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
-
-        cache_key = self._get_cache_key(text, voice_id)
-        cache_path = self.cache_dir / f"{cache_key}.mp3"
-
-        if cache_path.exists():
-            return cache_path.read_bytes()
-
-        response = requests.post(
-            f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
-            headers={"xi-api-key": self.api_key},
-            json={
-                "text": text,
-                "model_id": self.model_id,
-                "output_format": self.output_format
-            }
-        )
-        response.raise_for_status()
-
-        audio_data = response.content
-        cache_path.write_bytes(audio_data)
-        return audio_data
-
-    def get_available_voices(self) -> list:
-        """Get list of available voices."""
-        response = requests.get(
-            "https://api.elevenlabs.io/v1/voices",
-            headers={"xi-api-key": self.api_key}
-        )
-        response.raise_for_status()
-        return response.json()["voices"]
-
-    def get_voice_details(self, voice_id: str) -> dict:
-        """Get details for a specific voice."""
-        response = requests.get(
-            f"https://api.elevenlabs.io/v1/voices/{voice_id}",
-            headers={"xi-api-key": self.api_key}
-        )
-        response.raise_for_status()
-        return response.json()
-
-    def generate_temp_audio(self, text: str, voice_id: str, client_ip: str) -> str:
-        """Generate temporary audio file and return its path."""
-        audio_data = self.generate_audio(text, voice_id, client_ip)
-        temp_path = f"/tmp/{hashlib.md5(text.encode()).hexdigest()}.mp3"
-        with open(temp_path, "wb") as f:
-            f.write(audio_data)
-        return temp_path
-
-    def _check_rate_limit(self, client_ip: str) -> bool:
-        """Check if client has exceeded rate limit."""
-        current_time = int(time.time())
-        if client_ip not in self._request_counts:
-            self._request_counts[client_ip] = []
-        
-        # Remove requests older than 1 minute
-        self._request_counts[client_ip] = [
-            t for t in self._request_counts[client_ip]
-            if current_time - t < 60
-        ]
-        
-        if len(self._request_counts[client_ip]) >= self.RATE_LIMIT:
-            return False
+        if not self.api_key:
+            raise RuntimeError("ELEVENLABS_API_KEY is not configured")
             
-        self._request_counts[client_ip].append(current_time)
-        return True
+        self.model_id = settings.ELEVENLABS_MODEL_ID
+        if not self.model_id:
+            raise RuntimeError("ELEVENLABS_MODEL_ID is not configured")
+            
+        self.output_format = settings.ELEVENLABS_OUTPUT_FORMAT
+        if not self.output_format:
+            raise RuntimeError("ELEVENLABS_OUTPUT_FORMAT is not configured")
+
+        # Create cache directory
+        self.cache_dir = Path("cache/audio")
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize request count tracking
+        self.request_count = 0
+        self.last_reset = datetime.utcnow()
+        
+        # Initialize async client
+        self.client = httpx.AsyncClient(
+            base_url="https://api.elevenlabs.io/v1",
+            headers={
+                "xi-api-key": self.api_key,
+                "Content-Type": "application/json"
+            },
+            timeout=30.0  # 30 second timeout
+        )
+
+    async def generate_audio(self, text: str, voice_id: str = "default") -> str:
+        """Generate audio from text using ElevenLabs API."""
+        try:
+            # Check rate limit
+            self._check_rate_limit()
+            
+            # Check cache first
+            cache_key = self._get_cache_key(text, voice_id)
+            cache_path = self.cache_dir / f"{cache_key}.{self.output_format}"
+            
+            if cache_path.exists():
+                return str(cache_path)
+            
+            # Make API request
+            response = await self.client.post(
+                "/text-to-speech",
+                json={
+                    "text": text,
+                    "model_id": self.model_id,
+                    "voice_id": voice_id,
+                    "output_format": self.output_format
+                }
+            )
+            response.raise_for_status()
+            
+            # Save to cache
+            cache_path.write_bytes(response.content)
+            return str(cache_path)
+            
+        except httpx.HTTPError as e:
+            raise RuntimeError(f"Failed to generate audio: {str(e)}")
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error: {str(e)}")
+
+    async def get_available_voices(self) -> Dict[str, Any]:
+        """Get list of available voices."""
+        try:
+            response = await self.client.get("/voices")
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            raise RuntimeError(f"Failed to get voices: {str(e)}")
+
+    async def get_voice_details(self, voice_id: str) -> Dict[str, Any]:
+        """Get details for a specific voice."""
+        try:
+            response = await self.client.get(f"/voices/{voice_id}")
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError as e:
+            raise RuntimeError(f"Failed to get voice details: {str(e)}")
+
+    async def generate_temp_audio(self, text: str, voice_id: str = "default") -> str:
+        """Generate temporary audio file and return its path."""
+        try:
+            audio_path = await self.generate_audio(text, voice_id)
+            return audio_path
+        except Exception as e:
+            raise RuntimeError(f"Failed to generate temporary audio: {str(e)}")
+
+    def _check_rate_limit(self):
+        """Check if we've exceeded the rate limit."""
+        now = datetime.utcnow()
+        if now - self.last_reset > timedelta(minutes=1):
+            self.request_count = 0
+            self.last_reset = now
+            
+        if self.request_count >= RATE_LIMIT:
+            raise RuntimeError("Rate limit exceeded")
+            
+        self.request_count += 1
 
     def _get_cache_key(self, text: str, voice_id: str) -> str:
         """Generate cache key for text and voice combination."""
-        return hashlib.md5(f"{text}:{voice_id}".encode()).hexdigest() 
+        key = f"{text}_{voice_id}_{self.model_id}"
+        return hashlib.md5(key.encode()).hexdigest()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.client.aclose() 

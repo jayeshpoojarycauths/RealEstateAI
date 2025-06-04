@@ -1,42 +1,37 @@
-from sqlalchemy import Column, String, ForeignKey, Text, Boolean, JSON, Integer, Float, DateTime, Enum
-from sqlalchemy.orm import relationship
-from app.shared.models.base import BaseModel
-import enum
+from enum import Enum
 from datetime import datetime
-import uuid
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum as SQLEnum, JSON, Integer, Boolean
+from sqlalchemy.dialects.postgresql import UUID
+from app.shared.db.base_class import Base
 
-class OutreachStatus(enum.Enum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
-
-class OutreachType(enum.Enum):
-    CALL = "call"
-    SMS = "sms"
+class OutreachChannel(str, Enum):
     EMAIL = "email"
+    SMS = "sms"
     WHATSAPP = "whatsapp"
-    TELEGRAM = "telegram"
 
-class OutreachLog(BaseModel):
+class OutreachStatus(str, Enum):
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+    DELIVERED = "delivered"
+    READ = "read"
+
+class OutreachLog(Base):
     __tablename__ = "outreach_logs"
-    __table_args__ = {'extend_existing': True}
-    
-    lead_id = Column(String(36), ForeignKey('leads.id'))
-    customer_id = Column(String(36), ForeignKey('customers.id'))
-    outreach_type = Column(Enum(OutreachType))
-    status = Column(Enum(OutreachStatus))
-    scheduled_time = Column(DateTime)
-    completed_time = Column(DateTime)
-    response_time = Column(Float)  # Time to respond in seconds
-    error_message = Column(Text)
-    model_metadata = Column(JSON)  # Additional metadata about the outreach
-    
-    lead = relationship("Lead", back_populates="outreach_logs")
-    customer = relationship("Customer")
 
-class OutreachTemplate(BaseModel):
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id"), nullable=False)
+    channel = Column(SQLEnum(OutreachChannel), nullable=False)
+    status = Column(SQLEnum(OutreachStatus), nullable=False)
+    message = Column(String)
+    error_message = Column(String)
+    retry_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    sent_at = Column(DateTime)
+    last_retry_at = Column(DateTime)
+
+class OutreachTemplate(Base):
     __tablename__ = "outreach_templates"
     __table_args__ = {'extend_existing': True}
     
@@ -48,4 +43,24 @@ class OutreachTemplate(BaseModel):
     is_active = Column(Boolean, default=True)
     model_metadata = Column(JSON)  # Additional template metadata
     
-    customer = relationship("Customer") 
+    customer = relationship("Customer")
+
+class OutreachType(Enum):
+    CALL = "call"
+    SMS = "sms"
+    EMAIL = "email"
+    WHATSAPP = "whatsapp"
+    TELEGRAM = "telegram"
+
+class CommunicationPreferences(Base):
+    __tablename__ = "communication_preferences"
+
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
+    default_channel = Column(SQLEnum(OutreachChannel), nullable=False)
+    email_enabled = Column(Boolean, default=True)
+    sms_enabled = Column(Boolean, default=True)
+    whatsapp_enabled = Column(Boolean, default=True)
+    preferences = Column(JSON)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow) 

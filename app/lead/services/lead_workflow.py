@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import json
 from fastapi import Depends
 
-from app.lead.models import Lead, LeadActivity, ActivityType
+from app.lead.models.lead import Lead, LeadActivity, ActivityType, LeadStatus, LeadSource
 from app.shared.models.customer import Customer
 from app.lead.schemas.lead import LeadResponse
 from app.lead.schemas.lead_activity import LeadActivityResponse
@@ -15,13 +15,12 @@ from app.shared.core.audit import AuditService, get_audit_service
 from app.shared.core.exceptions import NotFoundException, ValidationException
 from app.shared.core.email import send_email
 from app.shared.core.sms import send_sms
-from app.lead.models.lead import Lead, LeadStatus, LeadSource
 
 class LeadWorkflowService:
     def __init__(self, db: Session, customer: Customer):
         self.db = db
         self.customer = customer
-        self.audit_logger = AuditLogger(db, customer)
+        self.audit_service = AuditService(db, customer)
 
     async def create_lead_activity(
         self,
@@ -42,7 +41,7 @@ class LeadWorkflowService:
         self.db.commit()
         self.db.refresh(activity)
         
-        await self.audit_logger.log_action(
+        await self.audit_service.log_action(
             action="create",
             entity_type="lead_activity",
             entity_id=activity.id,
@@ -102,7 +101,7 @@ class LeadWorkflowService:
             user_id=user_id
         )
         
-        await self.audit_logger.log_action(
+        await self.audit_service.log_action(
             action="update",
             entity_type="lead",
             entity_id=lead_id,
@@ -143,7 +142,7 @@ class LeadWorkflowService:
             user_id=assigned_by
         )
         
-        await self.audit_logger.log_action(
+        await self.audit_service.log_action(
             action="assign",
             entity_type="lead",
             entity_id=lead_id,

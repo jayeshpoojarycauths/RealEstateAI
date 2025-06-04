@@ -13,6 +13,7 @@ from app.shared.core.constants import ALGORITHM
 from app.shared.api.deps import deps
 from sqlalchemy.orm import Session
 import uuid
+import asyncio
 
 # Import security functions from shared core
 from app.shared.core.security import (
@@ -135,6 +136,7 @@ get_current_tenant = get_current_customer
 def require_role(roles: List[str]):
     """Decorator to require specific role(s) for an endpoint."""
     def decorator(func):
+        @wraps(func)
         async def wrapper(*args, **kwargs):
             current_user = kwargs.get('current_user')
             if not current_user:
@@ -147,7 +149,9 @@ def require_role(roles: List[str]):
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Insufficient permissions"
                 )
-            return await func(*args, **kwargs)
+            if asyncio.iscoroutinefunction(func):
+                return await func(*args, **kwargs)
+            return func(*args, **kwargs)
         return wrapper
     return decorator
 
