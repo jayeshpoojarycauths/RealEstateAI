@@ -3,13 +3,7 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 from uuid import UUID
 from enum import Enum
-
-class InteractionType(str, Enum):
-    CALL = "call"
-    SMS = "sms"
-    EMAIL = "email"
-    WHATSAPP = "whatsapp"
-    TELEGRAM = "telegram"
+from app.shared.models.interaction import InteractionType
 
 class InteractionStatus(str, Enum):
     SUCCESS = "success"

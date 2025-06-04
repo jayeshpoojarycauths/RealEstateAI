@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.shared.db.session import get_db
-from app.models.models import User
+from app.shared.models.user import User
 
 async def get_customer_id(
     db: Session = Depends(get_db),

@@ -1,7 +1,8 @@
 import pytest
 from datetime import datetime
 from app.models.audit import AuditLog
-from app.models.models import User, Customer
+from app.shared.models.user import User
+from app.shared.models.customer import Customer
 
 def test_audit_log_creation():
     """Test that audit logs can be created with all required fields"""

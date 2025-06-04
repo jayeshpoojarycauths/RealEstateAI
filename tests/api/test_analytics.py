@@ -3,8 +3,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-from app.main import app
-from app.models.models import User, Customer, Lead
+from app.main import app    
+from app.shared.models.user import User
+from app.shared.models.customer import Customer
+from app.lead.models import Lead
 from app.shared.core.security.auth import create_access_token
 
 client = TestClient(app)

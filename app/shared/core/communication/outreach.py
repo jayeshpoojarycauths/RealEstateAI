@@ -1,7 +1,7 @@
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from app.shared.core.exceptions import ExternalServiceError
-from app.models.models import Lead, Customer
+
 from sqlalchemy.orm import Session
 
 class MockOutreachEngine:

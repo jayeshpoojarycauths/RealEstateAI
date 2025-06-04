@@ -106,7 +106,7 @@ class ScrapingResult(BaseModel):
     area = Column(Float)
     images = Column(JSON)
     source_url = Column(String(255))
-    metadata = Column(JSON)
+    result_metadata = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     

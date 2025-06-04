@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, desc
 from datetime import datetime, timedelta
 
-from app.models.models import Lead, User, Customer
+
 from app.lead.models.lead_activity import LeadActivity
+from app.lead.models.lead import Lead
 from app.lead.schemas.lead_audit import (
     LeadAuditLog,
     LeadAuditLogResponse,

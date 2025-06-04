@@ -6,10 +6,9 @@ import re
 import phonenumbers
 from email_validator import validate_email, EmailNotValidError
 
-from app.models.models import Lead, User, Customer
+from app.lead.models.lead import Lead
+
 from app.lead.schemas.lead import LeadCreate, LeadUpdate
-from app.shared.core.tenant import get_customer_id
-from app.shared.core.security import UserRole
 
 class LeadValidationService:
     def __init__(self, db: Session):

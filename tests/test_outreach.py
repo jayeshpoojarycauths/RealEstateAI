@@ -1,12 +1,13 @@
 import pytest
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from app.models.models import Outreach, OutreachTemplate, Lead
-from app.schemas.outreach import (
+from app.shared.models.outreach import Outreach, OutreachTemplate
+from app.lead.models.lead import Lead
+from app.outreach.schemas import (
     OutreachCreate, OutreachChannel, OutreachStatus,
     OutreachFilter
 )
-from app.services.outreach import OutreachService
+from app.outreach.services import OutreachService
 from app.shared.core.pagination import PaginationParams
 from fastapi import BackgroundTasks
 from typing import List, Optional

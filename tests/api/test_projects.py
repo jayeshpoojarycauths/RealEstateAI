@@ -6,8 +6,8 @@ from app.main import app
 from app.shared.core.security import create_access_token, UserRole
 from app.shared.core.exceptions import NotFoundException
 from app.shared.core.pagination import PaginationParams
-from app.models.models import Project, Lead
-from app.schemas.project import ProjectType, ProjectStatus
+from app.project.models import Project
+from app.project.schemas import ProjectType, ProjectStatus
 
 @pytest.fixture
 def client():

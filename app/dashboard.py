@@ -4,10 +4,13 @@ import plotly.express as px
 import plotly.graph_objects as go
 from sqlalchemy.orm import Session
 from app.shared.db.session import SessionLocal
-from app.models.models import Lead, RealEstateProject, OutreachLog, LeadScore, InteractionLog, CallInteraction, MessageInteraction
+from app.lead.models.lead import Lead, LeadScore
+from app.shared.models.project import RealEstateProject
+from app.shared.models.outreach import OutreachLog
+from app.shared.models.interaction import InteractionLog, CallInteraction, MessageInteraction
 from datetime import datetime, timedelta
 import numpy as np
-from app.services.lead_scoring import LeadScoringService
+from app.lead.services.lead_scoring import LeadScoringService
 
 def get_db():
     db = SessionLocal()

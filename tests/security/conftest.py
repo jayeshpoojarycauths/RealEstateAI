@@ -5,7 +5,8 @@ from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.shared.core.config import settings
 from app.shared.db.base import Base
-from app.models.models import User, Customer
+from app.shared.models.user import User
+from app.shared.models.customer import Customer
 from app.shared.core.security.jwt import jwt_service
 from app.shared.core.security import verify_password, get_password_hash
 

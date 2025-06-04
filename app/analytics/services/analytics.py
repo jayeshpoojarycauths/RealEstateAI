@@ -2,7 +2,10 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case, and_, or_
 from datetime import datetime, timedelta
-from app.models.models import Lead, RealEstateProject, InteractionLog, Project, Customer
+from app.lead.models.lead import Lead
+from app.shared.models.project import RealEstateProject, Project
+from app.shared.models.interaction import InteractionLog
+from app.shared.models.customer import Customer
 from app.analytics.schemas.analytics import (
     AnalyticsResponse,
     LeadScoreDistribution,

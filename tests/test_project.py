@@ -1,9 +1,11 @@
 import pytest
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from app.models.models import Project, ProjectLead, Lead
-from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectType, ProjectStatus
-from app.services.project import ProjectService
+from app.shared.models.project import Project
+from app.lead.models import ProjectLead
+from app.lead.models.lead import Lead
+from app.project.schemas import ProjectCreate, ProjectUpdate, ProjectType, ProjectStatus
+from app.project.services import ProjectService
 from app.shared.core.pagination import PaginationParams
 from app.shared.core.exceptions import NotFoundException
 from app.main import app

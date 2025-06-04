@@ -8,7 +8,8 @@ from app.shared.core.security.auth import (
     get_current_user,
     get_current_active_user
 )
-from app.models.models import User, Customer
+from app.shared.models.user import User
+from app.shared.models.customer import Customer
 
 client = TestClient(app)
 

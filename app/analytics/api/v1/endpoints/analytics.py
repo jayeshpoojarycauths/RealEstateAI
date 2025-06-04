@@ -3,12 +3,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
-from app.shared.core.security import get_current_active_user
-from app.api.deps import get_db, get_current_customer
+from app.shared.core.security.security import get_current_active_user
+from app.shared.api.deps import get_db
+from app.shared.core.security.security import get_current_customer
 from app.shared.models.user import User
 from app.shared.core.audit import log_audit
 from app.shared.core.exceptions import NotFoundException
-from app.models.models import Customer, Lead, InteractionLog
+from app.shared.models.customer import Customer
+from app.lead.models.lead import Lead
+from app.shared.models.interaction import InteractionLog
 from app.analytics.schemas.analytics import (
     AnalyticsResponse,
     ConversionFunnelResponse,

@@ -6,7 +6,7 @@ import logging
 import pandas as pd
 import json
 
-from app.models.models import Lead, User, Customer
+from app.lead.models.lead import Lead
 from app.lead.schemas.lead import LeadFilter, LeadCreate, LeadUpdate
 from app.shared.core.tenant import get_customer_id
 from app.shared.core.security import UserRole

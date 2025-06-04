@@ -14,6 +14,33 @@ from app.shared.core.auth import (
 )
 from app.shared.core.security.roles import Role
 from app.shared.models.customer import Customer
+from app.shared.core.security.security import verify_password
+
+def authenticate_user(
+    db: Session,
+    email: str,
+    password: str
+) -> Optional[User]:
+    """
+    Authenticate a user with email and password.
+    
+    Args:
+        db: Database session
+        email: User's email
+        password: User's password
+        
+    Returns:
+        User object if authentication successful, None otherwise
+        
+    Raises:
+        AuthenticationException: If user not found or password invalid
+    """
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise AuthenticationException("User not found")
+    if not verify_password(password, user.hashed_password):
+        raise AuthenticationException("Invalid password")
+    return user
 
 async def get_current_customer(
     current_user: User = Depends(get_current_active_user),
@@ -41,6 +68,7 @@ def get_current_tenant(
 
 # Re-export commonly used dependencies
 __all__ = [
+    'authenticate_user',
     'get_current_user',
     'get_current_active_user',
     'get_current_superuser',

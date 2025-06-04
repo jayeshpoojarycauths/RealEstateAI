@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
-from app.models.models import Lead, OutreachLog, OutreachChannel, OutreachStatus, Customer
+
 from app.shared.core.config import settings
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -10,9 +10,9 @@ from datetime import datetime, timedelta
 import asyncio
 import logging
 from app.outreach.schemas.outreach import LeadUpload, OutreachCreate, OutreachUpdate, OutreachTemplateCreate, OutreachTemplateUpdate, CommunicationPreferenceCreate, CommunicationPreferenceUpdate, OutreachFilter, OutreachTemplateFilter
-from app.services.ai import AIService
-from app.services.email import EmailService
-from app.services.sms import SMSService
+from app.shared.core.ai import AIService
+from app.shared.core.communication import EmailService
+from app.shared.core.communication import SMSService
 from app.shared.core.audit import AuditLogger
 from app.outreach.models.outreach import Outreach, OutreachTemplate, CommunicationPreference
 from app.shared.core.exceptions import NotFoundError, ValidationError
@@ -30,6 +30,8 @@ from app.shared.core.tenant import get_customer_id
 from app.shared.core.exceptions import NotFoundException, ValidationException
 from app.shared.core.communication.email import send_email
 from app.shared.core.communication.sms import send_sms
+from app.lead.models.lead import Lead
+from app.shared.models.customer import Customer
 
 logger = logging.getLogger(__name__)
 

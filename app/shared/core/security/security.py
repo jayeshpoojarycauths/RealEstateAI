@@ -6,7 +6,8 @@ from app.shared.core.config import settings
 from functools import wraps
 from fastapi import HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer
-from app.models.models import User, Customer
+from app.shared.models.user import User
+from app.shared.models.customer import Customer
 from app.shared.core.security.password_utils import verify_password, get_password_hash
 from app.shared.core.constants import ALGORITHM
 from app.shared.api.deps import deps

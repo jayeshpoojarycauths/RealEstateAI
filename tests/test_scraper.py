@@ -10,7 +10,7 @@ from app.services.scraper import (
     CommonFloorScraper,
     ScraperService
 )
-from app.models.models import ScrapingConfig
+from app.shared.models.scraping import ScrapingConfig
 from datetime import datetime
 import asyncio
 

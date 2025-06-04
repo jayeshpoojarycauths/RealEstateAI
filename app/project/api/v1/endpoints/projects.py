@@ -5,8 +5,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Path, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_current_customer
-from app.shared.core.deps import get_current_active_user
+from app.shared.api.deps import get_current_user, get_current_customer 
+from app.shared.core.security.security import get_current_active_user    
 from app.shared.core.pagination import PaginationParams
 from app.shared.core.security import (
     admin_required,
@@ -46,7 +46,7 @@ from app.shared.schemas.project import (
     RealEstateProject
 )
 from app.project.services.project import ProjectService
-from app.services.scraper import MagicBricksScraper, NinetyNineAcresScraper
+from app.shared.core.scraper import MagicBricksScraper, NinetyNineAcresScraper 
 from app.shared.core.exceptions import ValidationError, NotFoundError
 from app.shared.db.session import get_db
 

@@ -4,7 +4,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from app.shared.db.base import Base
 from app.shared.core.config import Settings
-from app.models.models import User, Customer, Role, Permission, ScrapingConfig
+from app.shared.models.user import User
+from app.shared.models.customer import Customer
+from app.shared.models.role import Role
+from app.shared.models.permission import Permission
+from app.shared.models.scraping import ScrapingConfig
 from datetime import datetime
 import uuid
 from app.shared.core.config import settings
@@ -14,8 +18,9 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.shared.db.session import SessionLocal
 from app.shared.core.security import create_access_token
-from app.shared.models.user import User
-from app.shared.models.customer import Customer
+from app.auth.models.auth import MFASettings
+from app.outreach.models.outreach import Outreach
+from app.project.models.project import Project
 
 # Create test settings instance
 test_settings = Settings(
@@ -138,7 +143,6 @@ def test_scraping_config(db, test_customer):
 
 @pytest.fixture
 def test_mfa_settings(db, test_user):
-    from app.auth.models.auth import MFASettings
     mfa_settings = MFASettings(
         id=str(uuid.uuid4()),
         user_id=test_user.id,
@@ -155,7 +159,6 @@ def test_mfa_settings(db, test_user):
 
 @pytest.fixture
 def test_outreach(db, test_user, test_customer):
-    from app.outreach.models.outreach import Outreach
     outreach = Outreach(
         id=str(uuid.uuid4()),
         customer_id=test_customer.id,
@@ -174,7 +177,6 @@ def test_outreach(db, test_user, test_customer):
 
 @pytest.fixture
 def test_project(db, test_customer):
-    from app.project.models.project import Project
     project = Project(
         id=str(uuid.uuid4()),
         customer_id=test_customer.id,

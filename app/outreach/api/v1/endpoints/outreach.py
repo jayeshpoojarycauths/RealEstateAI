@@ -5,11 +5,17 @@ from uuid import UUID
 import pandas as pd
 from io import BytesIO
 
-from app.core.deps import get_current_active_user
-from app.api.deps import get_db, get_current_customer
-from app.models.models import User, Lead, CommunicationPreferences, OutreachLog, Outreach, InteractionLog, OutreachChannel, Customer, CommunicationChannel
-from app.services.communication import CommunicationService
-from app.core.deps import get_current_user
+from app.shared.models.user import User
+from app.shared.api.deps import get_db
+from app.shared.core.security.security import get_current_customer
+from app.lead.models import Lead
+from app.shared.models.customer import Customer
+from app.shared.models.outreach import OutreachLog, Outreach, InteractionLog, OutreachChannel
+
+from app.shared.core.communication import CommunicationBaseService
+from app.shared.core.auth import (
+    get_current_user,
+    get_current_active_user)
 from app.outreach.schemas.outreach import (
     OutreachCreate, OutreachResponse, OutreachFilter,
     OutreachStats, OutreachAnalytics, OutreachRequest, OutreachLogResponse, LeadUpload, OutreachChannel, OutreachStatus,
@@ -19,9 +25,9 @@ from app.outreach.schemas.outreach import (
     OutreachList, OutreachTemplateList, OutreachTemplateFilter
 )
 from app.outreach.services.outreach import OutreachService
-from app.core.pagination import PaginationParams, get_pagination_params
-from app.core.security import require_role, UserRole, get_current_tenant
-from app.core.outreach import MockOutreachEngine
+from app.shared.core.pagination import PaginationParams, get_pagination_params
+from app.shared.core.security.security import require_role, UserRole, get_current_tenant
+from app.shared.core.outreach import MockOutreachEngine
 from datetime import datetime
 
 router = APIRouter()
@@ -59,8 +65,9 @@ async def initiate_outreach(
             detail="Communication preferences not configured"
         )
 
+    
     # Initialize communication service
-    comm_service = CommunicationService(preferences)
+    comm_service = CommunicationBaseService(preferences)
 
     # Send messages through all enabled channels
     results = await comm_service.send_all_channels(lead)

@@ -4,11 +4,14 @@ from sqlalchemy import func, and_, or_, desc
 from datetime import datetime, timedelta
 import logging
 
-from app.models.models import Lead, User, Customer
+from app.lead.models import Lead
+from app.shared.models.user import User 
+from app.shared.models.customer import Customer
 from app.lead.schemas.lead import LeadCreate, LeadUpdate
 from app.shared.core.tenant import get_customer_id
 from app.shared.core.security import UserRole
 from app.shared.services.communication_base import CommunicationBaseService
+from app.lead.models.lead import Lead, LeadStatus
 
 logger = logging.getLogger(__name__)
 

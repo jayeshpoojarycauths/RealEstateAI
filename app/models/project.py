@@ -2,8 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.shared.db.base_class import Base
-from app.schemas.project import PropertyType, PropertyStatus
-from app.models.models import ProjectStatus
+from app.project.schemas import PropertyType, PropertyStatus
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 

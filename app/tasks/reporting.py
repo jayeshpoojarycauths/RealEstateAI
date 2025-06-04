@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.shared.db.session import SessionLocal
-from app.services.reporting import ReportingService
-from app.models.models import Customer
+from app.shared.models.customer import Customer
+from app.shared.core.reporting import ReportingService
 import logging
 
 logger = logging.getLogger(__name__)

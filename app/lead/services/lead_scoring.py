@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.models.models import Lead, LeadScore, InteractionLog, CallInteraction, MessageInteraction, RealEstateProject
+from app.lead.models.lead import Lead, LeadScore
+from app.shared.models.interaction import InteractionLog, CallInteraction, MessageInteraction
+from app.shared.models.project import RealEstateProject
 from app.lead.schemas.interaction import LeadScoreCreate, InteractionLogCreate, CallInteractionCreate, MessageInteractionCreate
 from uuid import UUID
 

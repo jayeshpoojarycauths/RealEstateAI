@@ -1,8 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from app.models.models import Lead, Customer
-from app.models.lead import Lead as LeadModel
+from app.shared.models.customer import Customer
+
+from app.lead.models import Lead as LeadModel
 
 def test_get_lead_score_distribution(
     client: TestClient,
