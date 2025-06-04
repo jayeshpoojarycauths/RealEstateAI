@@ -8,16 +8,22 @@ import tempfile
 import os
 from fastapi.responses import FileResponse
 
-from app.api import deps
-from app.models.models import User, Lead, Customer
-from app.lead.schemas.lead import LeadCreate, LeadUploadResponse, LeadUpdate, LeadBulkCreate, LeadResponse, LeadFilter, LeadListResponse, LeadStats, LeadActivityCreate, LeadActivityResponse
+from app.shared.api.deps import deps
+from app.shared.models.user import User
+from app.shared.models.customer import Customer
+from app.lead.models.lead import Lead
+from app.lead.schemas.lead import (
+    LeadCreate, LeadUploadResponse, LeadUpdate, LeadBulkCreate,
+    LeadResponse, LeadFilter, LeadListResponse, LeadStats,
+    LeadActivityCreate, LeadActivityResponse
+)
 from app.lead.schemas.interaction import LeadScore, InteractionLog, CallInteraction, MessageInteraction
 from app.lead.services.lead_scoring import LeadScoringService
 from app.lead.services.lead import LeadService
-from app.core.pagination import PaginationParams, get_pagination_params
-from app.core.security import require_role, UserRole
+from app.shared.core.pagination import PaginationParams, get_pagination_params
+from app.shared.core.security import require_role, UserRole
 from app.shared.db.session import get_db
-from app.core.deps import get_current_active_user, get_current_customer
+from app.shared.api.deps import get_current_active_user, get_current_customer
 from app.shared.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter()
@@ -116,26 +122,13 @@ async def get_leads(
 
 @router.post("/", response_model=LeadResponse)
 async def create_lead(
-    *,
-    db: Session = Depends(get_db),
     lead_in: LeadCreate,
-    current_user: User = Depends(get_current_active_user),
-    current_customer: Customer = Depends(get_current_customer)
-) -> Any:
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> LeadResponse:
     """Create a new lead."""
     lead_service = LeadService(db)
-    try:
-        lead = await lead_service.create_lead(
-            lead_data=lead_in,
-            customer_id=str(current_customer.id),
-            user_id=str(current_user.id)
-        )
-        return lead
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+    return await lead_service.create_lead(lead_in, current_user.customer_id)
 
 @router.get("/{lead_id}", response_model=LeadResponse)
 async def get_lead(

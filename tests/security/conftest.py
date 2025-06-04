@@ -3,9 +3,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.main import app
-from app.core.config import settings
+from app.shared.core.config import settings
 from app.shared.db.base import Base
 from app.models.models import User, Customer
+from app.shared.core.security.jwt import jwt_service
+from app.shared.core.security import verify_password, get_password_hash
 
 # Create test database
 TEST_DATABASE_URL = "sqlite:///./test.db"
@@ -85,13 +87,11 @@ def test_admin_user(db_session, test_customer):
 @pytest.fixture(scope="function")
 def test_token(test_user):
     """Create a test token"""
-    from app.core.security.jwt import jwt_service
     token = jwt_service.create_access_token(test_user, test_user.customer)
     return token
 
 @pytest.fixture(scope="function")
 def test_admin_token(test_admin_user):
     """Create a test admin token"""
-    from app.core.security.jwt import jwt_service
     token = jwt_service.create_access_token(test_admin_user, test_admin_user.customer)
     return token 

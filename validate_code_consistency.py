@@ -40,7 +40,7 @@ for search_dir in search_dirs:
             for pattern in checks:
                 for match in pattern.finditer(text):
                     results.append({
-                        "file": str(file_path.relative_to(base_path)),
+        "file": str(file_path.relative_to(base_path)),
                         "category": category,
                         "line": text.count('\n', 0, match.start()) + 1,
                         "snippet": text[match.start():match.end()]
@@ -48,4 +48,5 @@ for search_dir in search_dirs:
 
 import pandas as pd
 df_results = pd.DataFrame(results)
-import ace_tools as tools; tools.display_dataframe_to_user(name="Code Consistency Issues", dataframe=df_results)
+print("\nCode Consistency Issues:")
+print(df_results.to_string())

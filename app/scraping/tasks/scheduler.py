@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 from sqlalchemy.orm import Session
-from app.shared.core.database import SessionLocal
+from app.shared.db.session import SessionLocal
 from app.scraping.services.scheduler import ScrapingScheduler
 from app.scraping.models.scraping import ScrapingConfig
 
@@ -57,7 +57,7 @@ class ScrapingSchedulerTask:
         try:
             # Get all active configurations
             configs = self.db.query(ScrapingConfig).filter(
-                ScrapingConfig.auto_scrape_enabled == True
+                ScrapingConfig.auto_scrape_enabled
             ).all()
             
             # Schedule each configuration

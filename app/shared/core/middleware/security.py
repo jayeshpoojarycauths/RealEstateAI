@@ -1,7 +1,7 @@
 from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.shared.core.security.jwt import get_current_user, get_current_customer
-from app.core.config import settings
+from app.shared.core.config import settings
 import time
 from typing import Optional
 

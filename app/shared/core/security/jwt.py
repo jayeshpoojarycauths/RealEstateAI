@@ -1,137 +1,178 @@
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List
-from jose import jwt, JWTError
-from fastapi import HTTPException, status
+from typing import Any, Optional, Union
+from jose import jwt
 from app.shared.core.config import settings
-from app.models.models import User, Customer
-from passlib.context import CryptContext
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel
+from app.shared.models.user import User
+from app.shared.models.customer import Customer
+from app.shared.db.session import get_db
+from sqlalchemy.orm import Session
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-class JWTService:
-    def __init__(self):
-        self._key_history: List[Dict[str, str]] = []
-        self._current_key = settings.SECRET_KEY
-        self._last_rotation = datetime.utcnow()
+class TokenData(BaseModel):
+    username: Optional[str] = None
+    roles: list[str] = []
 
-    def _rotate_key_if_needed(self):
-        """Rotate JWT signing key if needed"""
-        now = datetime.utcnow()
-        if (now - self._last_rotation).days >= settings.JWT_KEY_ROTATION_DAYS:
-            # Generate new key
-            new_key = secrets.token_urlsafe(32)
-            
-            # Add current key to history
-            self._key_history.append({
-                "key": self._current_key,
-                "created_at": self._last_rotation.isoformat()
-            })
-            
-            # Keep only recent keys
-            if len(self._key_history) > settings.JWT_KEY_HISTORY_SIZE:
-                self._key_history.pop(0)
-            
-            # Update current key
-            self._current_key = new_key
-            self._last_rotation = now
-
-    def create_access_token(self, user: User, customer: Customer) -> str:
-        """Create a new access token"""
-        self._rotate_key_if_needed()
+def create_access_token(
+    subject: Union[str, Any],
+    expires_delta: Optional[timedelta] = None
+) -> str:
+    """
+    Create a JWT access token.
+    
+    Args:
+        subject: Token subject (usually user ID)
+        expires_delta: Optional expiration time delta
         
-        expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        expire = datetime.utcnow() + expires_delta
-        
-        to_encode = {
-            "sub": str(user.id),
-            "customer_id": str(customer.id),
-            "exp": expire,
-            "type": "access"
-        }
-        
-        return jwt.encode(to_encode, self._current_key, algorithm=settings.ALGORITHM)
-
-    def create_refresh_token(self, user: User, customer: Customer) -> str:
-        """Create a new refresh token"""
-        self._rotate_key_if_needed()
-        
-        expires_delta = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-        expire = datetime.utcnow() + expires_delta
-        
-        to_encode = {
-            "sub": str(user.id),
-            "customer_id": str(customer.id),
-            "exp": expire,
-            "type": "refresh"
-        }
-        
-        return jwt.encode(to_encode, self._current_key, algorithm=settings.ALGORITHM)
-
-    def verify_token(self, token: str) -> Dict:
-        """Verify a JWT token"""
-        try:
-            # Try current key
-            try:
-                return jwt.decode(token, self._current_key, algorithms=[settings.ALGORITHM])
-            except jwt.InvalidTokenError:
-                # Try historical keys
-                for key_data in self._key_history:
-                    try:
-                        return jwt.decode(token, key_data["key"], algorithms=[settings.ALGORITHM])
-                    except jwt.InvalidTokenError:
-                        continue
-                
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid token",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a new JWT access token."""
-    to_encode = data.copy()
+    Returns:
+        str: JWT token
+    """
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        expire = datetime.utcnow() + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
+    to_encode = {"exp": expire, "sub": str(subject)}
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+def create_refresh_token(
+    subject: Union[str, Any],
+    expires_delta: Optional[timedelta] = None
+) -> str:
+    """
+    Create a JWT refresh token.
+    
+    Args:
+        subject: Token subject (usually user ID)
+        expires_delta: Optional expiration time delta
+        
+    Returns:
+        str: JWT token
+    """
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(
+            days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+        )
+    to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
+    return encoded_jwt
 
-def get_password_hash(password: str) -> str:
-    """Generate a password hash."""
-    return pwd_context.hash(password)
+def generate_verification_token(
+    email: str,
+    expires_delta: Optional[timedelta] = None
+) -> str:
+    """
+    Generate an email verification token.
+    
+    Args:
+        email: User's email address
+        expires_delta: Optional expiration time delta
+        
+    Returns:
+        str: JWT token
+    """
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(hours=24)  # 24 hours by default
+    to_encode = {
+        "exp": expire,
+        "sub": email,
+        "type": "email_verification"
+    }
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
+    return encoded_jwt
 
-def get_current_user(token: str) -> Optional[User]:
-    """Get the current user from a JWT token."""
+def generate_password_reset_token(
+    email: str,
+    expires_delta: Optional[timedelta] = None
+) -> str:
+    """
+    Generate a password reset token.
+    
+    Args:
+        email: User's email address
+        expires_delta: Optional expiration time delta
+        
+    Returns:
+        str: JWT token
+    """
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(hours=1)  # 1 hour by default
+    to_encode = {
+        "exp": expire,
+        "sub": email,
+        "type": "password_reset"
+    }
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
+    return encoded_jwt
+
+def verify_token(token: str) -> Optional[dict]:
+    """Verify a JWT token."""
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
+        )
+        return payload
+    except jwt.JWTError:
+        return None
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> User:
+    """Get current user from token."""
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = verify_token(token)
+        if payload is None:
+            raise credentials_exception
         user_id: str = payload.get("sub")
         if user_id is None:
-            return None
-        return User.query.get(user_id)
-    except JWTError:
-        return None
+            raise credentials_exception
+    except jwt.JWTError:
+        raise credentials_exception
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise credentials_exception
+    return user
 
-def get_current_customer(token: str) -> Optional[Customer]:
-    """Get the current customer from a JWT token."""
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        customer_id: str = payload.get("customer_id")
-        if customer_id is None:
-            return None
-        return Customer.query.get(customer_id)
-    except JWTError:
-        return None
+def get_current_customer(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> Customer:
+    """Get current customer from user."""
+    customer = db.query(Customer).filter(Customer.id == current_user.customer_id).first()
+    if not customer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Customer not found"
+        )
+    return customer
 
-jwt_service = JWTService() 
+# Alias for backward compatibility
+get_current_tenant = get_current_customer 

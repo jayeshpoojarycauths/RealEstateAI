@@ -42,7 +42,7 @@ class MFASetupResponse(BaseModel):
     backup_codes: List[str]
 
 class MFAVerify(BaseModel):
-    code: str = Field(..., min_length=6, max_length=8, regex=r'^\d+$', description="6-8 digit MFA code")
+    code: str = Field(..., min_length=6, max_length=8, pattern=r'^\d+$', description="6-8 digit MFA code")
 
 class MFABackupCode(BaseModel):
     code: str

@@ -89,7 +89,7 @@ class LeadScoringService:
                         budget_score = 7   # Budget within 40% of average
                     else:
                         budget_score = 4   # Budget outside range
-            except:
+            except (ValueError, TypeError):
                 pass
         score += budget_score
         factors["budget_alignment"] = budget_score

@@ -1,9 +1,14 @@
 import pytest
-from app.core.security.encryption import (
+from app.shared.core.security.encryption import (
     EncryptedField,
     encrypt_value,
     decrypt_value,
-    generate_encryption_key
+    generate_encryption_key,
+    encrypt_data,
+    decrypt_data,
+    generate_key,
+    hash_password,
+    verify_password
 )
 
 def test_encryption_decryption():

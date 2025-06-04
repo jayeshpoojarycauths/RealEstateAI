@@ -3,7 +3,9 @@ import asyncio
 from datetime import datetime, timedelta
 import logging
 from sqlalchemy.orm import Session
-from app.models.models import Customer, ScrapingConfig, Lead
+from app.shared.models.customer import Customer
+from app.scraping.models.scraping import ScrapingConfig
+from app.lead.models.lead import Lead
 from app.shared.core.config import settings
 from app.scraping.services.base import BaseScraper
 from app.scraping.services.ninety_nine_acres import NinetyNineAcresScraper

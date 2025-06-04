@@ -15,6 +15,11 @@ class ScrapingSource(str, enum.Enum):
     PROPTIGER = "proptiger"
     COMMONFLOOR = "commonfloor"
     FACEBOOK_MARKETPLACE = "facebook_marketplace"
+    FACEBOOK = "facebook"
+    CRAIGSLIST = "craigslist"
+    ZILLOW = "zillow"
+    REALTOR = "realtor"
+    OTHER = "other"
 
 class ScrapingStatus(str, enum.Enum):
     """Status of scraping jobs."""
@@ -27,6 +32,7 @@ class ScrapingStatus(str, enum.Enum):
 class ScrapingConfig(BaseModel):
     """Model for scraping configuration."""
     __tablename__ = "scraping_configs"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
@@ -45,6 +51,13 @@ class ScrapingConfig(BaseModel):
     auto_scrape_interval = Column(Integer, default=24)  # hours
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    source = Column(Enum(ScrapingSource))
+    is_active = Column(Boolean, default=True)
+    schedule = Column(String)  # Cron expression for scheduling
+    last_run = Column(DateTime)
+    next_run = Column(DateTime)
+    config = Column(JSON)  # Source-specific configuration
+    model_metadata = Column(JSON)  # Additional metadata
     
     # Relationships
     customer = relationship("Customer", back_populates="scraping_config")

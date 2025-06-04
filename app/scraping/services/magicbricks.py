@@ -138,44 +138,44 @@ class MagicBricksScraper(BaseScraper):
             return None
 
     def _parse_price(self, price_text: str) -> float:
-        """Parse price text to float value."""
+        """Parse price from text."""
         try:
-            # Remove currency symbol and commas
             price_text = re.sub(r'[^\d.]', '', price_text)
             return float(price_text)
-        except:
+        except (ValueError, TypeError):
             return 0.0
 
     def _extract_detail(self, details, key: str) -> Optional[int]:
         """Extract numeric detail from property details."""
         for detail in details:
             if key in detail.text:
-                try:
-                    return int(re.search(r'\d+', detail.text).group())
-                except:
-                    return None
+                return self._parse_numeric_detail(detail.text)
         return None
+
+    def _parse_numeric_detail(self, detail: str) -> Optional[int]:
+        """Parse numeric detail from text."""
+        try:
+            return int(re.search(r'\d+', detail).group())
+        except (ValueError, TypeError, AttributeError):
+            return None
 
     def _extract_area(self, area_text: str) -> Optional[float]:
         """Extract area in square feet."""
         try:
-            # Extract numeric value
-            area = float(re.search(r'[\d.]+', area_text).group())
-            # Convert to square feet if needed
+            area = float(re.search(r'(\d+)\s*sq\.ft', area_text).group(1))
             if 'sq.m' in area_text.lower():
                 area *= 10.764
             return area
-        except:
+        except (ValueError, TypeError, AttributeError):
             return None
 
     def _parse_date(self, date_text: str) -> Optional[datetime]:
-        """Parse posted date text to datetime."""
+        """Parse date from text."""
         try:
-            # Handle different date formats
-            if 'ago' in date_text.lower():
+            if not date_text.strip():
                 return datetime.utcnow()
             return datetime.strptime(date_text.strip(), '%d %b %Y')
-        except:
+        except (ValueError, TypeError):
             return None
 
     def _extract_property_id(self, url: str) -> Optional[str]:
@@ -183,5 +183,5 @@ class MagicBricksScraper(BaseScraper):
         try:
             match = re.search(r'/(\d+)(?:/|$)', url)
             return match.group(1) if match else None
-        except:
+        except (AttributeError, IndexError):
             return None 

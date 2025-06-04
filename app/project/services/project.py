@@ -1,86 +1,127 @@
-from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
 from datetime import datetime, timedelta
-import json
+from typing import List, Optional, Dict, Any, Tuple
+from uuid import UUID
 
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_
+
+from app.shared.core.exceptions import (
+    NotFoundException,
+    ValidationException,
+    AuthorizationException,
+    ValidationError,
+    NotFoundError
+)
+from app.shared.models.user import User
 from app.project.models.project import (
-    Project, ProjectLead, ProjectFeature,
-    ProjectImage, ProjectAmenity, ProjectType,
+    Project,
+    ProjectFeature,
+    ProjectImage,
+    ProjectAmenity,
+    ProjectLead,
+    ProjectType,
     ProjectStatus
 )
 from app.project.schemas.project import (
-    ProjectCreate, ProjectUpdate, ProjectFilter,
-    ProjectStats, ProjectAnalytics, ProjectFeatureCreate,
-    ProjectImageCreate, ProjectAmenityCreate, ProjectLeadCreate
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectResponse,
+    ProjectFilter,
+    ProjectStats,
+    ProjectAnalytics,
+    ProjectLeadCreate,
+    ProjectLeadResponse,
+    ProjectListResponse,
+    ProjectList,
+    ProjectFeatureCreate,
+    ProjectImageCreate,
+    ProjectAmenityCreate,
+    RealEstateProjectCreate,
+    RealEstateProjectUpdate,
+    RealEstateProjectList,
+    RealEstateProject
 )
-from app.shared.core.exceptions import ValidationError, NotFoundError
+from app.shared.db.session import get_db
 from app.shared.core.audit import AuditService
-from app.core.pagination import PaginationParams
+from app.shared.core.pagination import PaginationParams
+from app.shared.services.ai import AIService
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ProjectService:
     def __init__(self, db: Session):
+        self.db = db
+        self.ai_service = AIService()
+        self.audit_service = AuditService(db)
+
     async def list_projects(
         self,
         customer_id: str,
         filter_params: ProjectFilter,
         pagination: PaginationParams
-    ) -> tuple[List[Project], int]:
-         """Get all projects for a customer with filtering."""
-         query = self.db.query(Project).filter(Project.customer_id == customer_id)
-         
-         # Apply filters
-         if filter_params.type:
-             query = query.filter(Project.type == filter_params.type)
-         # ... other filters ...
-         
-        # Get total count before pagination
-        total_count = query.count()
-        
-         # Apply pagination
-         query = query.offset(pagination.offset).limit(pagination.limit)
-         
-        return query.all(), total_count
-            query = query.filter(Project.city.ilike(f"%{filter_params.city}%"))
-        if filter_params.state:
-            query = query.filter(Project.state.ilike(f"%{filter_params.state}%"))
+    ) -> Tuple[List[Project], int]:
+        """List projects with filtering and pagination."""
+        query = self.db.query(Project).filter(Project.customer_id == customer_id)
+
+        # Apply filters
+        if filter_params.name:
+            query = query.filter(Project.name.ilike(f"%{filter_params.name}%"))
+        if filter_params.type:
+            query = query.filter(Project.type == filter_params.type)
+        if filter_params.status:
+            query = query.filter(Project.status == filter_params.status)
+        if filter_params.location:
+            query = query.filter(Project.location.ilike(f"%{filter_params.location}%"))
         if filter_params.min_price:
             query = query.filter(Project.total_value >= filter_params.min_price)
         if filter_params.max_price:
             query = query.filter(Project.total_value <= filter_params.max_price)
         if filter_params.amenities:
-            # Use PostgreSQL's array overlap operator for better performance
             query = query.filter(Project.amenities.overlap(filter_params.amenities))
-        
+
+        # Get total count before pagination
+        total_count = query.count()
+
         # Apply pagination
         query = query.offset(pagination.offset).limit(pagination.limit)
-        
-        return query.all()
 
-    async def get_project(self, project_id: str, customer_id: str) -> Project:
-        """Get a specific project."""
+        return query.all(), total_count
+
+    async def get_project(self, project_id: UUID, customer_id: UUID) -> Project:
+        """Get a project by ID."""
         project = self.db.query(Project).filter(
-            Project.id == project_id,
-            Project.customer_id == customer_id
+            and_(
+                Project.id == project_id,
+                Project.customer_id == customer_id,
+                Project.deleted_at.is_(None)
+            )
         ).first()
         
         if not project:
-            raise NotFoundError(detail="Project not found")
+            raise NotFoundException(f"Project {project_id} not found")
             
         return project
 
     async def create_project(
         self,
-        project_in: ProjectCreate,
-        customer_id: str,
-        user_id: str
+        project_data: ProjectCreate,
+        customer_id: UUID,
+        user_id: UUID
     ) -> Project:
         """Create a new project."""
+        # Validate project type
+        if not isinstance(project_data.type, ProjectType):
+            raise ValidationError("Invalid project type")
+            
         project = Project(
-            **project_in.dict(exclude_unset=True),
+            **project_data.dict(),
             customer_id=customer_id,
             created_by=user_id,
-            updated_by=user_id
+            updated_by=user_id,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
         )
         
         self.db.add(project)
@@ -98,97 +139,83 @@ class ProjectService:
 
     async def update_project(
         self,
-        project_id: str,
+        project_id: UUID,
         project_in: ProjectUpdate,
-        customer_id: str,
-        user_id: str
+        customer_id: UUID
     ) -> Project:
         """Update a project."""
         project = await self.get_project(project_id, customer_id)
         
-        # Track changes for audit
-        changes = {}
+        # Validate update data
+        if project_in.type and project_in.type not in ProjectType.__members__.values():
+            raise ValidationException(f"Invalid project type: {project_in.type}")
+        
+        # Update project fields
         for field, value in project_in.dict(exclude_unset=True).items():
-            if getattr(project, field) != value:
-                changes[field] = {
-                    "old": getattr(project, field),
-                    "new": value
-                }
-                setattr(project, field, value)
+            setattr(project, field, value)
         
-        project.updated_by = user_id
-        from datetime import timezone
-        project.updated_at = datetime.now(timezone.utc)
-        
+        project.updated_at = datetime.utcnow()
         self.db.commit()
         self.db.refresh(project)
-        
-        # Log audit if there were changes
-        if changes:
-            self.audit_service.log_project_update(
-                project=project,
-                user_id=user_id,
-                customer_id=customer_id,
-                changes=changes
-            )
         
         return project
 
     async def delete_project(
         self,
-        project_id: str,
-        customer_id: str,
-        user_id: str
+        project_id: UUID,
+        customer_id: UUID,
+        user_id: UUID
     ) -> bool:
         """Delete a project."""
-        project = await self.get_project(project_id, customer_id)
+        # Verify project exists and belongs to customer
+        await self.get_project(project_id, customer_id)
         
         # Log audit before deletion
         self.audit_service.log_project_deletion(
-            project=project,
+            project_id=project_id,
             user_id=user_id,
             customer_id=customer_id
         )
         
-        self.db.delete(project)
+        # Soft delete
+        self.db.query(Project).filter(
+            Project.id == project_id,
+            Project.customer_id == customer_id
+        ).update({
+            "deleted_at": datetime.utcnow(),
+            "updated_by": user_id,
+            "updated_at": datetime.utcnow()
+        })
+        
         self.db.commit()
         return True
 
-async def add_feature(
-         self,
-         project_id: str,
-         feature_in: ProjectFeatureCreate,
-         customer_id: str,
-         user_id: str
-     ) -> ProjectFeature:
-         """Add a feature to a project."""
-         project = await self.get_project(project_id, customer_id)
-         
-        # Check for duplicate feature
-        existing_feature = self.db.query(ProjectFeature).filter(
-            ProjectFeature.project_id == project_id,
-            ProjectFeature.name == feature_in.name
-        ).first()
+    async def add_feature(
+        self,
+        project_id: UUID,
+        feature_in: ProjectFeatureCreate,
+        customer_id: UUID,
+        user_id: UUID
+    ) -> ProjectFeature:
+        """Add a feature to a project."""
+        project = await self.get_project(project_id, customer_id)
         
-        if existing_feature:
-            raise ValidationError(detail="Feature already exists for this project")
+        # Validate feature data
+        if not feature_in.name or not feature_in.value:
+            raise ValidationException("Feature name and value are required")
         
-         feature = ProjectFeature(
-             **feature_in.dict(),
-             project_id=project_id
-         )
+        feature = ProjectFeature(
+            project_id=project_id,
+            name=feature_in.name,
+            value=feature_in.value,
+            description=feature_in.description,
+            created_by=user_id,
+            updated_by=user_id
+        )
         
         self.db.add(feature)
         self.db.commit()
         self.db.refresh(feature)
-        
-        # Log audit
-        self.audit_service.log_project_feature_addition(
-            project=project,
-            feature=feature,
-            user_id=user_id,
-            customer_id=customer_id
-        )
         
         return feature
 
@@ -196,58 +223,47 @@ async def add_feature(
         self,
         project_id: str,
         image_in: ProjectImageCreate,
-        customer_id: str,
-        user_id: str
+        customer_id: str
     ) -> ProjectImage:
         """Add an image to a project."""
-        project = await self.get_project(project_id, customer_id)
+        # Verify project exists and belongs to customer
+        await self.get_project(project_id, customer_id)
         
         image = ProjectImage(
             **image_in.dict(),
             project_id=project_id
         )
-        
         self.db.add(image)
         self.db.commit()
         self.db.refresh(image)
-        
-        # Log audit
-        self.audit_service.log_project_image_addition(
-            project=project,
-            image=image,
-            user_id=user_id,
-            customer_id=customer_id
-        )
-        
         return image
 
     async def add_amenity(
         self,
         project_id: str,
         amenity_in: ProjectAmenityCreate,
-        customer_id: str,
-        user_id: str
+        customer_id: str
     ) -> ProjectAmenity:
         """Add an amenity to a project."""
-        project = await self.get_project(project_id, customer_id)
+        # Verify project exists and belongs to customer
+        await self.get_project(project_id, customer_id)
         
+        # Check for duplicate amenity
+        existing_amenity = self.db.query(ProjectAmenity).filter(
+            ProjectAmenity.project_id == project_id,
+            ProjectAmenity.name == amenity_in.name
+        ).first()
+        
+        if existing_amenity:
+            raise ValidationError(detail="Amenity already exists for this project")
+            
         amenity = ProjectAmenity(
             **amenity_in.dict(),
             project_id=project_id
         )
-        
         self.db.add(amenity)
         self.db.commit()
         self.db.refresh(amenity)
-        
-        # Log audit
-        self.audit_service.log_project_amenity_addition(
-            project=project,
-            amenity=amenity,
-            user_id=user_id,
-            customer_id=customer_id
-        )
-        
         return amenity
 
     async def assign_lead(
@@ -292,7 +308,7 @@ async def add_feature(
         total_projects = self.db.query(func.count(Project.id)).filter(
             Project.customer_id == customer_id
         ).scalar()
-        
+
         projects_by_type = dict(
             self.db.query(
                 Project.type,
@@ -331,9 +347,9 @@ async def add_feature(
         ).filter(
             Project.customer_id == customer_id
         ).scalar()
-        
+
         conversion_rate = 0.0  # Calculate based on your business logic
-        
+
         return ProjectStats(
             total_projects=total_projects,
             projects_by_type=projects_by_type,
@@ -403,17 +419,17 @@ async def add_feature(
         all_amenities = self.db.query(Project.amenities).filter(
             Project.customer_id == customer_id
         ).all()
-amenity_counts = {}
-         for amenities in all_amenities:
+        amenity_counts = {}
+        for amenities in all_amenities:
             if amenities[0]:  # Check if amenities exist
                 for amenity in amenities[0]:
-                 amenity_counts[amenity] = amenity_counts.get(amenity, 0) + 1
+                    amenity_counts[amenity] = amenity_counts.get(amenity, 0) + 1
         for amenity, count in amenity_counts.items():
             amenity_popularity.append({
                 "amenity": amenity,
                 "count": count
             })
-        
+
         return ProjectAnalytics(
             lead_trends=lead_trends,
             status_distribution=[{"status": s, "count": c} for s, c in status_distribution],

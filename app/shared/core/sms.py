@@ -1,13 +1,15 @@
 from typing import Optional, Dict, Any, List
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
-from app.core.config import settings
+from app.shared.core.config import settings
+from app.shared.core.infrastructure.logging import logger
+from app.shared.core.exceptions import RateLimitException, ExternalServiceError
 import logging
 from datetime import datetime, timedelta
 from ratelimit import limits, sleep_and_retry
-from app.core.exceptions import SMSError, RateLimitError, ExternalServiceError
 import asyncio
-from app.models.models import Lead, Customer
+from app.lead.models.lead import Lead
+from app.shared.models.customer import Customer
 from sqlalchemy.orm import Session
 import os
 
@@ -128,7 +130,7 @@ class SMSService:
             if e.code == 21211:  # Invalid phone number
                 raise SMSError(f"Invalid phone number: {to_number}")
             elif e.code == 21608:  # Rate limit exceeded
-                raise RateLimitError("SMS rate limit exceeded")
+                raise RateLimitException("SMS rate limit exceeded")
             elif e.code == 21614:  # Unreachable number
                 raise SMSError(f"Phone number {to_number} is unreachable")
             
@@ -177,7 +179,7 @@ class SMSService:
                 try:
                     result = await self.send_sms(number, message, customer_id)
                     batch_results.append(result)
-                except (SMSError, RateLimitError) as e:
+                except (SMSError, RateLimitException) as e:
                     logger.error(f"Error sending SMS to {number}: {str(e)}")
                     errors.append({
                         "number": number,
@@ -223,3 +225,7 @@ class SMSService:
         
         # Basic validation (can be enhanced based on requirements)
         return len(digits) >= 10 and len(digits) <= 15 
+
+class SMSError(Exception):
+    """Base exception for SMS-related errors"""
+    pass 

@@ -4,7 +4,10 @@ from sqlalchemy.orm import Session
 from app.models.models import Project, ProjectLead, Lead
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectType, ProjectStatus
 from app.services.project import ProjectService
-from app.core.pagination import PaginationParams
+from app.shared.core.pagination import PaginationParams
+from app.shared.core.exceptions import NotFoundException
+from app.main import app
+from fastapi.testclient import TestClient
 
 @pytest.fixture
 def project_service(db_session: Session):

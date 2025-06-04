@@ -16,7 +16,7 @@ from app.outreach.schemas.outreach import (
     InteractionLogCreate, InteractionLogResponse,
     OutreachUpdate, OutreachTemplate, OutreachTemplateCreate, OutreachTemplateUpdate,
     CommunicationPreference, CommunicationPreferenceCreate, CommunicationPreferenceUpdate,
-    OutreachList, OutreachTemplateList
+    OutreachList, OutreachTemplateList, OutreachTemplateFilter
 )
 from app.outreach.services.outreach import OutreachService
 from app.core.pagination import PaginationParams, get_pagination_params
@@ -596,21 +596,19 @@ def update_template(
     return service.update_template(template_id, template)
 
 @router.get("/templates", response_model=OutreachTemplateList)
-def list_templates(
+async def list_templates(
     channel: Optional[str] = None,
     is_active: Optional[bool] = None,
-    search: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
 ) -> OutreachTemplateList:
     """List templates with filtering."""
     service = OutreachService(db)
     filter_params = OutreachTemplateFilter(
         channel=channel,
-        is_active=is_active,
-        search=search
+        is_active=is_active
     )
-    items = service.list_templates(filter_params)
-    return OutreachTemplateList(items=items, total=len(items))
+    return await service.list_templates(filter_params)
 
 @router.post("/preferences", response_model=CommunicationPreference)
 def create_communication_preference(

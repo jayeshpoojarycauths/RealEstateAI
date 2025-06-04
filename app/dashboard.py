@@ -20,6 +20,18 @@ def format_currency(value):
     """Format number as currency."""
     return f"₹{value:,.2f}"
 
+def calculate_metrics(outreach_logs):
+    """Calculate outreach metrics."""
+    total = len(outreach_logs)
+    if total == 0:
+        return 0, 0, 0
+        
+    success_rate = len(outreach_logs[outreach_logs['success']]) / total * 100
+    response_rate = len(outreach_logs[outreach_logs['response_received']]) / total * 100
+    conversion_rate = len(outreach_logs[outreach_logs['converted']]) / total * 100
+    
+    return success_rate, response_rate, conversion_rate
+
 def main():
     st.set_page_config(page_title="Real Estate CRM Dashboard", layout="wide")
     
@@ -325,10 +337,9 @@ def main():
     with col1:
         st.metric("Total Outreach Attempts", len(outreach_logs))
     with col2:
-        success_rate = len(outreach_logs[outreach_logs['status'] == 'success']) / len(outreach_logs) * 100
+        success_rate, response_rate, conversion_rate = calculate_metrics(outreach_logs)
         st.metric("Success Rate", f"{success_rate:.1f}%")
     with col3:
-        response_rate = len(outreach_logs[outreach_logs['response_received'] == True]) / len(outreach_logs) * 100
         st.metric("Response Rate", f"{response_rate:.1f}%")
     
     # Channel Performance

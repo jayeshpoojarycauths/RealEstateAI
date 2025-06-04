@@ -23,11 +23,26 @@ class ApiClient {
   private client: AxiosInstance;
 
   private constructor() {
+    // Validate required environment variables
+    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    if (!baseUrl) {
+      throw new Error('VITE_API_BASE_URL environment variable is not defined');
+    }
+
+    // Validate timeout if provided
+    const timeout = import.meta.env.VITE_API_TIMEOUT;
+    let timeoutValue = 30000; // Default timeout
+    if (timeout) {
+      const parsedTimeout = Number(timeout);
+      if (isNaN(parsedTimeout) || parsedTimeout <= 0) {
+        throw new Error('VITE_API_TIMEOUT must be a positive number');
+      }
+      timeoutValue = parsedTimeout;
+    }
+
     this.client = axios.create({
-      baseURL: import.meta.env.VITE_API_BASE_URL,
-      timeout: import.meta.env.VITE_API_TIMEOUT
-        ? Number(import.meta.env.VITE_API_TIMEOUT)
-        : 30000,
+      baseURL: baseUrl,
+      timeout: timeoutValue,
       headers: {
         "Content-Type": "application/json",
       },
@@ -174,3 +189,4 @@ class ApiClient {
 }
 
 export const apiClient = ApiClient.getInstance();
+ 

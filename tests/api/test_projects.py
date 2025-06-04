@@ -3,7 +3,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.main import app
-from app.core.security import create_access_token, UserRole
+from app.shared.core.security import create_access_token, UserRole
+from app.shared.core.exceptions import NotFoundException
+from app.shared.core.pagination import PaginationParams
 from app.models.models import Project, Lead
 from app.schemas.project import ProjectType, ProjectStatus
 

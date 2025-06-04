@@ -121,31 +121,22 @@ class LeadSourceStats(BaseModel):
     avg_response_time: Optional[float] = None
     avg_lead_score: Optional[float] = None
 
-class LeadStatusStats(BaseModel):
-    status: str
-    count: int
-    avg_score: float
-
-class LeadActivityStats(BaseModel):
-    activity_type: str
-    count: int
-    avg_duration: float
-
 class ActivityMetric(BaseModel):
     count: int
     trend: float
     last_activity: Optional[datetime] = None
 
 class LeadActivityStats(BaseModel):
+    """Lead activity statistics schema."""
     total_leads: int
     active_leads: int
-    conversion_rate: float
-    engagement_rate: float
-    new_leads: ActivityMetric
-    active_leads_metric: ActivityMetric
-    converted_leads: ActivityMetric
-    status_distribution: Dict[str, int]
-    timeline: List[Dict[str, Any]]
+    new_leads_today: int
+    new_leads_this_week: int
+    new_leads_this_month: int
+    leads_by_status: Dict[str, int]
+    leads_by_source: Dict[str, int]
+    average_response_time: float
+    last_activity: Optional[datetime] = None
 
 class AgentPerformanceStats(BaseModel):
     total_leads: int
@@ -164,13 +155,16 @@ class InteractionStats(BaseModel):
     timeline: List[Dict[str, Any]]
 
 class AnalyticsResponse(BaseModel):
-    """Schema for analytics response."""
-    # Lead metrics
+    """Analytics response schema."""
     total_leads: int
     active_leads: int
     conversion_rate: float
-    average_lead_score: float
-    
+    average_response_time: float
+    lead_quality_score: float
+    lead_status_distribution: Dict[str, int]
+    lead_activity_stats: 'LeadActivityStats'
+    lead_status_stats: List['LeadStatusStats']
+
     # Source metrics
     lead_sources: List[LeadSourceMetrics]
     
@@ -188,7 +182,6 @@ class AnalyticsResponse(BaseModel):
     conversion_funnel: ConversionFunnelResponse
     
     # Additional metrics
-    average_response_time: float
     total_value: float
     top_performing_channels: List[str]
     
@@ -218,13 +211,51 @@ class AnalyticsResponse(BaseModel):
     # New fields from the code block
     source_distribution: Dict[str, Dict[str, Any]]
 
-    lead_stats: LeadActivityStats
-    agent_stats: AgentPerformanceStats
-    interaction_stats: InteractionStats
     timestamp: datetime
 
 class LeadStatusStats(BaseModel):
+    """Lead status statistics schema."""
     status: str
     count: int
     percentage: float
-    trend: float 
+    trend: float  # Percentage change from previous period
+    timestamp: datetime
+
+    # New fields from the code block
+    total_leads: int
+    active_leads: int
+    conversion_rate: float
+    engagement_rate: float
+    new_leads_today: int
+    new_leads_this_week: int
+    new_leads_this_month: int
+    leads_by_status: Dict[str, int]
+    leads_by_source: Dict[str, int]
+    average_response_time: float
+    last_activity: Optional[datetime] = None
+
+    # New fields from the code block
+    source_metrics: List[LeadSourceStats]
+    additional_metrics: Optional[Dict[str, float]] = None
+    metadata: Optional[Dict[str, str]] = None
+
+    # New fields from the code block
+    total_interactions: int
+    total_projects: int
+    active_projects: int
+    period_start: datetime
+    period_end: datetime
+
+    # New fields from the code block
+    new_leads: int
+    qualified_leads: int
+    converted_leads: int
+    average_conversion_rate: float
+
+    # New fields from the code block
+    source_distribution: Dict[str, Dict[str, Any]]
+
+    lead_stats: LeadActivityStats
+    agent_stats: AgentPerformanceStats
+    interaction_stats: InteractionStats
+    timestamp: datetime 

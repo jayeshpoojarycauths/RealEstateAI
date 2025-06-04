@@ -1,16 +1,17 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
-from app.api.v1.api import api_router
-from app.core.logging import logger, log_request, log_error
-from app.core.exceptions import register_exception_handlers
-from app.core.messages import MessageCode
+from app.shared.core.config import settings
+from app.shared.api.router import api_router
+from app.shared.core.logging import logger, log_request, log_error
+from app.shared.core.exceptions import register_exception_handlers
+from app.shared.core.messages import MessageCode
 from app.scraping.tasks.scheduler import start_scheduler, shutdown_scheduler
 import time
 import uuid
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
+    version=settings.VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
@@ -31,14 +32,14 @@ register_exception_handlers(app)
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.middleware("http")
-async def add_request_id(request: Request, call_next):
+async def add_request_id(request, call_next):
     """Add request ID to each request for tracking."""
     request_id = str(uuid.uuid4())
     request.state.request_id = request_id
     return await call_next(request)
 
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def log_requests(request, call_next):
     """Log all requests and responses."""
     start_time = time.time()
     

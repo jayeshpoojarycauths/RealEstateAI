@@ -13,12 +13,23 @@ from app.outreach.schemas.outreach import LeadUpload, OutreachCreate, OutreachUp
 from app.services.ai import AIService
 from app.services.email import EmailService
 from app.services.sms import SMSService
-from app.core.audit import AuditLogger
+from app.shared.core.audit import AuditLogger
 from app.outreach.models.outreach import Outreach, OutreachTemplate, CommunicationPreference
 from app.shared.core.exceptions import NotFoundError, ValidationError
 from app.shared.core.audit import AuditService
 import uuid
 from sqlalchemy import func, and_, or_, case
+from fastapi import Depends
+from app.shared.db.session import get_db
+from app.shared.models.outreach import OutreachCampaign, OutreachTemplate
+from app.shared.models.contact import Contact
+from app.shared.models.user import User
+from app.shared.core.audit import get_audit_service
+from app.shared.core.security import get_current_user
+from app.shared.core.tenant import get_customer_id
+from app.shared.core.exceptions import NotFoundException, ValidationException
+from app.shared.core.communication.email import send_email
+from app.shared.core.communication.sms import send_sms
 
 logger = logging.getLogger(__name__)
 

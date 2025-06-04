@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import asyncio
 from playwright.async_api import async_playwright, Browser, Page
 from bs4 import BeautifulSoup
@@ -82,7 +82,7 @@ class NinetyNineAcresScraper(BaseScraper):
             
             price = await card.query_selector('.propertyCard__price')
             price_text = await price.text_content() if price else ''
-            price_value = self._extract_price(price_text)
+            price_value = self.parse_price(price_text)
             
             location = await card.query_selector('.propertyCard__location')
             location_text = await location.text_content() if location else ''
@@ -90,7 +90,7 @@ class NinetyNineAcresScraper(BaseScraper):
             # Extract details
             details = await card.query_selector('.propertyCard__details')
             details_text = await details.text_content() if details else ''
-            bedrooms, bathrooms, area = self._extract_details(details_text)
+            bedrooms, bathrooms, area = self.parse_property_details(details_text)
             
             # Get property URL
             link = await card.query_selector('a')
@@ -120,25 +120,23 @@ class NinetyNineAcresScraper(BaseScraper):
             self.logger.error(f"Error extracting property data: {str(e)}")
             return None
 
-    def _extract_price(self, price_text: str) -> float:
-        """Extract numeric price from text"""
+    def parse_price(self, price_text: str) -> float:
+        """Parse price from text."""
         try:
-            # Remove currency symbol and commas
             price = re.sub(r'[^\d.]', '', price_text)
             return float(price)
-        except:
+        except (ValueError, TypeError):
             return 0.0
 
-    def _extract_details(self, details_text: str) -> tuple:
-        """Extract bedrooms, bathrooms, and area from details text"""
+    def parse_property_details(self, details_text: str) -> Tuple[int, int, float]:
+        """Parse property details from text."""
         try:
-            # Example: "3 BHK • 2 Bath • 1200 sq.ft"
             parts = details_text.split('•')
-            bedrooms = int(re.search(r'(\d+)\s*BHK', parts[0]).group(1)) if len(parts) > 0 else 0
-            bathrooms = int(re.search(r'(\d+)\s*Bath', parts[1]).group(1)) if len(parts) > 1 else 0
+            bedrooms = int(re.search(r'\d+', parts[0]).group())
+            bathrooms = int(re.search(r'\d+', parts[1]).group())
             area = float(re.search(r'(\d+)\s*sq\.ft', parts[2]).group(1)) if len(parts) > 2 else 0
             return bedrooms, bathrooms, area
-        except:
+        except (ValueError, TypeError, AttributeError, IndexError):
             return 0, 0, 0
 
     async def _make_request_impl(self, url: str, headers: Dict[str, str], proxy: Optional[str]) -> Any:

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import Any, Optional, Union, List
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from app.shared.core.config import settings
@@ -7,7 +7,8 @@ from enum import Enum
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, ValidationError
-from app.models.models import User
+from app.shared.models.user import User
+from app.shared.models.customer import Customer
 from app.shared.db.session import get_db
 from sqlalchemy.orm import Session
 
@@ -26,36 +27,42 @@ class TokenData(BaseModel):
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash."""
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
+    """Generate password hash."""
     return pwd_context.hash(password)
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    data: dict,
+    expires_delta: Optional[timedelta] = None
+) -> str:
+    """Create a new JWT access token."""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode,
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
 
-def verify_token(token: str = Depends(oauth2_scheme)) -> TokenData:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+def verify_token(token: str) -> Optional[dict]:
+    """Verify a JWT token."""
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        username: str = payload.get("sub")
-        roles: List[str] = payload.get("roles", [])
-        if username is None:
-            raise credentials_exception
-        return TokenData(username=username, roles=[UserRole(role) for role in roles])
-    except JWTError:
-        raise credentials_exception
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
+        )
+        return payload
+    except jwt.JWTError:
+        return None
 
 def require_role(required_roles: List[UserRole]):
     def decorator(token_data: TokenData = Depends(verify_token)):

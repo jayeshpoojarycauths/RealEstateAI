@@ -1,31 +1,54 @@
-from typing import Any, List, Optional, Dict
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, status, Path
-from sqlalchemy.orm import Session
-from uuid import UUID
 from datetime import datetime
+from typing import Any, List, Dict, Optional
+from uuid import UUID
 
-from app.core.deps import get_current_active_user
-from app.shared.db.session import get_db
-from app.models.models import User, RealEstateProject, Customer, Project, ProjectLead
-from app.services.scraper import MagicBricksScraper, NinetyNineAcresScraper
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Path, status
+from sqlalchemy.orm import Session
+
 from app.api.deps import get_current_user, get_current_customer
-from app.project.schemas.project import (
-    ProjectCreate, ProjectUpdate, ProjectResponse, ProjectFilter,
-    ProjectStats, ProjectAnalytics, ProjectLeadCreate, ProjectLeadResponse,
-    ProjectListResponse, ProjectList, ProjectFeature, ProjectFeatureCreate,
-    ProjectImage, ProjectImageCreate, ProjectAmenity, ProjectAmenityCreate,
-    ProjectLead
+from app.shared.core.deps import get_current_active_user
+from app.shared.core.pagination import PaginationParams
+from app.shared.core.security import (
+    admin_required,
+    manager_required,
+    agent_required,
+    viewer_required
 )
-from app.project.services.project import ProjectService
-from app.core.pagination import PaginationParams, get_pagination_params
-from app.core.security import admin_required, manager_required, agent_required, viewer_required
-from app.schemas.property import (
+from app.shared.core.exceptions import (
+    NotFoundException,
+    ValidationException,
+    AuthorizationException
+)
+from app.shared.models.user import User
+from app.shared.models.project import Project
+from app.shared.models.customer import Customer
+from app.shared.schemas.project import (
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectResponse,
+    ProjectFilter,
+    ProjectStats,
+    ProjectAnalytics,
+    ProjectLeadCreate,
+    ProjectLeadResponse,
+    ProjectListResponse,
+    ProjectList,
+    ProjectFeature,
+    ProjectFeatureCreate,
+    ProjectImage,
+    ProjectImageCreate,
+    ProjectAmenity,
+    ProjectAmenityCreate,
+    ProjectLead,
     RealEstateProjectCreate,
     RealEstateProjectUpdate,
     RealEstateProjectList,
     RealEstateProject
 )
+from app.project.services.project import ProjectService
+from app.services.scraper import MagicBricksScraper, NinetyNineAcresScraper
 from app.shared.core.exceptions import ValidationError, NotFoundError
+from app.shared.db.session import get_db
 
 router = APIRouter(
     prefix="/projects",
@@ -46,10 +69,8 @@ async def scrape_properties(
     location: str,
     max_pages: int = 1,
     background_tasks: BackgroundTasks
-) -> Any:
-    """
-    Trigger scraping of properties from specified source
-    """
+) -> Dict[str, Any]:
+    """Trigger scraping of properties from specified source."""
     try:
         scraper = None
         if source.lower() == "magicbricks":
@@ -58,7 +79,7 @@ async def scrape_properties(
             scraper = NinetyNineAcresScraper(db, current_user.customer_id)
         else:
             raise HTTPException(
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Unsupported source: {source}"
             )
         
@@ -78,7 +99,7 @@ async def scrape_properties(
         
     except Exception as e:
         raise HTTPException(
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error initiating scraping: {str(e)}"
         )
 
@@ -89,14 +110,12 @@ async def get_properties(
     current_user: User = Depends(get_current_active_user),
     skip: int = 0,
     limit: int = 100,
-    location: str = None,
-    min_price: str = None,
-    max_price: str = None,
-    property_type: str = None
+    location: Optional[str] = None,
+    min_price: Optional[str] = None,
+    max_price: Optional[str] = None,
+    property_type: Optional[str] = None
 ) -> List[RealEstateProject]:
-    """
-    Get properties for the current customer with optional filters
-    """
+    """Get properties for the current customer with optional filters."""
     query = db.query(RealEstateProject).filter(
         RealEstateProject.customer_id == current_user.customer_id
     )
@@ -117,18 +136,17 @@ async def get_properties(
 async def list_projects(
     *,
     db: Session = Depends(get_db),
-    current_customer: dict = Depends(get_current_customer),
+    current_customer: Customer = Depends(get_current_customer),
     filter_params: ProjectFilter = Depends(),
-    pagination: PaginationParams = Depends(),
-    current_user: dict = Depends(get_current_user)
-):
+    pagination: PaginationParams = Depends()
+) -> ProjectList:
     """List all projects for the current customer with filtering."""
-    projects, total = await project_service.list_projects(...)
-        customer_id=current_customer["id"],
+    project_service = ProjectService(db)
+    projects, total = await project_service.list_projects(
+        customer_id=current_customer.id,
         filter_params=filter_params,
         pagination=pagination
     )
-    total = len(projects)  # In a real app, you'd want to get the total count separately
     return ProjectList(items=projects, total=total)
 
 @router.post("/", response_model=Project)
@@ -136,39 +154,43 @@ async def create_project(
     *,
     db: Session = Depends(get_db),
     project_in: ProjectCreate,
-    current_customer: dict = Depends(get_current_customer),
-    current_user: dict = Depends(get_current_user)
-):
+    current_customer: Customer = Depends(get_current_customer),
+    current_user: User = Depends(get_current_user)
+) -> Project:
     """Create a new project."""
     project_service = ProjectService(db)
     try:
         project = await project_service.create_project(
             project_in=project_in,
-            customer_id=current_customer["id"],
-            user_id=current_user["id"]
+            customer_id=current_customer.id
         )
         return project
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValidationException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 @router.get("/{project_id}", response_model=Project)
 async def get_project(
     *,
     db: Session = Depends(get_db),
     project_id: UUID = Path(...),
-    current_customer: dict = Depends(get_current_customer),
-    current_user: dict = Depends(get_current_user)
-):
+    current_customer: Customer = Depends(get_current_customer)
+) -> Project:
     """Get a specific project."""
     project_service = ProjectService(db)
     try:
         project = await project_service.get_project(
             project_id=project_id,
-            customer_id=current_customer["id"]
+            customer_id=current_customer.id
         )
         return project
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except NotFoundException as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
 
 @router.put("/{project_id}", response_model=Project)
 async def update_project(
@@ -176,43 +198,47 @@ async def update_project(
     db: Session = Depends(get_db),
     project_id: UUID = Path(...),
     project_in: ProjectUpdate,
-    current_customer: dict = Depends(get_current_customer),
-    current_user: dict = Depends(get_current_user)
-):
+    current_customer: Customer = Depends(get_current_customer)
+) -> Project:
     """Update a project."""
     project_service = ProjectService(db)
     try:
         project = await project_service.update_project(
             project_id=project_id,
             project_in=project_in,
-            customer_id=current_customer["id"],
-            user_id=current_user["id"]
+            customer_id=current_customer.id
         )
         return project
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except NotFoundException as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except ValidationException as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
-@router.delete("/{project_id}")
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(
     *,
     db: Session = Depends(get_db),
     project_id: UUID = Path(...),
-    current_customer: dict = Depends(get_current_customer),
-    current_user: dict = Depends(get_current_user)
-):
+    current_customer: Customer = Depends(get_current_customer)
+) -> None:
     """Delete a project."""
     project_service = ProjectService(db)
     try:
-        success = await project_service.delete_project(
+        await project_service.delete_project(
             project_id=project_id,
-            customer_id=current_customer["id"],
-            user_id=current_user["id"]
+            customer_id=current_customer.id
         )
-        return {"success": success}
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except NotFoundException as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
 
 @router.post("/{project_id}/features", response_model=ProjectFeature)
 async def add_feature(
@@ -233,9 +259,9 @@ async def add_feature(
             user_id=current_user["id"]
         )
         return feature
-    except NotFoundError as e:
+    except NotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except ValidationError as e:
+    except ValidationException as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/{project_id}/images", response_model=ProjectImage)
@@ -257,9 +283,9 @@ async def add_image(
             user_id=current_user["id"]
         )
         return image
-    except NotFoundError as e:
+    except NotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except ValidationError as e:
+    except ValidationException as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/{project_id}/amenities", response_model=ProjectAmenity)
@@ -281,9 +307,9 @@ async def add_amenity(
             user_id=current_user["id"]
         )
         return amenity
-    except NotFoundError as e:
+    except NotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except ValidationError as e:
+    except ValidationException as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/{project_id}/leads", response_model=ProjectLead)
@@ -304,9 +330,9 @@ async def assign_lead(
             customer_id=current_customer["id"]
         )
         return lead_assignment
-    except NotFoundError as e:
+    except NotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except ValidationError as e:
+    except ValidationException as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/stats", response_model=ProjectStats)

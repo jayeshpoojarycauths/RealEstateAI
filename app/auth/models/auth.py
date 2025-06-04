@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.models.base import BaseModel
+from app.shared.db.base_class import BaseModel
 import uuid
 from datetime import datetime
 
@@ -66,4 +66,31 @@ class PasswordReset(BaseModel):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    user = relationship("User", back_populates="password_resets") 
+    user = relationship("User", back_populates="password_resets")
+
+class RefreshToken(BaseModel):
+    __tablename__ = "refresh_tokens"
+    
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    customer_id = Column(String(36), ForeignKey("customers.id"), nullable=False)
+    token = Column(String, unique=True, nullable=False)
+    jti = Column(String, unique=True, nullable=False)  # JWT ID for token tracking
+    device_info = Column(JSON, nullable=True)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    is_revoked = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_activity = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    
+    # Relationships
+    user = relationship("User", back_populates="refresh_tokens")
+    customer = relationship("Customer", back_populates="refresh_tokens")
+    
+    def is_valid(self) -> bool:
+        """Check if the refresh token is still valid."""
+        return (
+            not self.is_revoked and
+            self.expires_at > datetime.utcnow()
+        ) 

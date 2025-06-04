@@ -4,25 +4,21 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 from app.project.models.project import ProjectType, ProjectStatus
-...
-    RENTAL = "rental"
 
 # --- Base Schemas ---
 class ProjectBase(BaseModel):
-    """Base fields required for all project operations."""
+    """Base fields for project operations."""
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
     type: ProjectType
-    status: ProjectStatus = ProjectStatus.PLANNING
-    location: str = Field(..., min_length=1, max_length=200)
-    total_units: Optional[int] = Field(None, ge=0)
-    price_range: Optional[str] = Field(None, max_length=100)
-    amenities: Optional[List[str]] = Field(None)
-    completion_date: Optional[datetime] = None
-    total_value: float = 0.0
+    status: str = Field(..., min_length=1, max_length=50)
+    customer_id: UUID
+    owner_id: UUID
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     budget: Optional[float] = None
+    location: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
     
     # Location fields
     address: str = Field(..., min_length=1, max_length=200)
@@ -38,9 +34,9 @@ class ProjectCreate(ProjectBase):
     customer_id: UUID
 
 class ProjectUpdate(BaseModel):
-    """Schema for updating an existing project. All fields are optional."""
+    """Schema for updating an existing project."""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=500)
+    description: Optional[str] = Field(None, max_length=1000)
     type: Optional[ProjectType] = None
     status: Optional[ProjectStatus] = None
     location: Optional[str] = Field(None, min_length=1, max_length=200)
@@ -48,7 +44,7 @@ class ProjectUpdate(BaseModel):
     price_range: Optional[str] = Field(None, max_length=100)
     amenities: Optional[List[str]] = None
     completion_date: Optional[datetime] = None
-    total_value: Optional[float] = None
+    total_value: Optional[float] = Field(None, gt=0)
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     budget: Optional[float] = None
@@ -154,12 +150,14 @@ class ProjectLead(ProjectLeadBase):
 
 # --- Response Schemas ---
 class Project(ProjectBase):
+    """Schema for project response."""
     id: UUID
     customer_id: UUID
     created_by: UUID
     updated_by: UUID
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: datetime
+    deleted_at: Optional[datetime] = None
     features: List[ProjectFeature] = []
     images: List[ProjectImage] = []
     amenities_list: List[ProjectAmenity] = []
@@ -169,6 +167,7 @@ class Project(ProjectBase):
         from_attributes = True
 
 class ProjectList(BaseModel):
+    """Schema for list of projects."""
     items: List[Project]
     total: int
 
@@ -246,12 +245,6 @@ class ProjectListResponse(BaseModel):
     total: int
     skip: int
     limit: int
-
-class ProjectLeadCreate(BaseModel):
-    lead_id: int
-    project_id: int
-    role: str
-    notes: Optional[str] = None
 
 class ProjectLeadResponse(BaseModel):
     id: int

@@ -19,6 +19,7 @@ class OutreachStatus(str, Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
     PENDING = "pending"
+    RESPONDED = "responded"
 
 # --- Base Schemas ---
 class OutreachBase(BaseModel):
@@ -163,10 +164,12 @@ class OutreachFilter(BaseModel):
     search: Optional[str] = None
 
 class OutreachTemplateFilter(BaseModel):
-    """Schema for filtering outreach templates."""
+    """Filter parameters for outreach templates."""
     channel: Optional[OutreachChannel] = None
     is_active: Optional[bool] = None
     search: Optional[str] = None
+    created_after: Optional[datetime] = None
+    created_before: Optional[datetime] = None
 
 # --- Stats Schemas ---
 class OutreachStats(BaseModel):

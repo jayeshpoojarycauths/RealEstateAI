@@ -3,9 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
-from app.core.deps import get_current_active_user
+from app.shared.core.security import get_current_active_user
 from app.api.deps import get_db, get_current_customer
-from app.models.models import User, Customer, Lead, InteractionLog
+from app.shared.models.user import User
+from app.shared.core.audit import log_audit
+from app.shared.core.exceptions import NotFoundException
+from app.models.models import Customer, Lead, InteractionLog
 from app.analytics.schemas.analytics import (
     AnalyticsResponse,
     ConversionFunnelResponse,
@@ -16,27 +19,28 @@ from app.analytics.schemas.analytics import (
     LeadStatusStats,
     PriceTrendResponse,
     TimeRange,
-    LeadQualityResponse
+    LeadQualityResponse,
+    AnalyticsFilter,
+    LeadAnalytics,
+    OutreachAnalytics,
+    UserAnalytics
 )
 from app.analytics.schemas.stats import LeadActivityStats, AgentPerformanceStats, InteractionStats
 from app.analytics.services.analytics import AnalyticsService
 
 router = APIRouter()
 
-@router.get("/", response_model=AnalyticsResponse)
+@router.get("/stats", response_model=AnalyticsResponse)
 async def get_analytics(
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-    current_customer: Customer = Depends(get_current_customer)
-):
-    """Get analytics data for the current customer."""
-    analytics_service = AnalyticsService(db)
-    return await analytics_service.get_analytics(
-        customer_id=current_customer.id,
-        start_date=start_date,
-        end_date=end_date
+    filter_params: AnalyticsFilter = Depends()
+) -> AnalyticsResponse:
+    """Get analytics data."""
+    service = AnalyticsService(db)
+    return await service.get_analytics(
+        user_id=current_user.id,
+        filter_params=filter_params
     )
 
 @router.get("/funnel", response_model=ConversionFunnelResponse)
@@ -110,16 +114,6 @@ async def get_lead_quality(
         customer_id=current_customer.id,
         time_range=time_range
     )
-
-@router.get("/stats", response_model=AnalyticsResponse)
-async def get_analytics(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-    current_customer: Customer = Depends(get_current_customer)
-) -> AnalyticsResponse:
-    """Get analytics data for the current customer."""
-    analytics_service = AnalyticsService(db)
-    return await analytics_service.get_analytics(current_customer.id)
 
 @router.get("/lead-stats", response_model=LeadActivityStats)
 async def get_lead_stats(

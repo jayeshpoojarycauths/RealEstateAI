@@ -7,8 +7,14 @@ from app.schemas.outreach import (
     OutreachFilter
 )
 from app.services.outreach import OutreachService
-from app.core.pagination import PaginationParams
+from app.shared.core.pagination import PaginationParams
 from fastapi import BackgroundTasks
+from typing import List, Optional
+from fastapi.testclient import TestClient
+from app.main import app
+from app.shared.core.exceptions import NotFoundException
+from app.shared.models.outreach import OutreachCampaign
+from app.outreach.schemas.outreach import OutreachUpdate
 
 @pytest.fixture
 def outreach_service(db_session: Session):

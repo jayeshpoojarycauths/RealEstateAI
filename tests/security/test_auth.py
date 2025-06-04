@@ -1,7 +1,13 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.security.jwt import jwt_service
+from app.shared.core.security.jwt import jwt_service
+from app.shared.core.security.auth import (
+    authenticate_user,
+    create_access_token,
+    get_current_user,
+    get_current_active_user
+)
 from app.models.models import User, Customer
 
 client = TestClient(app)

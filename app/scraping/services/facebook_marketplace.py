@@ -1,11 +1,11 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import asyncio
 from playwright.async_api import async_playwright, Browser, Page
 import json
 import re
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.models.models import Customer
+from app.shared.models.customer import Customer
 from .base import BaseScraper
 from app.shared.core.config import settings
 
@@ -94,7 +94,7 @@ class FacebookMarketplaceScraper(BaseScraper):
             # Extract price
             price_elem = await listing.query_selector('span[dir="auto"]:has-text("$")')
             price_text = await price_elem.text_content() if price_elem else ''
-            price = self._extract_price(price_text)
+            price = self.parse_price(price_text)
             
             # Extract location
             location_elem = await listing.query_selector('span[dir="auto"]:has-text(",")')
@@ -109,7 +109,7 @@ class FacebookMarketplaceScraper(BaseScraper):
             description = await desc_elem.text_content() if desc_elem else ''
             
             # Extract details from description
-            bedrooms, bathrooms, area = self._extract_details_from_description(description)
+            bedrooms, bathrooms, area = self.parse_property_details(description)
             
             return {
                 'title': title.strip(),
@@ -131,40 +131,23 @@ class FacebookMarketplaceScraper(BaseScraper):
             self.logger.error(f"Error extracting listing data: {str(e)}")
             return None
 
-    def _extract_price(self, price_text: str) -> float:
-        """Extract numeric price from text"""
+    def parse_price(self, price_text: str) -> float:
+        """Parse price from text."""
         try:
-            # Remove currency symbol and commas
             price = re.sub(r'[^\d.]', '', price_text)
             return float(price)
-        except:
+        except (ValueError, TypeError):
             return 0.0
 
-    def _extract_details_from_description(self, description: str) -> tuple:
-        """Extract property details from description text"""
+    def parse_property_details(self, details_text: str) -> Tuple[int, int, float]:
+        """Parse property details from text."""
         try:
-            # Look for common patterns in the description
-            bedrooms = 0
-            bathrooms = 0
-            area = 0
-            
-            # Match bedroom patterns
-            bed_match = re.search(r'(\d+)\s*(?:bed|bedroom|BR|BHK)', description, re.I)
-            if bed_match:
-                bedrooms = int(bed_match.group(1))
-            
-            # Match bathroom patterns
-            bath_match = re.search(r'(\d+)\s*(?:bath|bathroom|BA)', description, re.I)
-            if bath_match:
-                bathrooms = int(bath_match.group(1))
-            
-            # Match area patterns
-            area_match = re.search(r'(\d+)\s*(?:sq\s*ft|sqft|square\s*feet)', description, re.I)
-            if area_match:
-                area = float(area_match.group(1))
-            
+            parts = details_text.split('•')
+            bedrooms = int(re.search(r'\d+', parts[0]).group())
+            bathrooms = int(re.search(r'\d+', parts[1]).group())
+            area = float(re.search(r'(\d+)\s*sq\.ft', parts[2]).group(1)) if len(parts) > 2 else 0
             return bedrooms, bathrooms, area
-        except:
+        except (ValueError, TypeError, AttributeError, IndexError):
             return 0, 0, 0
 
     async def _make_request_impl(self, url: str, headers: Dict[str, str], proxy: Optional[str]) -> Any:

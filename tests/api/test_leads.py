@@ -10,10 +10,11 @@ from unittest.mock import patch, MagicMock
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.main import app
-from app.models.models import User, Customer, Lead
-from app.core.security import create_access_token
+from app.shared.models.lead import Lead
+from app.shared.core.security import create_access_token
+from app.shared.core.pagination import PaginationParams
+from app.shared.core.exceptions import NotFoundException
 from app.schemas.lead import LeadCreate, LeadUpdate
-from app.core.pagination import PaginationParams
 from app.services.ai import AIService
 
 client = TestClient(app)

@@ -5,7 +5,7 @@ from datetime import datetime
 
 from app.main import app
 from app.models.models import User, Customer, Lead
-from app.core.security import create_access_token
+from app.shared.core.security.auth import create_access_token
 
 client = TestClient(app)
 

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.customer import Customer
 from app.models.role import Role
-from app.core.security import verify_password
+from app.shared.core.security.auth import verify_password
 
 def test_register_user_success(client: TestClient, db_session: Session):
     """Test successful user registration with customer creation."""

@@ -3,7 +3,9 @@ import requests
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-from app.models.models import RealEstateProject, ScrapingConfig, Lead
+from app.project.models.project import RealEstateProject
+from app.scraping.models.scraping import ScrapingConfig
+from app.lead.models.lead import Lead
 from uuid import UUID
 import time
 import os
@@ -37,7 +39,8 @@ import uuid
 logger = logging.getLogger(__name__)
 
 class BaseScraper(ABC):
-    def __init__(self, config: ScrapingConfig):
+    def __init__(self, db: Session, config: ScrapingConfig):
+        self.db = db
         self.config = config
         self.session = requests.Session()
         self.ua = UserAgent()
@@ -57,6 +60,7 @@ class BaseScraper(ABC):
         self.rate_limit = config.rate_limit or 10  # requests per minute
         self.retry_count = config.retry_count or 3
         self.timeout = config.timeout or 30
+        self.source = None
 
     @abstractmethod
     def scrape_properties(self, location: str, property_type: str) -> List[Dict[str, Any]]:
@@ -95,174 +99,221 @@ class BaseScraper(ABC):
                 logger.error(f"Async request error for {url}: {str(e)}")
                 return None
 
+    def make_request(self, url: str) -> Optional[str]:
+        """Make HTTP request and return the response text."""
+        response = self._make_request(url)
+        return response.text if response else None
+
 class MagicBricksScraper(BaseScraper):
-    def scrape_properties(self, location: str, property_type: str) -> List[Dict[str, Any]]:
+    def __init__(self, db: Session, config: ScrapingConfig):
+        super().__init__(db, config)
+        self.source = ScrapingSource.MAGICBRICKS
+
+    async def scrape(self, location: str, property_type: str) -> List[Dict[str, Any]]:
         properties = []
         base_url = f"https://www.magicbricks.com/property-for-sale/residential-real-estate?bedroom=&proptype={property_type}&cityName={location}"
-        
         for page in range(1, self.config.max_pages_per_source + 1):
             url = f"{base_url}&page={page}"
-            response = self._make_request(url)
-            if not response:
+            html = await self.make_request(url)
+            if not html:
                 continue
-
-            soup = BeautifulSoup(response.text, 'html.parser')
+            soup = BeautifulSoup(html, 'html.parser')
             property_cards = soup.find_all('div', class_='mb-srp__card')
-            
             for card in property_cards:
                 try:
                     property_data = {
-                        'name': card.find('h2', class_='mb-srp__card--title').text.strip(),
+                        'title': card.find('h2', class_='mb-srp__card--title').text.strip(),
                         'price': card.find('div', class_='mb-srp__card__price__amount').text.strip(),
                         'size': card.find('div', class_='mb-srp__card__desc__value').text.strip(),
-                        'type': property_type,
+                        'property_type': property_type,
                         'location': location,
                         'builder': card.find('div', class_='mb-srp__card__builder').text.strip(),
                         'completion_date': card.find('div', class_='mb-srp__card__completion').text.strip()
                     }
-                    properties.append(self.parse_property(property_data))
+                    properties.append(property_data)
                 except Exception as e:
                     logger.error(f"Error parsing property card: {str(e)}")
                     continue
-
-            time.sleep(self.config.scraping_delay)
-        
+            await asyncio.sleep(self.config.scraping_delay)
         return properties
 
     def parse_property(self, property_data: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            'name': property_data['name'],
+            'name': property_data['title'],
             'price': property_data['price'],
             'size': property_data['size'],
-            'type': property_data['type'],
+            'type': property_data['property_type'],
             'builder': property_data['builder'],
             'location': property_data['location'],
             'completion_date': property_data['completion_date']
         }
 
 class HousingScraper(BaseScraper):
-    def scrape_properties(self, location: str, property_type: str) -> List[Dict[str, Any]]:
+    def __init__(self, db: Session, config: ScrapingConfig):
+        super().__init__(db, config)
+        self.source = ScrapingSource.HOUSING
+
+    async def scrape(self, location: str, property_type: str) -> List[Dict[str, Any]]:
         properties = []
         base_url = f"https://www.housing.com/in/buy/{location}/{property_type}"
-        
         for page in range(1, self.config.max_pages_per_source + 1):
             url = f"{base_url}?page={page}"
-            response = self._make_request(url)
-            if not response:
+            html = await self.make_request(url)
+            if not html:
                 continue
-
-            soup = BeautifulSoup(response.text, 'html.parser')
+            soup = BeautifulSoup(html, 'html.parser')
             property_cards = soup.find_all('div', class_='project-card')
-            
             for card in property_cards:
                 try:
                     property_data = {
-                        'name': card.find('h3', class_='project-name').text.strip(),
+                        'title': card.find('h3', class_='project-name').text.strip(),
                         'price': card.find('div', class_='price').text.strip(),
                         'size': card.find('div', class_='size').text.strip(),
-                        'type': property_type,
+                        'property_type': property_type,
                         'location': location,
                         'builder': card.find('div', class_='builder').text.strip(),
                         'completion_date': card.find('div', class_='completion').text.strip()
                     }
-                    properties.append(self.parse_property(property_data))
+                    properties.append(property_data)
                 except Exception as e:
                     logger.error(f"Error parsing property card: {str(e)}")
                     continue
-
-            time.sleep(self.config.scraping_delay)
-        
+            await asyncio.sleep(self.config.scraping_delay)
         return properties
 
     def parse_property(self, property_data: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            'name': property_data['name'],
+            'name': property_data['title'],
             'price': property_data['price'],
             'size': property_data['size'],
-            'type': property_data['type'],
+            'type': property_data['property_type'],
             'builder': property_data['builder'],
             'location': property_data['location'],
             'completion_date': property_data['completion_date']
         }
 
 class PropTigerScraper(BaseScraper):
-    def scrape_properties(self, location: str, property_type: str) -> List[Dict[str, Any]]:
+    def __init__(self, db: Session, config: ScrapingConfig):
+        super().__init__(db, config)
+        self.source = ScrapingSource.PROPTIGER
+
+    async def scrape(self, location: str, property_type: str) -> List[Dict[str, Any]]:
         properties = []
         base_url = f"https://www.proptiger.com/{location}/property-for-sale"
-        
         for page in range(1, self.config.max_pages_per_source + 1):
             url = f"{base_url}?page={page}&propertyType={property_type}"
-            response = self._make_request(url)
-            if not response:
+            html = await self.make_request(url)
+            if not html:
                 continue
-
-            soup = BeautifulSoup(response.text, 'html.parser')
+            soup = BeautifulSoup(html, 'html.parser')
             property_cards = soup.find_all('div', class_='property-card')
-            
             for card in property_cards:
                 try:
                     property_data = {
-                        'name': card.find('h3', class_='property-name').text.strip(),
-                        'price': card.find('div', class_='price').text.strip(),
-                        'size': card.find('div', class_='area').text.strip(),
-                        'type': property_type,
+                        'title': card.find('h2', class_='property-title').text.strip(),
+                        'price': card.find('div', class_='property-price').text.strip(),
+                        'size': card.find('div', class_='property-size').text.strip(),
+                        'property_type': property_type,
                         'location': location,
-                        'builder': card.find('div', class_='builder-name').text.strip(),
-                        'completion_date': card.find('div', class_='possession').text.strip()
+                        'builder': card.find('div', class_='property-builder').text.strip(),
+                        'completion_date': card.find('div', class_='property-completion').text.strip()
                     }
-                    properties.append(self.parse_property(property_data))
+                    properties.append(property_data)
                 except Exception as e:
                     logger.error(f"Error parsing property card: {str(e)}")
                     continue
-
-            time.sleep(self.config.scraping_delay)
-        
-        return properties
-
-class CommonFloorScraper(BaseScraper):
-    def scrape_properties(self, location: str, property_type: str) -> List[Dict[str, Any]]:
-        properties = []
-        base_url = f"https://www.commonfloor.com/{location}/property-for-sale"
-        
-        for page in range(1, self.config.max_pages_per_source + 1):
-            url = f"{base_url}?page={page}&propertyType={property_type}"
-            response = self._make_request(url)
-            if not response:
-                continue
-
-            soup = BeautifulSoup(response.text, 'html.parser')
-            property_cards = soup.find_all('div', class_='property-listing')
-            
-            for card in property_cards:
-                try:
-                    property_data = {
-                        'name': card.find('h3', class_='property-title').text.strip(),
-                        'price': card.find('div', class_='price-value').text.strip(),
-                        'size': card.find('div', class_='area-value').text.strip(),
-                        'type': property_type,
-                        'location': location,
-                        'builder': card.find('div', class_='builder-name').text.strip(),
-                        'completion_date': card.find('div', class_='possession-date').text.strip()
-                    }
-                    properties.append(self.parse_property(property_data))
-                except Exception as e:
-                    logger.error(f"Error parsing property card: {str(e)}")
-                    continue
-
-            time.sleep(self.config.scraping_delay)
-        
+            await asyncio.sleep(self.config.scraping_delay)
         return properties
 
     def parse_property(self, property_data: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            'name': property_data['name'],
+            'name': property_data['title'],
             'price': property_data['price'],
             'size': property_data['size'],
-            'type': property_data['type'],
+            'type': property_data['property_type'],
             'builder': property_data['builder'],
             'location': property_data['location'],
             'completion_date': property_data['completion_date']
         }
+
+class CommonFloorScraper(BaseScraper):
+    def __init__(self, db: Session, config: ScrapingConfig):
+        super().__init__(db, config)
+        self.source = ScrapingSource.COMMONFLOOR
+
+    async def scrape(self, location: str, property_type: str) -> List[Dict[str, Any]]:
+        properties = []
+        base_url = f"https://www.commonfloor.com/listing-search?city={location}&propertyType={property_type}"
+        for page in range(1, self.config.max_pages_per_source + 1):
+            url = f"{base_url}&page={page}"
+            html = await self.make_request(url)
+            if not html:
+                continue
+            soup = BeautifulSoup(html, 'html.parser')
+            property_cards = soup.find_all('div', class_='listing-card')
+            for card in property_cards:
+                try:
+                    property_data = {
+                        'title': card.find('h2', class_='listing-title').text.strip(),
+                        'price': card.find('div', class_='listing-price').text.strip(),
+                        'size': card.find('div', class_='listing-size').text.strip(),
+                        'property_type': property_type,
+                        'location': location,
+                        'builder': card.find('div', class_='listing-builder').text.strip(),
+                        'completion_date': card.find('div', class_='listing-completion').text.strip()
+                    }
+                    properties.append(property_data)
+                except Exception as e:
+                    logger.error(f"Error parsing property card: {str(e)}")
+                    continue
+            await asyncio.sleep(self.config.scraping_delay)
+        return properties
+
+    def parse_property(self, property_data: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            'name': property_data['title'],
+            'price': property_data['price'],
+            'size': property_data['size'],
+            'type': property_data['property_type'],
+            'builder': property_data['builder'],
+            'location': property_data['location'],
+            'completion_date': property_data['completion_date']
+        }
+
+class ScraperFactory:
+    """Factory class for creating scraper instances."""
+    
+    @staticmethod
+    def create_scraper(source: str, db: Session, config: ScrapingConfig) -> BaseScraper:
+        """Create a scraper instance based on the source."""
+        if source.lower() == "99acres":
+            return NinetyNineAcresScraper(db, config)
+        elif source.lower() == "magicbricks":
+            return MagicBricksScraper(db, config)
+        else:
+            raise ValueError(f"Unsupported scraping source: {source}")
+
+class ScrapingService:
+    """Service for managing property scraping operations."""
+    
+    def __init__(self, db: Session):
+        self.db = db
+        
+    async def scrape_properties(
+        self,
+        source: str,
+        location: str,
+        max_pages: int = 1,
+        config: Optional[ScrapingConfig] = None
+    ) -> List[ScrapingResult]:
+        """Scrape properties from the specified source."""
+        try:
+            scraper = ScraperFactory.create_scraper(source, self.db, config or ScrapingConfig())
+            results = await scraper.scrape_properties(location, max_pages)
+            return results
+        except Exception as e:
+            logger.error(f"Error scraping properties: {str(e)}")
+            raise
 
 class ScraperService:
     """Service for managing property scrapers."""
@@ -377,10 +428,10 @@ class ScraperService:
             if not scraper_class:
                 raise ValidationError(f"No scraper implementation for source: {source}")
 
-            # Initialize and run scraper
-            scraper = scraper_class(config)
-            results = await scraper.scrape_properties(location, property_type)
-                
+            # Use async context manager and call scrape()
+            async with scraper_class(self.db, config) as scraper:
+                results = await scraper.scrape(location, property_type)
+
             # Update job status
             job.status = ScrapingStatus.COMPLETED
             job.items_scraped = len(results)
@@ -401,14 +452,14 @@ class ScraperService:
         """Run all scheduled scraping jobs."""
         # Get all active configurations
         configs = self.db.query(ScrapingConfig).filter(
-            ScrapingConfig.auto_scrape_enabled == True
+            ScrapingConfig.auto_scrape_enabled
         ).all()
 
         for config in configs:
             # Check if it's time to run
             if not self._should_run_scheduled_job(config):
                 continue
-
+            
             # Run jobs for each enabled source and location
             for source in config.enabled_sources:
                 for location in config.locations:
@@ -504,4 +555,16 @@ class ScraperService:
             'total_items': total_items,
             'success_rate': success_rate,
             'source_distribution': source_distribution
-        } 
+        }
+
+    def get_active_configs(self) -> List[ScrapingConfig]:
+        """Get all active scraping configurations."""
+        return self.db.query(ScrapingConfig).filter(
+            ScrapingConfig.auto_scrape_enabled
+        ).all()
+
+    def get_configs_for_scheduler(self) -> List[ScrapingConfig]:
+        """Get configurations for scheduler."""
+        return self.db.query(ScrapingConfig).filter(
+            ScrapingConfig.auto_scrape_enabled
+        ).all() 

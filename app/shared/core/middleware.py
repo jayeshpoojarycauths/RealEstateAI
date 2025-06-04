@@ -1,61 +1,65 @@
-from fastapi import Request, HTTPException
-from starlette.middleware.base import BaseHTTPMiddleware
-from datetime import datetime, timedelta
-from collections import defaultdict
+from fastapi import Request, Response
+from fastapi.middleware.base import BaseHTTPMiddleware
+from app.core.config import settings
+from app.core.exceptions import RateLimitError
 import time
-from app.shared.core.config import settings
-from fastapi.responses import Response
-from starlette.types import ASGIApp
+from typing import Dict, Tuple
+import redis
+from app.core.redis import get_redis_client
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
-        self.requests = defaultdict(list)
-        self.rate_limit = settings.RATE_LIMIT_REQUESTS
-        self.window = settings.RATE_LIMIT_WINDOW_SECONDS
+        self.redis_client = get_redis_client()
+        self.rate_limits = {
+            "default": (100, 60),  # 100 requests per minute
+            "auth": (5, 60),      # 5 requests per minute
+            "api": (1000, 3600)   # 1000 requests per hour
+        }
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next) -> Response:
         # Get client IP
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = request.client.host
         
-        # Clean old requests
-        now = time.time()
-        self.requests[client_ip] = [
-            req_time for req_time in self.requests[client_ip]
-            if now - req_time < self.window
-        ]
+        # Determine rate limit based on path
+        path = request.url.path
+        if path.startswith("/api/v1/auth"):
+            limit_key = "auth"
+        elif path.startswith("/api/v1"):
+            limit_key = "api"
+        else:
+            limit_key = "default"
+            
+        # Get rate limit settings
+        max_requests, window = self.rate_limits[limit_key]
         
         # Check rate limit
-        if len(self.requests[client_ip]) >= self.rate_limit:
-            raise HTTPException(
-                status_code=429,
-                detail="Too many requests. Please try again later."
-            )
+        key = f"rate_limit:{limit_key}:{client_ip}"
+        current = self.redis_client.get(key)
         
-        # Add current request
-        self.requests[client_ip].append(now)
+        if current and int(current) >= max_requests:
+            raise RateLimitError(
+                detail=f"Rate limit exceeded. Maximum {max_requests} requests per {window} seconds."
+            )
+            
+        # Increment counter
+        pipe = self.redis_client.pipeline()
+        pipe.incr(key)
+        pipe.expire(key, window)
+        pipe.execute()
         
         # Process request
         response = await call_next(request)
-        return response
-
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: ASGIApp):
-        super().__init__(app)
-
-async def dispatch(self, request: Request, call_next):
-        response: Response = await call_next(request)
         
         # Add security headers
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-       response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-       response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
-       response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
         
         return response
 

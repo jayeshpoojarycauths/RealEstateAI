@@ -6,8 +6,9 @@ from fastapi import UploadFile, HTTPException
 from datetime import datetime, timedelta
 import json
 
-from app.models.models import Lead, User, Customer
-from app.lead.models.lead import LeadActivity, LeadScore, ActivityType
+from app.lead.models.lead import Lead, LeadActivity, LeadScore, ActivityType
+from app.shared.models.user import User
+from app.shared.models.customer import Customer
 from app.lead.schemas.lead import (
     LeadCreate,
     LeadUpdate,
@@ -29,7 +30,7 @@ from app.outreach.services.outreach import OutreachService
 from app.shared.core.tenant import get_customer_id
 from app.shared.core.security import UserRole
 from app.shared.core.pagination import PaginationParams
-from app.services.ai import AIService
+from app.shared.services.ai import AIService
 import logging
 from app.shared.core.exceptions import ValidationError, NotFoundError
 from app.shared.core.audit import AuditService
