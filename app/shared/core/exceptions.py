@@ -35,6 +35,11 @@ class AuthorizationException(BaseAPIException):
             detail=detail
         )
 
+class PermissionDenied(AuthorizationException):
+    """Exception for permission denied errors."""
+    def __init__(self, detail: str = "Permission denied"):
+        super().__init__(detail=detail)
+
 class NotFoundException(BaseAPIException):
     """Exception for not found errors."""
     def __init__(self, detail: str = "Resource not found"):
@@ -65,4 +70,27 @@ class ServiceUnavailableException(BaseAPIException):
         super().__init__(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=detail
-        ) 
+        )
+
+class ExternalServiceError(BaseAPIException):
+    """Exception raised when an external service fails."""
+    def __init__(
+        self,
+        detail: str = "External service error occurred",
+        status_code: int = 503,
+        headers: Optional[Dict[str, str]] = None
+    ):
+        super().__init__(detail=detail, status_code=status_code, headers=headers)
+
+__all__ = [
+    'BaseAPIException',
+    'ValidationException',
+    'AuthenticationException',
+    'AuthorizationException',
+    'PermissionDenied',
+    'NotFoundException',
+    'ConflictException',
+    'RateLimitException',
+    'ServiceUnavailableException',
+    'ExternalServiceError'
+] 

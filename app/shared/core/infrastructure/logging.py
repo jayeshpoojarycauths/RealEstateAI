@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Union
 from fastapi import Request
-from .messages import MessageCode, Messages
+from app.shared.core.communication.messages import MessageCode, Messages
 import re
 import asyncio
 from concurrent.futures import ThreadPoolExecutor

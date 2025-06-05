@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
-from app.shared.models.activity import ActivityType
+from app.lead.models.lead import ActivityType
 
 class LeadActivityBase(BaseModel):
     lead_id: int

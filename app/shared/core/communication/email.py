@@ -110,4 +110,22 @@ async def send_mfa_code_email(
     }
     await send_email(email_to, subject, "mfa_code", template_data)
 
-__all__ = ['send_email'] 
+async def send_welcome_email(
+    email_to: str,
+    user_name: str
+) -> None:
+    """Send welcome email to new users."""
+    subject = f"Welcome to {settings.PROJECT_NAME}!"
+    template_data = {
+        "project_name": settings.PROJECT_NAME,
+        "user_name": user_name
+    }
+    await send_email(email_to, subject, "welcome", template_data)
+
+__all__ = [
+    'send_email',
+    'send_verification_email',
+    'send_password_reset_email',
+    'send_mfa_code_email',
+    'send_welcome_email'
+] 

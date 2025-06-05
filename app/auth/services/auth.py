@@ -7,9 +7,12 @@ from app.shared.core.security import (
     create_access_token,
     verify_password,
     get_password_hash,
-    UserRole,
+    create_refresh_token,
     verify_jwt_token,
-    verify_mfa_code
+    verify_mfa_code,
+    encrypt_value,
+    decrypt_value,
+    hash_code
 )
 from app.shared.core.exceptions import (
     AuthenticationException,
@@ -36,7 +39,8 @@ from app.auth.models.auth import (
     UserSession
 )
 from app.shared.core.audit import AuditService
-from app.shared.core.security.encryption import encrypt_value, hash_code
+from app.shared.core.security.roles import Role
+from app.shared.schemas.user import UserUpdate
 import pyotp
 import secrets
 import qrcode
@@ -94,7 +98,9 @@ class AuthService:
             email=user_in.email,
             hashed_password=get_password_hash(user_in.password),
             full_name=user_in.full_name,
-            role=UserRole.VIEWER
+            role=user_in.role or Role.VIEWER,
+            is_active=True,
+            is_superuser=False,
         )
         self.db.add(user)
         self.db.commit()
@@ -245,7 +251,6 @@ class AuthService:
         ).first()
         if session:
             session.is_active = False
-            session.expires_at = datetime.utcnow()
             self.db.commit()
 
     async def invalidate_all_sessions(self, user_id: str) -> None:
@@ -253,106 +258,95 @@ class AuthService:
         self.db.query(UserSession).filter(
             UserSession.user_id == user_id,
             UserSession.is_active
-        ).update({
-            "is_active": False,
-            "expires_at": datetime.utcnow()
-        })
+        ).update({"is_active": False})
         self.db.commit()
 
     async def refresh_session(self, refresh_token: str) -> Optional[Dict[str, Any]]:
-        """Refresh a session using refresh token."""
-        session = self.db.query(UserSession).filter(
-            UserSession.refresh_token == refresh_token,
-            UserSession.is_active,
-            UserSession.expires_at > datetime.utcnow()
-        ).first()
-        
-        if not session:
+        """Refresh a session."""
+        session = await self.get_session_by_token(refresh_token)
+        if not session or not session.is_active:
             return None
-            
-        # Update session
-        session.last_activity = datetime.utcnow()
-        session.expires_at = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-        self.db.commit()
-        
-        # Create new access token with session's JTI
-        access_token = create_access_token(session.user_id, jti=session.jti)
-        
+
+        if session.expires_at < datetime.utcnow():
+            session.is_active = False
+            self.db.commit()
+            return None
+
+        # Create new access token
+        access_token = create_access_token(session.user_id)
         return {
             "access_token": access_token,
-            "token_type": "bearer",
-            "refresh_token": session.refresh_token
+            "refresh_token": session.refresh_token,
+            "token_type": "bearer"
         }
 
     async def create_access_token(self, user: User, session: Optional[UserSession] = None) -> Dict[str, str]:
-        """Create access token for authenticated user."""
-        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        
-        # Use session's JTI if available, otherwise generate new one
-        jti = session.jti if session else None
-        
+        """Create access and refresh tokens for a user."""
+        access_token = create_access_token(user.id)
+        if not session:
+            session = await self.create_session(user)
         return {
-            "access_token": create_access_token(
-                user.id,
-                expires_delta=access_token_expires,
-                jti=jti
-            ),
-            "token_type": "bearer",
+            "access_token": access_token,
+            "refresh_token": session.refresh_token,
+            "token_type": "bearer"
         }
 
     async def setup_mfa(self, user: User) -> Dict[str, Any]:
-        """Setup MFA for a user."""
+        """Set up MFA for a user."""
         # Generate secret key
-        secret = pyotp.random_base32()
-        encrypted_secret = encrypt_value(secret)
+        secret_key = pyotp.random_base32()
         
-        # Generate backup codes and hash them
-        backup_codes = [secrets.token_hex(4) for _ in range(settings.MFA_BACKUP_CODES_COUNT)]
+        # Create TOTP object
+        totp = pyotp.TOTP(secret_key)
+        
+        # Generate provisioning URI
+        provisioning_uri = totp.provisioning_uri(
+            user.email,
+            issuer_name=settings.PROJECT_NAME
+        )
+        
+        # Generate QR code
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(provisioning_uri)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convert to base64
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        qr_code = base64.b64encode(buffered.getvalue()).decode()
+        
+        # Generate backup codes
+        backup_codes = [secrets.token_urlsafe(4) for _ in range(8)]
         hashed_backup_codes = [hash_code(code) for code in backup_codes]
         
-        # Create MFA settings
+        # Store MFA settings
         mfa_settings = MFASettings(
             user_id=user.id,
-            is_enabled=False,
-            secret_key=encrypted_secret,
-            backup_codes=hashed_backup_codes
+            secret_key=encrypt_value(secret_key),
+            backup_codes=json.dumps(hashed_backup_codes),
+            is_enabled=False
         )
         self.db.add(mfa_settings)
         self.db.commit()
         
-        # Generate QR code
-        totp = pyotp.TOTP(secret)
-        provisioning_uri = totp.provisioning_uri(
-            user.email,
-            issuer_name=settings.MFA_ISSUER
-        )
-        
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)
-        qr.add_data(provisioning_uri)
-        qr.make(fit=True)
-        qr_image = qr.make_image(fill_color="black", back_color="white")
-        
-        # Convert QR code to base64
-        buffered = io.BytesIO()
-        qr_image.save(buffered, format="PNG")
-        qr_base64 = base64.b64encode(buffered.getvalue()).decode()
-        
         return {
-            "secret_key": secret,  # Return the plaintext secret for the user to scan
-            "qr_code": qr_base64,
-            "backup_codes": backup_codes  # Return plaintext codes for the user to save
+            "qr_code": qr_code,
+            "backup_codes": backup_codes,
+            "secret_key": secret_key
         }
 
     async def enable_mfa(self, user: User, code: str) -> bool:
-        """Enable MFA for a user after verification."""
-        if not await self.verify_mfa(user, code, "", ""):
-            return False
-            
+        """Enable MFA for a user."""
         mfa_settings = self.db.query(MFASettings).filter(
             MFASettings.user_id == user.id
         ).first()
         
         if not mfa_settings:
+            return False
+            
+        secret_key = decrypt_value(mfa_settings.secret_key)
+        if not verify_mfa_code(code, secret_key):
             return False
             
         mfa_settings.is_enabled = True
@@ -367,33 +361,75 @@ class AuthService:
         ip_address: str,
         user_agent: str
     ) -> bool:
-        """Change user's password with validation."""
-        # Verify current password
-        if not verify_password(current_password, user.password_hash):
+        """Change a user's password."""
+        if not verify_password(current_password, user.hashed_password):
+            self.audit_service.log_password_change(
+                user=user,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                success=False,
+                reason="Invalid current password"
+            )
             return False
             
-        # Validate new password complexity
+        # Validate new password
         self.validate_password_complexity(new_password)
         
         # Update password
-        user.password_hash = get_password_hash(new_password)
+        user.hashed_password = get_password_hash(new_password)
         self.db.commit()
         
-        # Log password change
+        # Log successful change
         self.audit_service.log_password_change(
             user=user,
             ip_address=ip_address,
             user_agent=user_agent,
-            method="user_initiated"
+            success=True
         )
         
         return True
 
     async def get_session_by_token(self, refresh_token: str) -> Optional[UserSession]:
-        """Get session by refresh token."""
-        session = self.db.query(UserSession).filter(
+        """Get a session by refresh token."""
+        return self.db.query(UserSession).filter(
             UserSession.refresh_token == refresh_token,
-            UserSession.is_active,
-            UserSession.expires_at > datetime.utcnow()
+            UserSession.is_active
         ).first()
-        return session 
+
+    def update_user(self, user: User, user_in: UserUpdate) -> User:
+        """Update a user."""
+        for field, value in user_in.dict(exclude_unset=True).items():
+            setattr(user, field, value)
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        """Get a user by email."""
+        return self.db.query(User).filter(User.email == email).first()
+
+    def get_user_by_id(self, user_id: str) -> Optional[User]:
+        """Get a user by ID."""
+        return self.db.query(User).filter(User.id == user_id).first()
+
+    def get_users(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        role: Optional[Role] = None,
+    ) -> list[User]:
+        """Get users with optional filtering."""
+        query = self.db.query(User)
+        if role:
+            query = query.filter(User.role == role)
+        return query.offset(skip).limit(limit).all()
+
+    def create_tokens(self, user: User) -> dict:
+        """Create access and refresh tokens for a user."""
+        access_token = create_access_token(user.id)
+        refresh_token = create_refresh_token(user.id)
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        } 

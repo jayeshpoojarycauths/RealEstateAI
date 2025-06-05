@@ -2,14 +2,14 @@ from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field
 
-from app.shared.core.security import UserRole
+from app.shared.core.security.roles import Role
 
 class UserBase(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     is_active: Optional[bool] = True
     is_superuser: bool = False
-    role: UserRole = UserRole.VIEWER
+    role: Role = Role.VIEWER
 
 class UserCreate(UserBase):
     email: EmailStr
@@ -43,7 +43,7 @@ class UserList(BaseModel):
 class UserFilter(BaseModel):
     email: Optional[str] = None
     full_name: Optional[str] = None
-    role: Optional[UserRole] = None
+    role: Optional[Role] = None
     is_active: Optional[bool] = None
 
 class UserStats(BaseModel):

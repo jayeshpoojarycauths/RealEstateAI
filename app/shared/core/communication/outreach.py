@@ -1,32 +1,68 @@
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from app.shared.core.exceptions import ExternalServiceError
+from abc import ABC, abstractmethod
+import logging
 
 from sqlalchemy.orm import Session
 
-class MockOutreachEngine:
-    """Mock implementation of outreach engine for testing."""
-    
+logger = logging.getLogger(__name__)
+
+class OutreachEngine(ABC):
+    """
+    Abstract base class for outreach engines.
+    """
+    @abstractmethod
+    async def send_outreach(
+        self,
+        channel: str,
+        recipient: str,
+        message: str,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Send an outreach message through the specified channel.
+        
+        Args:
+            channel: The communication channel to use (e.g., 'email', 'sms', 'call')
+            recipient: The recipient's contact information
+            message: The message content to send
+            metadata: Additional metadata for the outreach
+            
+        Returns:
+            Dict containing the outreach result
+        """
+        pass
+
+class MockOutreachEngine(OutreachEngine):
+    """
+    Mock implementation of the outreach engine for testing.
+    """
     def __init__(self, db: Session):
         self.db = db
         self.outreach_history = []
 
     async def send_outreach(
         self,
-        lead_id: int,
         channel: str,
+        recipient: str,
         message: str,
-        customer_id: Optional[int] = None
+        metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Mock implementation of send_outreach."""
-        # Record the outreach attempt
+        """
+        Mock implementation that logs the outreach attempt.
+        """
+        logger.info(
+            f"Mock outreach sent - Channel: {channel}, "
+            f"Recipient: {recipient}, Message: {message}"
+        )
+        
         outreach_record = {
-            "lead_id": lead_id,
+            "status": "success",
             "channel": channel,
-            "message": message,
-            "customer_id": customer_id,
+            "recipient": recipient,
             "timestamp": datetime.utcnow().isoformat(),
-            "status": "success"
+            "metadata": metadata or {}
         }
         self.outreach_history.append(outreach_record)
         return outreach_record
@@ -131,4 +167,9 @@ class OutreachService:
         """
         return await self.engine.schedule_outreach(
             lead_id, channel, message, scheduled_time, customer_id
-        ) 
+        )
+
+__all__ = [
+    "OutreachEngine",
+    "MockOutreachEngine"
+] 

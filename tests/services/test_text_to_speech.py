@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 from pathlib import Path
 import tempfile
 import os
-from app.services.text_to_speech import TextToSpeechService
+from app.shared.core.text_to_speech import TextToSpeechService 
 from fastapi import HTTPException
 
 @pytest.fixture

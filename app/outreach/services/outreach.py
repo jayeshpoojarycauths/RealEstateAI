@@ -32,6 +32,7 @@ from app.shared.core.communication.email import send_email
 from app.shared.core.communication.sms import send_sms
 from app.lead.models.lead import Lead
 from app.shared.models.customer import Customer
+from app.shared.core.communication import CommunicationBaseService
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ class OutreachService:
         self.ai_service = AIService()
         self.email_service = EmailService()
         self.sms_service = SMSService()
+        self.communication_service = CommunicationBaseService(db)
         self.audit_logger = AuditLogger(db, customer)
         self.audit = AuditService(db)
 
@@ -61,7 +63,11 @@ class OutreachService:
                 await self._send_email(lead, message)
             
             if lead.phone:
-                await self._send_sms(lead, message)
+                # Check communication preferences
+                if lead.communication_preference == "call":
+                    await self._make_call(lead, message)
+                else:
+                    await self._send_sms(lead, message)
 
             # Log outreach
             await self._log_outreach(lead, message)
@@ -72,7 +78,7 @@ class OutreachService:
                 resource_type="lead",
                 resource_id=lead.id,
                 details={
-                    "channels": ["email" if lead.email else "sms"],
+                    "channels": ["email" if lead.email else "call" if lead.communication_preference == "call" else "sms"],
                     "message_length": len(message)
                 }
             )
@@ -208,6 +214,113 @@ class OutreachService:
                     }
                 )
                 raise
+
+    async def _make_call(self, lead: Lead, message: str, retry_count: int = 0) -> None:
+        """
+        Make a call using Twilio with text-to-speech and retry logic.
+        """
+        max_retries = settings.MAX_CALL_RETRIES
+        retry_delay = settings.CALL_RETRY_DELAY
+
+        try:
+            # Generate call-specific message if needed
+            call_message = await self._generate_call_message(lead, message)
+
+            # Make the call
+            call_result = await self.communication_service.make_call(
+                to_phone=lead.phone,
+                message=call_message,
+                voice_id=settings.DEFAULT_VOICE_ID,
+                record=True,
+                status_callback=settings.full_call_status_callback_url
+            )
+
+            # Log the call
+            await self._log_call(lead, call_result)
+
+            await self.audit_logger.log(
+                action="call_made",
+                resource_type="lead",
+                resource_id=lead.id,
+                details={
+                    "call_sid": call_result["call_sid"],
+                    "retry_count": retry_count
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Error making call to lead {lead.id}: {str(e)}")
+            
+            if retry_count < max_retries:
+                await asyncio.sleep(retry_delay)
+                await self._make_call(lead, message, retry_count + 1)
+            else:
+                await self.audit_logger.log(
+                    action="call_failed",
+                    resource_type="lead",
+                    resource_id=lead.id,
+                    details={
+                        "error": str(e),
+                        "retry_count": retry_count
+                    }
+                )
+                raise
+
+    async def _generate_call_message(self, lead: Lead, base_message: str) -> str:
+        """
+        Generate a call-specific message using GPT.
+        """
+        try:
+            call_message = await self.ai_service.generate_call_message(
+                lead_name=lead.name,
+                base_message=base_message,
+                lead_source=lead.source,
+                property_preferences=lead.property_preferences,
+                budget_range=lead.budget_range,
+                notes=lead.notes
+            )
+
+            await self.audit_logger.log(
+                action="call_message_generated",
+                resource_type="lead",
+                resource_id=lead.id,
+                details={"message_length": len(call_message)}
+            )
+
+            return call_message
+
+        except Exception as e:
+            logger.error(f"Error generating call message for lead {lead.id}: {str(e)}")
+            await self.audit_logger.log(
+                action="call_message_generation_failed",
+                resource_type="lead",
+                resource_id=lead.id,
+                details={"error": str(e)}
+            )
+            return base_message  # Fallback to base message
+
+    async def _log_call(self, lead: Lead, call_result: Dict[str, Any]) -> None:
+        """
+        Log call details in the database.
+        """
+        try:
+            call_interaction = CallInteraction(
+                interaction_id=str(uuid.uuid4()),
+                call_sid=call_result["call_sid"],
+                recording_url=call_result.get("recording_url"),
+                call_quality_metrics={},  # To be updated when call completes
+                model_metadata={
+                    "voice_id": settings.DEFAULT_VOICE_ID,
+                    "audio_url": call_result["audio_url"]
+                }
+            )
+            
+            self.db.add(call_interaction)
+            self.db.commit()
+            
+        except Exception as e:
+            logger.error(f"Error logging call for lead {lead.id}: {str(e)}")
+            self.db.rollback()
 
     async def _log_outreach(self, lead: Lead, message: str) -> None:
         """

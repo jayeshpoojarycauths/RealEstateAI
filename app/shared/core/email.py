@@ -242,11 +242,52 @@ async def send_mfa_code_email(
             }
         )
 
+async def send_email(
+    to_email: str,
+    subject: str,
+    body: str,
+    html_content: Optional[str] = None,
+    template_name: Optional[str] = None,
+    template_data: Optional[Dict[str, Any]] = None
+) -> None:
+    """
+    Generic email sending function that uses the appropriate email service based on configuration.
+    
+    Args:
+        to_email: Recipient email address
+        subject: Email subject
+        body: Plain text email body
+        html_content: Optional HTML email content
+        template_name: Optional template name to use
+        template_data: Optional data for template rendering
+    """
+    if settings.USE_SENDGRID:
+        await send_email_sendgrid(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content or body
+        )
+    elif template_name and template_data:
+        await send_email_fastmail(
+            email_to=to_email,
+            subject=subject,
+            template_name=template_name,
+            template_data=template_data
+        )
+    else:
+        send_email_smtp(
+            to_emails=[to_email],
+            subject=subject,
+            body=body,
+            html_body=html_content
+        )
+
 __all__ = [
     'send_email_smtp',
     'send_email_fastmail',
     'send_email_sendgrid',
     'send_verification_email',
     'send_password_reset_email',
-    'send_mfa_code_email'
+    'send_mfa_code_email',
+    'send_email'
 ] 

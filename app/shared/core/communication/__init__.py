@@ -10,6 +10,7 @@ from app.shared.core.communication.sms import (
     send_password_reset_sms
 )
 from app.shared.core.communication.messages import (
+    MessageType,
     MessageCode,
     Messages,
     get_message
@@ -27,6 +28,7 @@ __all__ = [
     'send_sms',
     'send_verification_sms',
     'send_password_reset_sms',
+    'MessageType',
     'MessageCode',
     'Messages',
     'get_message',

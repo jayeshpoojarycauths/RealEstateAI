@@ -246,4 +246,24 @@ class Messages:
             Formatted message string
         """
         message = cls.get_message(code, **kwargs)
-        return f"{message['message']}: {message['details']}" 
+        return f"{message['message']}: {message['details']}"
+
+def get_message(code: str, **kwargs) -> str:
+    """
+    Get a message by its code and format it with the provided parameters.
+    
+    Args:
+        code: The message code to retrieve
+        **kwargs: Parameters to format the message with
+        
+    Returns:
+        The formatted message string
+    """
+    return Messages.get_message(code, **kwargs)
+
+__all__ = [
+    'MessageType',
+    'MessageCode',
+    'Messages',
+    'get_message'
+] 

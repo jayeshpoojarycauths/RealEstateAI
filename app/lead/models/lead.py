@@ -16,23 +16,21 @@ class ActivityType(str, enum.Enum):
     ASSIGNMENT = "assignment"
     OTHER = "other"
 
+class LeadSource(str, enum.Enum):
+    WEBSITE = "website"
+    REFERRAL = "referral"
+    SOCIAL = "social"
+    DIRECT = "direct"
+    OTHER = "other"
+
 class LeadStatus(str, enum.Enum):
     NEW = "new"
     CONTACTED = "contacted"
     QUALIFIED = "qualified"
     PROPOSAL = "proposal"
     NEGOTIATION = "negotiation"
-    CLOSED_WON = "closed_won"
-    CLOSED_LOST = "closed_lost"
-    INACTIVE = "inactive"
-
-class LeadSource(str, enum.Enum):
-    WEBSITE = "website"
-    REFERRAL = "referral"
-    SOCIAL_MEDIA = "social_media"
-    COLD_CALL = "cold_call"
-    EVENT = "event"
-    OTHER = "other"
+    CLOSED = "closed"
+    LOST = "lost"
 
 class Lead(BaseModel):
     __tablename__ = "leads"
@@ -80,7 +78,7 @@ class Lead(BaseModel):
     outreach_logs = relationship("OutreachLog", back_populates="lead")
 
     def __repr__(self):
-        return f"<Lead(id={self.id}, name={self.name}, status={self.status})>"
+        return f"<Lead {self.name}>"
 
 class LeadScore(BaseModel):
     __tablename__ = "lead_scores"

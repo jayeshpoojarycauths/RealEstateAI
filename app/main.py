@@ -4,7 +4,7 @@ from app.shared.core.config import settings
 from app.shared.api.router import api_router
 from app.shared.core.logging import logger, log_request, log_error
 from app.shared.core.exceptions import register_exception_handlers
-from app.shared.core.messages import MessageCode
+from app.shared.core.communication.messages import MessageCode
 from app.scraping.tasks.scheduler import start_scheduler, shutdown_scheduler
 import time
 import uuid

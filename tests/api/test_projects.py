@@ -3,11 +3,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.main import app
-from app.shared.core.security import create_access_token, UserRole
+from app.shared.core.security import create_access_token
+from app.shared.core.security.roles import Role
 from app.shared.core.exceptions import NotFoundException
 from app.shared.core.pagination import PaginationParams
 from app.project.models import Project
 from app.project.schemas import ProjectType, ProjectStatus
+from app.shared.models.user import User
 
 @pytest.fixture
 def client():
@@ -16,25 +18,25 @@ def client():
 @pytest.fixture
 def admin_token():
     return create_access_token(
-        data={"sub": "admin@example.com", "roles": [UserRole.ADMIN]}
+        data={"sub": "admin@example.com", "roles": [Role.ADMIN]}
     )
 
 @pytest.fixture
 def manager_token():
     return create_access_token(
-        data={"sub": "manager@example.com", "roles": [UserRole.MANAGER]}
+        data={"sub": "manager@example.com", "roles": [Role.MANAGER]}
     )
 
 @pytest.fixture
 def agent_token():
     return create_access_token(
-        data={"sub": "agent@example.com", "roles": [UserRole.AGENT]}
+        data={"sub": "agent@example.com", "roles": [Role.AGENT]}
     )
 
 @pytest.fixture
 def viewer_token():
     return create_access_token(
-        data={"sub": "viewer@example.com", "roles": [UserRole.VIEWER]}
+        data={"sub": "viewer@example.com", "roles": [Role.VIEWER]}
     )
 
 @pytest.fixture
@@ -182,4 +184,54 @@ class TestProjectEndpoints:
             json=invalid_data,
             headers={"Authorization": f"Bearer {manager_token}"}
         )
-        assert response.status_code == 422 
+        assert response.status_code == 422
+
+def test_create_project_admin(client: TestClient, db: Session):
+    """Test creating a project as admin."""
+    token = create_access_token(
+        data={"sub": "admin@example.com", "roles": [Role.ADMIN]}
+    )
+    response = client.post(
+        "/api/v1/projects/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "Test Project", "description": "Test Description"}
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == "Test Project"
+
+def test_create_project_manager(client: TestClient, db: Session):
+    """Test creating a project as manager."""
+    token = create_access_token(
+        data={"sub": "manager@example.com", "roles": [Role.MANAGER]}
+    )
+    response = client.post(
+        "/api/v1/projects/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "Test Project", "description": "Test Description"}
+    )
+    assert response.status_code == 200
+    assert response.json()["name"] == "Test Project"
+
+def test_create_project_agent(client: TestClient, db: Session):
+    """Test creating a project as agent."""
+    token = create_access_token(
+        data={"sub": "agent@example.com", "roles": [Role.AGENT]}
+    )
+    response = client.post(
+        "/api/v1/projects/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "Test Project", "description": "Test Description"}
+    )
+    assert response.status_code == 403
+
+def test_create_project_viewer(client: TestClient, db: Session):
+    """Test creating a project as viewer."""
+    token = create_access_token(
+        data={"sub": "viewer@example.com", "roles": [Role.VIEWER]}
+    )
+    response = client.post(
+        "/api/v1/projects/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "Test Project", "description": "Test Description"}
+    )
+    assert response.status_code == 403 

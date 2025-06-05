@@ -5,6 +5,9 @@ import enum
 from datetime import datetime
 import uuid
 
+from app.shared.db.base_class import Base
+from app.shared.core.security.roles import Role
+
 # Association tables
 user_roles = Table(
     'user_roles',
@@ -20,27 +23,27 @@ role_permissions = Table(
     Column('permission_id', Integer, ForeignKey('permissions.id'), primary_key=True)
 )
 
-class UserRole(str, enum.Enum):
-    ADMIN = "admin"
-    MANAGER = "manager"
-    AGENT = "agent"
-    CUSTOMER = "customer"
-
-class User(BaseModel):
+class User(Base):
     """User model for authentication and authorization."""
     __tablename__ = "users"
     __table_args__ = {'extend_existing': True}
 
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    id = Column(String, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
     full_name = Column(String)
-    role = Column(Enum(UserRole))
-    is_active = Column(Boolean, default=True)
+    role = Column(Enum(Role), nullable=False, default=Role.CUSTOMER)
+    is_active = Column(Boolean(), default=True)
+    is_superuser = Column(Boolean(), default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     customer_id = Column(String(36), ForeignKey('customers.id'))
     last_login = Column(DateTime)
     model_metadata = Column(JSON)  # Additional user metadata
     
     # Relationships
+    tenant_id = Column(String, ForeignKey("tenants.id"))
+    tenant = relationship("Tenant", back_populates="users")
     customer = relationship("Customer", back_populates="users")
     roles = relationship("Role", secondary="user_roles", back_populates="users")
     audit_logs = relationship("AuditLog", back_populates="user")
@@ -51,6 +54,9 @@ class User(BaseModel):
     login_attempts = relationship("LoginAttempt", back_populates="user")
     password_resets = relationship("PasswordReset", back_populates="user")
     sessions = relationship("UserSession", back_populates="user")
+
+    def __repr__(self):
+        return f"<User {self.email}>"
 
 class Role(BaseModel):
     """Role model for role-based access control."""

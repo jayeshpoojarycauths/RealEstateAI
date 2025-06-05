@@ -1,24 +1,24 @@
 from typing import Generator, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from app.shared.db.session import SessionLocal
-from app.shared.core.config import settings
-from app.shared.core.security import get_current_user
-from app.shared.core.exceptions import AuthenticationError, AuthorizationError
-from app.shared.core.security.roles import Role
-from app.shared.schemas.token import TokenPayload
+from jose import JWTError, jwt
 from pydantic import ValidationError
-from app.shared.models.user import User
-from app.shared.models.customer import Customer
 
+from app.shared.core.config import settings
+from app.shared.core.exceptions import AuthenticationException, AuthorizationException
+from app.shared.core.security import decode_access_token
+from app.shared.models.user import User
+from app.shared.core.tenant import get_customer_id
+from app.shared.models.customer import Customer
+from app.shared.db.session import SessionLocal, get_db
+from app.shared.schemas.token import TokenPayload
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: Session = Depends(SessionLocal)
+    db: Session = Depends(get_db)
 ) -> User:
     """Get current user from JWT token."""
     try:
@@ -27,11 +27,11 @@ async def get_current_user(
         )
         token_data = TokenPayload(**payload)
     except (JWTError, ValidationError):
-        raise AuthenticationError("Could not validate credentials")
+        raise AuthenticationException("Could not validate credentials")
 
     user = db.query(User).filter(User.id == token_data.sub).first()
     if not user:
-        raise AuthenticationError("User not found")
+        raise AuthenticationException("User not found")
     return user
 
 async def get_current_active_user(
@@ -39,7 +39,7 @@ async def get_current_active_user(
 ) -> User:
     """Get current active user."""
     if not current_user.is_active:
-        raise AuthorizationError("Inactive user")
+        raise AuthorizationException("Inactive user")
     return current_user
 
 async def get_current_superuser(
@@ -47,17 +47,17 @@ async def get_current_superuser(
 ) -> User:
     """Get current superuser."""
     if not current_user.is_superuser:
-        raise AuthorizationError("Not enough permissions")
+        raise AuthorizationException("Not enough permissions")
     return current_user
 
 async def get_current_customer(
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(SessionLocal)
+    db: Session = Depends(get_db)
 ) -> Customer:
     """Get current customer from user."""
     customer = db.query(Customer).filter(Customer.id == current_user.customer_id).first()
     if not customer:
-        raise AuthenticationError("Customer not found")
+        raise AuthenticationException("Customer not found")
     return customer
 
 async def get_current_active_customer(
@@ -65,7 +65,7 @@ async def get_current_active_customer(
 ) -> Customer:
     """Get current active customer."""
     if not current_customer.is_active:
-        raise AuthorizationError("Inactive customer")
+        raise AuthorizationException("Inactive customer")
     return current_customer
 
 def get_current_tenant(

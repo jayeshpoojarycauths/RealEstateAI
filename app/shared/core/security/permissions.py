@@ -6,11 +6,8 @@ from sqlalchemy.orm import Session
 from app.shared.core.exceptions import AuthorizationException, PermissionDenied
 from app.shared.models.user import User
 from app.shared.db.session import get_db
-from app.shared.core.security import get_current_user
-from app.shared.core.security.rbac import UserRole
+from app.shared.core.security.roles import Role
 from app.shared.core.communication.messages import Messages
-from app.shared.core.infrastructure.deps import get_current_user
-from app.shared.core.security.roles import UserRole
 
 class Permission(str, Enum):
     """System permissions."""
@@ -37,8 +34,8 @@ class Permission(str, Enum):
     VIEW_AUDIT_LOGS = "view_audit_logs"
 
 # Role-Permission mapping
-ROLE_PERMISSIONS: Dict[UserRole, Set[Permission]] = {
-    UserRole.ADMIN: {
+ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
+    Role.ADMIN: {
         Permission.CREATE_USER,
         Permission.READ_USER,
         Permission.UPDATE_USER,
@@ -54,7 +51,7 @@ ROLE_PERMISSIONS: Dict[UserRole, Set[Permission]] = {
         Permission.MANAGE_SYSTEM,
         Permission.VIEW_AUDIT_LOGS,
     },
-    UserRole.MANAGER: {
+    Role.MANAGER: {
         Permission.READ_USER,
         Permission.CREATE_PROPERTY,
         Permission.READ_PROPERTY,
@@ -64,72 +61,52 @@ ROLE_PERMISSIONS: Dict[UserRole, Set[Permission]] = {
         Permission.READ_CUSTOMER,
         Permission.UPDATE_CUSTOMER,
     },
-    UserRole.AGENT: {
+    Role.AGENT: {
         Permission.READ_PROPERTY,
         Permission.CREATE_CUSTOMER,
         Permission.READ_CUSTOMER,
         Permission.UPDATE_CUSTOMER,
     },
-    UserRole.CUSTOMER: {
+    Role.CUSTOMER: {
         Permission.READ_PROPERTY,
         Permission.READ_CUSTOMER,
     },
 }
 
-class PermissionService:
-    """Service for managing permissions and role-based access control."""
+def get_user_permissions(user: User) -> List[str]:
+    """Get list of permissions for a user based on their role."""
+    role_permissions = {
+        Role.ADMIN: [
+            "manage_users",
+            "manage_roles",
+            "manage_permissions",
+            "view_analytics",
+            "manage_settings"
+        ],
+        Role.MANAGER: [
+            "manage_team",
+            "view_analytics",
+            "manage_settings"
+        ],
+        Role.AGENT: [
+            "manage_leads",
+            "view_analytics"
+        ],
+        Role.VIEWER: [
+            "view_leads",
+            "view_analytics"
+        ],
+        Role.CUSTOMER: [
+            "view_own_data",
+            "manage_own_profile"
+        ]
+    }
     
-    @staticmethod
-    def get_role_permissions(role: UserRole) -> Set[Permission]:
-        """Get permissions for a given role."""
-        return ROLE_PERMISSIONS.get(role, set())
-    
-    @staticmethod
-    def has_permission(role: UserRole, permission: Permission) -> bool:
-        """Check if a role has a specific permission."""
-        return permission in ROLE_PERMISSIONS.get(role, set())
-    
-    @staticmethod
-    def require_permission(permission: Permission):
-        """Dependency for requiring a specific permission."""
-        def dependency(current_user = Depends(get_current_user)):
-            if not PermissionService.has_permission(current_user.role, permission):
-                raise PermissionDenied(
-                    message_code=MessageCode.AUTH_INSUFFICIENT_PERMISSIONS,
-                    details=f"Required permission: {permission}"
-                )
-            return current_user
-        return dependency
-    
-    @staticmethod
-    def require_roles(*roles: UserRole):
-        """Dependency for requiring specific roles."""
-        def dependency(current_user = Depends(get_current_user)):
-            if current_user.role not in roles:
-                raise PermissionDenied(
-                    message_code=MessageCode.AUTH_INSUFFICIENT_PERMISSIONS,
-                    details=f"Required roles: {', '.join(role.value for role in roles)}"
-                )
-            return current_user
-        return dependency
-
-# Create permission service instance
-permission_service = PermissionService()
-
-# Export commonly used dependencies
-require_admin = permission_service.require_roles(UserRole.ADMIN)
-require_manager = permission_service.require_roles(UserRole.ADMIN, UserRole.MANAGER)
-require_agent = permission_service.require_roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.AGENT)
-
-# Export permission-based dependencies
-require_user_management = permission_service.require_permission(Permission.CREATE_USER)
-require_property_management = permission_service.require_permission(Permission.CREATE_PROPERTY)
-require_customer_management = permission_service.require_permission(Permission.CREATE_CUSTOMER)
-require_system_management = permission_service.require_permission(Permission.MANAGE_SYSTEM)
+    return role_permissions.get(user.role, [])
 
 def check_permission(
     required_permission: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User
 ) -> bool:
     """Check if user has required permission."""
     if not current_user.is_active:
@@ -146,7 +123,7 @@ def check_permission(
 
 def has_permission(
     required_permission: str,
-    current_user: User = Depends(get_current_user)
+    current_user: User
 ) -> bool:
     """Check if user has required permission without raising exception."""
     if not current_user.is_active:
@@ -158,33 +135,51 @@ def has_permission(
     user_permissions = get_user_permissions(current_user)
     return required_permission in user_permissions
 
-def get_user_permissions(user: User) -> List[str]:
-    """Get list of permissions for a user based on their role."""
-    role_permissions = {
-        UserRole.ADMIN: [
-            "manage_users",
-            "manage_roles",
-            "manage_permissions",
-            "view_analytics",
-            "manage_settings"
-        ],
-        UserRole.MANAGER: [
-            "manage_team",
-            "view_analytics",
-            "manage_settings"
-        ],
-        UserRole.AGENT: [
-            "manage_leads",
-            "view_analytics"
-        ],
-        UserRole.VIEWER: [
-            "view_leads",
-            "view_analytics"
-        ],
-        UserRole.CUSTOMER: [
-            "view_own_data",
-            "manage_own_profile"
-        ]
-    }
+class PermissionService:
+    """Service for managing permissions and role-based access control."""
     
-    return role_permissions.get(user.role, []) 
+    @staticmethod
+    def get_role_permissions(role: Role) -> Set[Permission]:
+        """Get permissions for a given role."""
+        return ROLE_PERMISSIONS.get(role, set())
+    
+    @staticmethod
+    def has_permission(role: Role, permission: Permission) -> bool:
+        """Check if a role has a specific permission."""
+        return permission in ROLE_PERMISSIONS.get(role, set())
+    
+    @staticmethod
+    def require_permission(permission: Permission):
+        """Dependency for requiring a specific permission."""
+        def dependency(current_user: User):
+            if not PermissionService.has_permission(current_user.role, permission):
+                raise PermissionDenied(
+                    detail=f"Required permission: {permission}"
+                )
+            return current_user
+        return dependency
+    
+    @staticmethod
+    def require_roles(*roles: Role):
+        """Dependency for requiring specific roles."""
+        def dependency(current_user: User):
+            if current_user.role not in roles:
+                raise PermissionDenied(
+                    detail=f"Required roles: {', '.join(role.value for role in roles)}"
+                )
+            return current_user
+        return dependency
+
+# Create permission service instance
+permission_service = PermissionService()
+
+# Export commonly used dependencies
+require_admin = permission_service.require_roles(Role.ADMIN)
+require_manager = permission_service.require_roles(Role.ADMIN, Role.MANAGER)
+require_agent = permission_service.require_roles(Role.ADMIN, Role.MANAGER, Role.AGENT)
+
+# Export permission-based dependencies
+require_user_management = permission_service.require_permission(Permission.CREATE_USER)
+require_property_management = permission_service.require_permission(Permission.CREATE_PROPERTY)
+require_customer_management = permission_service.require_permission(Permission.CREATE_CUSTOMER)
+require_system_management = permission_service.require_permission(Permission.MANAGE_SYSTEM) 

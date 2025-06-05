@@ -134,6 +134,21 @@ class Settings(BaseSettings):
     # Encryption
     ENCRYPTION_KEY: str
 
+    # Call Settings
+    DEFAULT_VOICE_ID: str = "21m00Tcm4TlvDq8ikWAM"  # Default ElevenLabs voice ID
+    MAX_CALL_RETRIES: int = 3
+    CALL_RETRY_DELAY: int = 60  # seconds
+    CALL_RECORDING_ENABLED: bool = True
+    CALL_STATUS_CALLBACK_URL: str = "/outreach/call-status"  # Will be combined with API_BASE_URL in property
+
+    # Twilio Call Settings
+    TWILIO_CALL_TIMEOUT: int = 30  # seconds
+    TWILIO_CALL_MACHINE_DETECTION: str = "DetectMessageEnd"
+    TWILIO_CALL_MACHINE_DETECTION_TIMEOUT: int = 30  # seconds
+    TWILIO_CALL_MACHINE_DETECTION_SPEECH_THRESHOLD: int = 3000  # milliseconds
+    TWILIO_CALL_MACHINE_DETECTION_SPEECH_END_THRESHOLD: int = 1000  # milliseconds
+    TWILIO_CALL_MACHINE_DETECTION_SILENCE_TIMEOUT: int = 1000  # milliseconds
+
     @property
     def get_database_url(self) -> str:
         if self.SQLALCHEMY_DATABASE_URI:
@@ -157,6 +172,11 @@ class Settings(BaseSettings):
         elif isinstance(v, (list, str)):
             return v
         raise ValueError(v)
+
+    @property
+    def full_call_status_callback_url(self) -> str:
+        """Get the full call status callback URL."""
+        return f"{self.API_BASE_URL}{self.CALL_STATUS_CALLBACK_URL}"
 
     class Config:
         case_sensitive = True
