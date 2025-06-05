@@ -1,20 +1,49 @@
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from jose import jwt, JWTError
 
 from app.shared.core.config import settings
 from app.shared.models.user import User
 from app.shared.core.exceptions import AuthenticationException, AuthorizationException
 from app.shared.db.session import get_db
 from app.shared.schemas.token import TokenPayload
-from app.shared.core.auth import (
-    get_current_user,
-    get_current_active_user,
-    get_current_superuser
-)
+from app.shared.core.security.security import verify_password
 from app.shared.core.security.roles import Role
 from app.shared.models.customer import Customer
-from app.shared.core.security.security import verify_password
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> User:
+    """Get current user from token."""
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
+        token_data = TokenPayload(**payload)
+    except (JWTError, ValidationError):
+        raise AuthenticationException("Could not validate credentials")
+    user = db.query(User).filter(User.id == token_data.sub).first()
+    if not user:
+        raise AuthenticationException("User not found")
+    return user
+
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """Get current active user."""
+    if not current_user.is_active:
+        raise AuthorizationException("Inactive user")
+    return current_user
+
+async def get_current_superuser(
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    """Get current superuser."""
+    if not current_user.is_superuser:
+        raise AuthorizationException("Not enough permissions")
+    return current_user
 
 def authenticate_user(
     db: Session,
@@ -72,6 +101,9 @@ __all__ = [
     'get_current_user',
     'get_current_active_user',
     'get_current_superuser',
+    'get_current_customer',
+    'get_current_active_customer',
+    'get_current_tenant',
     'Role',
     'TokenPayload'
 ] 

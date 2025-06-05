@@ -1,8 +1,8 @@
 from typing import Generator
 from fastapi import Depends
 from sqlalchemy.orm import Session
-from app.shared.core.dependencies import (
-    get_db,
+from app.shared.db.session import get_db
+from app.shared.core.security.auth import (
     get_current_user,
     get_current_active_user,
     get_current_superuser,

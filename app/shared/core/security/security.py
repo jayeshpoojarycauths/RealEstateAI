@@ -9,17 +9,10 @@ from fastapi.security import OAuth2PasswordBearer
 from app.shared.models.user import User
 from app.shared.models.customer import Customer
 from app.shared.core.security.password_utils import verify_password, get_password_hash
-from app.shared.core.constants import ALGORITHM
-from app.shared.api.deps import deps
+from app.shared.core.constants import JWT_ALGORITHM
 from sqlalchemy.orm import Session
 import uuid
 import asyncio
-
-# Import security functions from shared core
-from app.shared.core.security import (
-    create_access_token,
-    verify_jwt_token
-)
 
 # Security constants
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
@@ -51,7 +44,7 @@ def create_refresh_token(
         )
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
     encoded_jwt = jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM
     )
     return encoded_jwt
 
@@ -79,7 +72,7 @@ def generate_verification_token(
         "type": "email_verification"
     }
     encoded_jwt = jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM
     )
     return encoded_jwt
 
@@ -107,7 +100,7 @@ def generate_password_reset_token(
         "type": "password_reset"
     }
     encoded_jwt = jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM
     )
     return encoded_jwt
 
@@ -116,22 +109,6 @@ class UserRole:
     MANAGER = "manager"
     AGENT = "agent"
     VIEWER = "viewer"
-
-def get_current_customer(
-    current_user: User = Depends(deps.get_current_active_user),
-    db: Session = Depends(deps.get_db)
-) -> Customer:
-    """Get current customer from user."""
-    customer = db.query(Customer).filter(Customer.id == current_user.customer_id).first()
-    if not customer:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found"
-        )
-    return customer
-
-# Alias for backward compatibility
-get_current_tenant = get_current_customer
 
 def require_role(roles: List[str]):
     """Decorator to require specific role(s) for an endpoint."""

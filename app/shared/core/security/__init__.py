@@ -1,8 +1,11 @@
 from app.shared.core.security.auth import (
     authenticate_user,
-    create_access_token,
     get_current_user,
-    get_current_active_user
+    get_current_active_user,
+    get_current_superuser,
+    get_current_customer,
+    get_current_active_customer,
+    get_current_tenant
 )
 from app.shared.core.security.security import (
     verify_password,
@@ -15,11 +18,15 @@ from app.shared.core.security.permissions import Permission, check_permission
 
 __all__ = [
     'authenticate_user',
-    'create_access_token',
     'get_current_user',
     'get_current_active_user',
+    'get_current_superuser',
+    'get_current_customer',
+    'get_current_active_customer',
+    'get_current_tenant',
     'verify_password',
     'get_password_hash',
+    'create_access_token',
     'decode_access_token',
     'Role',
     'UserRole',
