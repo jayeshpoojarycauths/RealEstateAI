@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, case, and_, or_
 from datetime import datetime, timedelta
 from app.lead.models.lead import Lead
-from app.shared.models.project import RealEstateProject, Project
+from app.project.models.project import RealEstateProject
 from app.shared.models.interaction import InteractionLog
 from app.shared.models.customer import Customer
 from app.analytics.schemas.analytics import (

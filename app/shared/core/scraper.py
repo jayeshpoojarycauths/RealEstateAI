@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
-from app.shared.models.project import RealEstateProject
+from app.project.models.project import RealEstateProject
 import logging
 from uuid import UUID
 

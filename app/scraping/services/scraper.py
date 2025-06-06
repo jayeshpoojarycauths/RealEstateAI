@@ -33,7 +33,6 @@ from app.scraping.models.scraping import (
     ScrapingStatus
 )
 from app.shared.core.exceptions import NotFoundError, ValidationError
-from app.scraping.services.scheduler import ScrapingScheduler
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -324,7 +323,15 @@ class ScraperService:
             ScrapingSource.MAGICBRICKS: MagicBricksScraper,
             # Add other scrapers here as they are implemented
         }
-        self.scheduler = ScrapingScheduler(db)
+        self._scheduler = None  # Lazy initialization
+
+    @property
+    def scheduler(self):
+        """Lazy initialization of scheduler."""
+        if self._scheduler is None:
+            from app.scraping.services.scheduler import ScrapingScheduler
+            self._scheduler = ScrapingScheduler(self.db)
+        return self._scheduler
 
     async def create_config(self, config_data: Dict[str, Any], customer_id: str) -> ScrapingConfig:
         """Create a new scraping configuration."""

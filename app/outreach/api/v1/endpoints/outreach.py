@@ -7,7 +7,7 @@ from io import BytesIO
 
 from app.shared.models.user import User
 from app.shared.db.session import get_db
-from app.shared.core.security.security import get_current_customer
+from app.shared.core.security.auth import get_current_customer
 from app.lead.models import Lead
 from app.shared.models.customer import Customer
 from app.outreach.models.outreach import OutreachLog
@@ -15,7 +15,7 @@ from app.outreach.models.outreach import OutreachLog
 from app.shared.core.communication import OutreachEngine
 from app.shared.core.auth import get_current_user
 from app.outreach.schemas.outreach import (
-    OutreachCreate, OutreachResponse, OutreachFilter,
+    OutreachCreate, Outreach, OutreachFilter,
     OutreachStats, OutreachAnalytics, OutreachRequest, OutreachLogResponse, LeadUpload, OutreachChannel, OutreachStatus,
     InteractionLogCreate, InteractionLogResponse,
     OutreachUpdate, OutreachTemplate, OutreachTemplateCreate, OutreachTemplateUpdate,
@@ -146,7 +146,7 @@ async def initiate_bulk_outreach(
         "results": results
     }
 
-@router.post("/leads/{lead_id}", response_model=OutreachResponse)
+@router.post("/leads/{lead_id}", response_model=Outreach)
 @require_role([UserRole.ADMIN, UserRole.AGENT])
 async def trigger_outreach(
     lead_id: int,
@@ -215,7 +215,7 @@ async def trigger_outreach(
 
         db.commit()
 
-        return OutreachResponse(
+        return Outreach(
             id=outreach.id,
             lead_id=lead_id,
             channel=outreach.channel,
@@ -232,7 +232,7 @@ async def trigger_outreach(
             detail=str(e)
         )
 
-@router.get("/", response_model=List[OutreachResponse])
+@router.get("/", response_model=List[Outreach])
 async def list_outreach(
     pagination: PaginationParams = Depends(get_pagination_params),
     filters: OutreachFilter = Depends(),
@@ -250,7 +250,7 @@ async def list_outreach(
     )
     return outreach_list
 
-@router.get("/leads/{lead_id}", response_model=List[OutreachResponse])
+@router.get("/leads/{lead_id}", response_model=List[Outreach])
 async def get_lead_outreach(
     lead_id: int,
     db: Session = Depends(get_db),
@@ -368,7 +368,7 @@ async def get_outreach_analytics(
             detail=f"Error calculating analytics: {str(e)}"
         )
 
-@router.post("/leads/{lead_id}/schedule", response_model=OutreachResponse)
+@router.post("/leads/{lead_id}/schedule", response_model=Outreach)
 async def schedule_outreach(
     lead_id: int,
     outreach: OutreachCreate,

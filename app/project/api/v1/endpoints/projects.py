@@ -10,7 +10,8 @@ from app.shared.core.security import (
     manager_required,
     agent_required,
     viewer_required,
-    admin_required
+    admin_required,
+    get_current_customer
 )
 from app.shared.core.exceptions import (
     NotFoundException,
@@ -37,7 +38,9 @@ from app.shared.schemas.project import (
     ProjectImageCreate,
     ProjectAmenity,
     ProjectAmenityCreate,
-    ProjectLead,
+    ProjectLead
+)
+from app.project.schemas.project import (
     RealEstateProjectCreate,
     RealEstateProjectUpdate,
     RealEstateProjectList,
@@ -47,6 +50,7 @@ from app.project.services.project import ProjectService
 from app.shared.core.scraper import MagicBricksScraper, NinetyNineAcresScraper 
 from app.shared.core.exceptions import ValidationError, NotFoundError
 from app.shared.db.session import get_db
+from app.shared.core.pagination import PaginationParams
 
 router = APIRouter(
     prefix="/projects",
@@ -147,14 +151,14 @@ async def list_projects(
     )
     return ProjectList(items=projects, total=total)
 
-@router.post("/", response_model=Project)
+@router.post("/", response_model=ProjectResponse)
 async def create_project(
     *,
     db: Session = Depends(get_db),
     project_in: ProjectCreate,
     current_customer: Customer = Depends(get_current_customer),
     current_user: User = Depends(get_current_user)
-) -> Project:
+) -> ProjectResponse:
     """Create a new project."""
     project_service = ProjectService(db)
     try:
@@ -169,13 +173,13 @@ async def create_project(
             detail=str(e)
         )
 
-@router.get("/{project_id}", response_model=Project)
+@router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project(
     *,
     db: Session = Depends(get_db),
     project_id: UUID = Path(...),
     current_customer: Customer = Depends(get_current_customer)
-) -> Project:
+) -> ProjectResponse:
     """Get a specific project."""
     project_service = ProjectService(db)
     try:
@@ -190,14 +194,14 @@ async def get_project(
             detail=str(e)
         )
 
-@router.put("/{project_id}", response_model=Project)
+@router.put("/{project_id}", response_model=ProjectResponse)
 async def update_project(
     *,
     db: Session = Depends(get_db),
     project_id: UUID = Path(...),
     project_in: ProjectUpdate,
     current_customer: Customer = Depends(get_current_customer)
-) -> Project:
+) -> ProjectResponse:
     """Update a project."""
     project_service = ProjectService(db)
     try:

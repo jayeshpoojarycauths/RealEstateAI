@@ -6,7 +6,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.executors.pool import ThreadPoolExecutor
-from app.scraping.services.scraper import ScraperService
 from app.scraping.models.scraping import ScrapingConfig, ScrapingStatus
 from app.shared.core.config import settings
 import asyncio
@@ -18,7 +17,6 @@ class ScrapingScheduler:
 
     def __init__(self, db: Session):
         self.db = db
-        self.scraper_service = ScraperService(db)
         
         # Configure job stores
         jobstores = {
@@ -90,6 +88,8 @@ class ScrapingScheduler:
     async def _run_config_jobs(self, config_id: str):
         """Run all scraping jobs for a configuration."""
         try:
+            from app.scraping.services.scraper import ScraperService
+            scraper_service = ScraperService(self.db)
             config = await asyncio.to_thread(
                 lambda: self.db.query(ScrapingConfig).filter(
                     ScrapingConfig.id == config_id
@@ -108,7 +108,7 @@ class ScrapingScheduler:
                 for location in config.locations:
                     for property_type in config.property_types:
                         try:
-                            await self.scraper_service.run_scraping_job(
+                            await scraper_service.run_scraping_job(
                                 config.id,
                                 source,
                                 location,

@@ -25,7 +25,6 @@ class Project(Base):
 
     # Relationships
     customer = relationship("Customer", back_populates="projects")
-    leads = relationship("Lead", secondary="project_leads", back_populates="projects")
 
     # Location fields
     address = Column(String(200), nullable=False)
@@ -44,18 +43,6 @@ class Project(Base):
     features = relationship("PropertyFeature", back_populates="project", cascade="all, delete-orphan")
     images = relationship("PropertyImage", back_populates="project", cascade="all, delete-orphan")
     amenities = relationship("PropertyAmenity", back_populates="project", cascade="all, delete-orphan")
-
-class ProjectLead(Base):
-    __tablename__ = "project_leads"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
-    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id"), nullable=False)
-    assigned_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    project = relationship("Project", back_populates="project_leads")
-    lead = relationship("Lead", back_populates="project_leads")
 
 class PropertyFeature(Base):
     __tablename__ = "property_features"

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import random
 import asyncio
 from sqlalchemy.orm import Session
-from app.shared.models.lead import Lead
+from app.lead.models.lead import Lead
 from app.outreach.models.outreach import Outreach, CommunicationPreference
 from app.shared.core.exceptions import ServiceUnavailableException
 

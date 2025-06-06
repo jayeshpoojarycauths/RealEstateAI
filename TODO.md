@@ -15,3 +15,4 @@
 - [ ] Integrate lead sourcing from Google Maps Places API
 - [ ] Implement ProjectListResponse schema in app/shared/schemas/project.py 
 - [ ] Implement RealEstateProjectList schema in app/project/schemas/project.py 
+- [ ] Change the return type of assign_lead to ProjectLeadResponse (if you have a response schema) in app/project/services/project.py

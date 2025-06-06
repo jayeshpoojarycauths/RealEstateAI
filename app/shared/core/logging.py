@@ -7,7 +7,7 @@ from app.shared.core.infrastructure.logging import (
     logger,
     log_request,
     log_error,
-    setup_logging,
+    setup_logger,
     get_logger
 )
 

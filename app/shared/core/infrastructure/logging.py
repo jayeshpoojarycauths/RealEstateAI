@@ -410,4 +410,8 @@ def schedule_log_archival() -> None:
                 logger.error(f"Error archiving logs: {e}")
             await asyncio.sleep(24 * 60 * 60)  # Run daily
     
-    asyncio.create_task(_archive_logs()) 
+    asyncio.create_task(_archive_logs())
+
+def get_logger(name: str = None):
+    """Get a logger instance by name."""
+    return logging.getLogger(name) 

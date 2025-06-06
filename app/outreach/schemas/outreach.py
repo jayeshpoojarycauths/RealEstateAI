@@ -143,6 +143,23 @@ class OutreachLog(BaseModel):
     class Config:
         from_attributes = True
 
+class OutreachLogResponse(BaseModel):
+    id: UUID
+    lead_id: UUID
+    customer_id: UUID
+    channel: OutreachChannel
+    status: OutreachStatus
+    message: str
+    sent_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+    retry_count: int = 0
+    last_retry_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
 # --- List Schemas ---
 class OutreachList(BaseModel):
     """Schema for paginated outreach list responses."""

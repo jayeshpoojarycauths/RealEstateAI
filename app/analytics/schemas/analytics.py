@@ -258,4 +258,41 @@ class LeadStatusStats(BaseModel):
     lead_stats: LeadActivityStats
     agent_stats: AgentPerformanceStats
     interaction_stats: InteractionStats
-    timestamp: datetime 
+    timestamp: datetime
+
+class AnalyticsFilter(BaseModel):
+    """Filter parameters for analytics queries."""
+    time_range: Optional[TimeRange] = Field(default=TimeRange.LAST_30_DAYS)
+    property_type: Optional[str] = None
+    location: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    # Add more fields as needed for your analytics filtering 
+
+class LeadAnalytics(BaseModel):
+    """Schema for lead-level analytics data."""
+    lead_id: str
+    score: Optional[float] = None
+    status: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    # Add more analytics fields as needed 
+
+class OutreachAnalytics(BaseModel):
+    """Schema for outreach-level analytics data."""
+    outreach_id: str
+    channel: Optional[str] = None
+    status: Optional[str] = None
+    sent_at: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
+    response_time: Optional[float] = None
+    # Add more analytics fields as needed 
+
+class UserAnalytics(BaseModel):
+    """Schema for user-level analytics data."""
+    user_id: str
+    total_leads: Optional[int] = None
+    conversion_rate: Optional[float] = None
+    average_response_time: Optional[float] = None
+    active_projects: Optional[int] = None
+    # Add more analytics fields as needed

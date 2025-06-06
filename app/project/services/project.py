@@ -19,7 +19,6 @@ from app.project.models.project import (
     ProjectFeature,
     ProjectImage,
     ProjectAmenity,
-    ProjectLead,
     ProjectType,
     ProjectStatus
 )
@@ -271,7 +270,7 @@ class ProjectService:
         project_id: str,
         lead_in: ProjectLeadCreate,
         customer_id: str
-    ) -> ProjectLead:
+    ) -> Any:
         """Assign a lead to a project."""
         project = await self.get_project(project_id, customer_id)
         

@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.shared.db.session import get_db
-from app.scraping.services.scraper import ScraperService
 from app.scraping.schemas.scraping import (
     ScrapingConfigCreate,
     ScrapingConfigUpdate,
@@ -29,6 +28,7 @@ async def create_scraping_config(
     current_user = Depends(get_current_user)
 ):
     """Create a new scraping configuration."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     try:
         return await service.create_config(config, current_user.id)
@@ -43,6 +43,7 @@ async def list_scraping_configs(
     current_user = Depends(get_current_user)
 ):
     """List all scraping configurations for the current user."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     return await service.list_configs(current_user.id, skip, limit)
 
@@ -53,6 +54,7 @@ async def get_scraping_config(
     current_user = Depends(get_current_user)
 ):
     """Get a specific scraping configuration."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     try:
         return await service.get_config(config_id, current_user.id)
@@ -67,6 +69,7 @@ async def update_scraping_config(
     current_user = Depends(get_current_user)
 ):
     """Update a scraping configuration."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     try:
         return await service.update_config(config_id, config, current_user.id)
@@ -82,6 +85,7 @@ async def delete_scraping_config(
     current_user = Depends(get_current_user)
 ):
     """Delete a scraping configuration."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     try:
         await service.delete_config(config_id, current_user.id)
@@ -99,6 +103,7 @@ async def create_scraping_job(
     current_user = Depends(get_current_user)
 ):
     """Create and run a new scraping job."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     try:
         return await service.run_scraping_job(config_id, source, location, property_type)
@@ -120,6 +125,7 @@ async def list_scraping_jobs(
     current_user = Depends(get_current_user)
 ):
     """List scraping jobs with optional filters."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     return service.list_jobs(
         config_id=config_id,
@@ -138,6 +144,7 @@ async def get_scraping_job(
     current_user = Depends(get_current_user)
 ):
     """Get a specific scraping job."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     try:
         return service.get_job_status(job_id)
@@ -153,6 +160,7 @@ async def get_job_results(
     current_user = Depends(get_current_user)
 ):
     """Get results for a specific scraping job."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     try:
         results = service.get_job_results(job_id, skip, limit)
@@ -172,6 +180,7 @@ async def get_scraping_stats(
     current_user = Depends(get_current_user)
 ):
     """Get scraping statistics for a configuration."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     try:
         return service.get_scraping_stats(config_id)
@@ -184,6 +193,7 @@ async def run_scheduled_jobs(
     current_user = Depends(get_current_user)
 ):
     """Run all scheduled scraping jobs."""
+    from app.scraping.services.scraper import ScraperService
     service = ScraperService(db)
     await service.run_scheduled_jobs()
     return {"message": "Scheduled jobs started successfully"} 

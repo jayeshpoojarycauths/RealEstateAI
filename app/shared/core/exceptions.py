@@ -1,5 +1,7 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, FastAPI, Request
 from typing import Any, Dict, Optional
+from fastapi.responses import JSONResponse
+import logging
 
 class BaseAPIException(HTTPException):
     """Base exception for all API errors."""
@@ -89,6 +91,26 @@ class ValidationError(Exception):
 class NotFoundError(Exception):
     """Raised when a requested resource is not found."""
     pass
+
+def register_exception_handlers(app: FastAPI):
+    """Register global exception handlers with the FastAPI app."""
+    logger = logging.getLogger("uvicorn.error")
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        logger.error(f"HTTPException: {exc.detail}")
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail}
+        )
+
+    @app.exception_handler(Exception)
+    async def generic_exception_handler(request: Request, exc: Exception):
+        logger.error(f"Unhandled Exception: {exc}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal Server Error"}
+        )
 
 __all__ = [
     'BaseAPIException',

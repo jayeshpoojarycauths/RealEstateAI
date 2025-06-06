@@ -10,7 +10,6 @@ from app.shared.core.config import settings
 from app.scraping.services.base import BaseScraper
 from app.scraping.services.ninety_nine_acres import NinetyNineAcresScraper
 from app.scraping.services.facebook_marketplace import FacebookMarketplaceScraper
-from app.scraping.services.scraper import ScraperService
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +20,15 @@ class ScraperScheduler:
         self.running = False
         self.last_run: Dict[str, datetime] = {}
         self.scrape_interval = timedelta(hours=settings.SCRAPE_INTERVAL_HOURS)
+        self._scraper_service = None  # Lazy initialization
+
+    @property
+    def scraper_service(self):
+        """Lazy initialization of scraper service."""
+        if self._scraper_service is None:
+            from app.scraping.services.scraper import ScraperService
+            self._scraper_service = ScraperService(self.db)
+        return self._scraper_service
 
     async def start(self):
         """Start the scraper scheduler"""

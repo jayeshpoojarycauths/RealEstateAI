@@ -8,13 +8,11 @@ from app.scraping.models.scraping import (
     ScrapingSource,
     ScrapingStatus
 )
-from app.scraping.services.scraper import ScraperService
-from app.scraping.services.scheduler import ScrapingScheduler
 from app.shared.core.exceptions import NotFoundError, ValidationError
 
 @pytest.fixture
- def db_session():
-     """Create a test database session."""
+def db_session():
+    """Create a test database session."""
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
     from app.database import Base
@@ -33,11 +31,13 @@ from app.shared.core.exceptions import NotFoundError, ValidationError
 @pytest.fixture
 def scraper_service(db_session):
     """Create a scraper service instance."""
+    from app.scraping.services.scraper import ScraperService
     return ScraperService(db_session)
 
 @pytest.fixture
 def scheduler_service(db_session):
     """Create a scheduler service instance."""
+    from app.scraping.services.scheduler import ScrapingScheduler
     return ScrapingScheduler(db_session)
 
 @pytest.fixture
