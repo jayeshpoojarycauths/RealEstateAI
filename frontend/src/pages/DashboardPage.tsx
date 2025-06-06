@@ -30,6 +30,79 @@ const reportEndpoints = {
   Quarterly: "/reports/quarterly",
 };
 
+// Mock data for demonstration
+const recentLeads = [
+  {
+    name: 'Sarah Mitchell',
+    email: 'sarah@techcorp.com',
+    company: 'TechCorp Inc.',
+    status: 'Qualified',
+    source: 'Website',
+    value: 15000,
+    date: '5/10/2024',
+  },
+  {
+    name: 'Michael Johnson',
+    email: 'mike@startup.io',
+    company: 'Startup.io',
+    status: 'Contacted',
+    source: 'Email',
+    value: 8500,
+    date: '5/09/2024',
+  },
+  {
+    name: 'Emily Smith',
+    email: 'emily@designco.com',
+    company: 'DesignCo',
+    status: 'New',
+    source: 'Social',
+    value: 12000,
+    date: '5/08/2024',
+  },
+];
+
+const recentActivity = [
+  {
+    message: 'New lead Sarah Mitchell added from TechCorp Inc.',
+    time: '2 hours ago',
+  },
+  {
+    message: 'Project Website Redesign completed successfully',
+    time: '4 hours ago',
+  },
+  {
+    message: 'Email campaign sent to 45 qualified leads',
+    time: '6 hours ago',
+  },
+  {
+    message: 'Meeting scheduled with Michael Johnson',
+    time: 'Yesterday',
+  },
+];
+
+const quickActions = [
+  {
+    title: 'Add New Lead',
+    description: 'Create a new lead entry',
+    icon: UserGroupIcon,
+  },
+  {
+    title: 'New Project',
+    description: 'Start a new project',
+    icon: BuildingOfficeIcon,
+  },
+  {
+    title: 'Send Campaign',
+    description: 'Launch outreach campaign',
+    icon: ChartBarIcon,
+  },
+  {
+    title: 'View Analytics',
+    description: 'Check performance metrics',
+    icon: CurrencyDollarIcon,
+  },
+];
+
 export const DashboardPage: React.FC = () => {
   const {
     getButtonProps,
@@ -119,7 +192,7 @@ export const DashboardPage: React.FC = () => {
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <Typography variant="h4" color="blue-gray" {...getTypographyProps()}>
           Dashboard
@@ -198,19 +271,7 @@ export const DashboardPage: React.FC = () => {
                         {stat.value}
                       </Typography>
                     </div>
-                    <div className="rounded-full bg-blue-50 p-3">
-                      <Icon className={`h-6 w-6 text-${stat.color}-500`} />
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <Typography
-                      variant="small"
-                      color="green"
-                      className="flex items-center gap-1 font-normal"
-                      {...getTypographyProps()}
-                    >
-                      {stat.change}
-                    </Typography>
+                    <Icon className={`h-8 w-8 text-${stat.color}-400`} />
                   </div>
                 </CardBody>
               </Card>
@@ -219,51 +280,111 @@ export const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card {...getCardProps()}>
-          <CardHeader
-            variant="gradient"
-            color="blue"
-            className="mb-4 p-6"
-            {...getCardHeaderProps()}
-          >
-            <Typography variant="h6" color="white" {...getTypographyProps()}>
-              Recent Leads
-            </Typography>
+      {/* Main Content: Recent Leads & Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Leads Table */}
+        <Card className="col-span-2" {...getCardProps()}>
+          <CardHeader {...getCardHeaderProps()}>
+            <div className="flex items-center justify-between">
+              <Typography variant="h6" {...getTypographyProps()}>
+                Recent Leads
+              </Typography>
+              <div className="flex gap-2">
+                <Button variant="outlined" color="blue" {...getButtonProps()}>
+                  Export
+                </Button>
+                <Button variant="filled" color="blue" {...getButtonProps()}>
+                  + Add Lead
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardBody {...getCardBodyProps()}>
-            <Typography
-              variant="paragraph"
-              color="blue-gray"
-              {...getTypographyProps()}
-            >
-              Content coming soon...
-            </Typography>
+            <table className="min-w-full text-left">
+              <thead>
+                <tr>
+                  <th>Lead</th>
+                  <th>Company</th>
+                  <th>Status</th>
+                  <th>Source</th>
+                  <th>Value</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentLeads.map((lead, idx) => (
+                  <tr key={idx} className="border-t">
+                    <td>
+                      <div className="font-semibold">{lead.name}</div>
+                      <div className="text-xs text-gray-500">{lead.email}</div>
+                    </td>
+                    <td>{lead.company}</td>
+                    <td>
+                      <span className="inline-block px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">
+                        {lead.status}
+                      </span>
+                    </td>
+                    <td>{lead.source}</td>
+                    <td>${lead.value.toLocaleString()}</td>
+                    <td>{lead.date}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </CardBody>
         </Card>
 
+        {/* Recent Activity Feed */}
         <Card {...getCardProps()}>
-          <CardHeader
-            variant="gradient"
-            color="blue"
-            className="mb-4 p-6"
-            {...getCardHeaderProps()}
-          >
-            <Typography variant="h6" color="white" {...getTypographyProps()}>
-              Active Projects
+          <CardHeader {...getCardHeaderProps()}>
+            <Typography variant="h6" {...getTypographyProps()}>
+              Recent Activity
             </Typography>
           </CardHeader>
           <CardBody {...getCardBodyProps()}>
-            <Typography
-              variant="paragraph"
-              color="blue-gray"
-              {...getTypographyProps()}
-            >
-              Content coming soon...
-            </Typography>
+            <ul className="space-y-4">
+              {recentActivity.map((activity, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-blue-400 inline-block" />
+                  <div>
+                    <div className="text-sm">{activity.message}</div>
+                    <div className="text-xs text-gray-400">{activity.time}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </CardBody>
         </Card>
       </div>
+
+      {/* Quick Actions */}
+      <Card {...getCardProps()}>
+        <CardHeader {...getCardHeaderProps()}>
+          <Typography variant="h6" {...getTypographyProps()}>
+            Quick Actions
+          </Typography>
+        </CardHeader>
+        <CardBody {...getCardBodyProps()}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {quickActions.map((action, idx) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={idx}
+                  variant="outlined"
+                  color="blue"
+                  className="flex flex-col items-start gap-2 p-4 h-full w-full"
+                  {...getButtonProps()}
+                >
+                  <Icon className="h-6 w-6 mb-2 text-blue-400" />
+                  <span className="font-semibold">{action.title}</span>
+                  <span className="text-xs text-gray-500">{action.description}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </CardBody>
+      </Card>
     </div>
   );
 };

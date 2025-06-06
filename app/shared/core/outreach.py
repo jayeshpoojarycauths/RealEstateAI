@@ -4,7 +4,7 @@ import random
 import asyncio
 from sqlalchemy.orm import Session
 from app.shared.models.lead import Lead
-from app.shared.models.outreach import Outreach, CommunicationPreferences
+from app.outreach.models.outreach import Outreach, CommunicationPreference
 from app.shared.core.exceptions import ServiceUnavailableException
 
 class OutreachResult:
@@ -16,7 +16,7 @@ class OutreachResult:
 class MockOutreachEngine:
     """Mock implementation of outreach engine for testing."""
     
-    def __init__(self, db: Session, preferences: Optional[CommunicationPreferences] = None):
+    def __init__(self, db: Session, preferences: Optional[CommunicationPreference] = None):
         self.db = db
         self.preferences = preferences
         self.outreach_history = []

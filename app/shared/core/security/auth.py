@@ -7,72 +7,21 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
 from app.shared.core.config import settings
-from app.shared.core.security.security import verify_password, create_access_token, create_refresh_token, decode_access_token, decode_refresh_token
+from app.shared.core.security.tokens import (
+    create_access_token,
+    create_refresh_token,
+    decode_access_token,
+    decode_refresh_token,
+    verify_jwt_token
+)
 from app.shared.models.user import User
 from app.shared.db.session import get_db
 from app.shared.core.exceptions import AuthenticationException
 from app.shared.core.security.roles import Role
 from app.shared.models.customer import Customer
+from app.shared.core.security.password_utils import verify_password
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
-
-def create_access_token(subject: Union[str, int], expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Create a JWT access token.
-    
-    Args:
-        subject: The subject of the token (usually user ID)
-        expires_delta: Optional expiration time delta
-        
-    Returns:
-        str: The encoded JWT token
-    """
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode = {"exp": expire, "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
-
-def create_refresh_token(subject: Union[str, int]) -> str:
-    """
-    Create a JWT refresh token.
-    
-    Args:
-        subject: The subject of the token (usually user ID)
-        
-    Returns:
-        str: The encoded JWT refresh token
-    """
-    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode = {"exp": expire, "sub": str(subject)}
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
-
-def verify_jwt_token(token: str) -> dict:
-    """
-    Verify and decode a JWT token.
-    
-    Args:
-        token: The JWT token to verify
-        
-    Returns:
-        dict: The decoded token payload
-        
-    Raises:
-        HTTPException: If token is invalid or expired
-    """
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload
-    except (JWTError, ValidationError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     """
@@ -212,7 +161,6 @@ __all__ = [
     'get_current_active_customer',
     'get_current_tenant',
     'Role',
-    'TokenPayload',
     'create_access_token',
     'create_refresh_token',
     'decode_access_token',

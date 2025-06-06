@@ -14,25 +14,23 @@ from app.shared.core.ai import AIService
 from app.shared.core.communication import EmailService
 from app.shared.core.communication import SMSService
 from app.shared.core.audit import AuditLogger
-from app.outreach.models.outreach import Outreach, OutreachTemplate, CommunicationPreference
-from app.shared.core.exceptions import NotFoundError, ValidationError
+from app.outreach.models.outreach import Outreach, OutreachTemplate, CommunicationPreference, OutreachChannel, OutreachLog, OutreachStatus
+from app.shared.core.exceptions import NotFoundException, ValidationException
 from app.shared.core.audit import AuditService
 import uuid
 from sqlalchemy import func, and_, or_, case
 from fastapi import Depends
 from app.shared.db.session import get_db
-from app.shared.models.outreach import OutreachCampaign, OutreachTemplate
-from app.shared.models.contact import Contact
+from app.outreach.models.outreach import OutreachCampaign, OutreachTemplate
 from app.shared.models.user import User
 from app.shared.core.audit import get_audit_service
-from app.shared.core.security import get_current_user
+from app.shared.core.security.auth import get_current_user
 from app.shared.core.tenant import get_customer_id
-from app.shared.core.exceptions import NotFoundException, ValidationException
 from app.shared.core.communication.email import send_email
 from app.shared.core.communication.sms import send_sms
 from app.lead.models.lead import Lead
 from app.shared.models.customer import Customer
-from app.shared.core.communication import CommunicationBaseService
+from app.shared.core.communication import OutreachEngine
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +44,7 @@ class OutreachService:
         self.ai_service = AIService()
         self.email_service = EmailService()
         self.sms_service = SMSService()
-        self.communication_service = CommunicationBaseService(db)
+        self.communication_service = OutreachEngine(db)
         self.audit_logger = AuditLogger(db, customer)
         self.audit = AuditService(db)
 
@@ -128,13 +126,12 @@ class OutreachService:
 
     async def _send_email(self, lead: Lead, message: str, retry_count: int = 0) -> None:
         """
-        Send email using SendGrid with retry logic.
+        Send email using EmailService with retry logic.
         """
         max_retries = settings.MAX_EMAIL_RETRIES
         retry_delay = settings.EMAIL_RETRY_DELAY
 
         try:
-            sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
             # Split message into subject and body
             if "Subject:" in message and "Body:" in message:
                 subject = message.split("Subject:")[1].split("Body:")[0].strip()
@@ -143,13 +140,12 @@ class OutreachService:
                 subject = "Real Estate Opportunity"
                 body = message
 
-            email = Mail(
-                from_email=settings.FROM_EMAIL,
-                to_emails=lead.email,
+            await self.email_service.send_email(
+                email_to=lead.email,
                 subject=subject,
-                plain_text_content=body
+                template_name="outreach_generic",  # Use a generic outreach template
+                template_data={"body": body, "lead": lead}
             )
-            sg.send(email)
 
             await self.audit_logger.log(
                 action="email_sent",
@@ -160,7 +156,6 @@ class OutreachService:
 
         except Exception as e:
             logger.error(f"Error sending email to lead {lead.id}: {str(e)}")
-            
             if retry_count < max_retries:
                 await asyncio.sleep(retry_delay)
                 await self._send_email(lead, message, retry_count + 1)
@@ -509,7 +504,7 @@ class OutreachService:
         """Get an outreach attempt by ID."""
         outreach = self.db.query(Outreach).filter(Outreach.id == outreach_id).first()
         if not outreach:
-            raise NotFoundError(f"Outreach with ID {outreach_id} not found")
+            raise NotFoundException(f"Outreach with ID {outreach_id} not found")
         return outreach
 
     def update_outreach(self, outreach_id: uuid.UUID, outreach: OutreachUpdate) -> Outreach:
@@ -575,7 +570,7 @@ class OutreachService:
         """Get a template by ID."""
         template = self.db.query(OutreachTemplate).filter(OutreachTemplate.id == template_id).first()
         if not template:
-            raise NotFoundError(f"Template with ID {template_id} not found")
+            raise NotFoundException(f"Template with ID {template_id} not found")
         return template
 
     def update_template(self, template_id: uuid.UUID, template: OutreachTemplateUpdate) -> OutreachTemplate:
@@ -638,7 +633,7 @@ class OutreachService:
             CommunicationPreference.customer_id == customer_id
         ).first()
         if not preference:
-            raise NotFoundError(f"Communication preferences for customer {customer_id} not found")
+            raise NotFoundException(f"Communication preferences for customer {customer_id} not found")
         return preference
 
     def update_communication_preference(

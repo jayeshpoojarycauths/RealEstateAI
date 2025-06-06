@@ -24,6 +24,14 @@ class OutreachStatus(str, enum.Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
 
+class CampaignStatus(str, enum.Enum):
+    DRAFT = "draft"
+    SCHEDULED = "scheduled"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
 class Outreach(BaseModel):
     """Model for tracking outreach attempts."""
     __tablename__ = "outreach"
@@ -120,4 +128,28 @@ class CommunicationPreference(BaseModel):
     customer = relationship("Customer", back_populates="communication_preferences")
     
     def __repr__(self):
-        return f"<CommunicationPreference {self.customer_id}>" 
+        return f"<CommunicationPreference {self.customer_id}>"
+
+class OutreachCampaign(BaseModel):
+    __tablename__ = "outreach_campaigns"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    channel = Column(Enum(OutreachChannel), nullable=False)
+    status = Column(Enum(CampaignStatus), default=CampaignStatus.DRAFT, nullable=False)
+    scheduled_at = Column(DateTime(timezone=True))
+    started_at = Column(DateTime(timezone=True))
+    completed_at = Column(DateTime(timezone=True))
+    total_recipients = Column(Integer, default=0)
+    successful_deliveries = Column(Integer, default=0)
+    failed_deliveries = Column(Integer, default=0)
+    campaign_metadata = Column(JSON)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+
+    customer = relationship("Customer", back_populates="outreach_campaigns")
+
+    def __repr__(self):
+        return f"<OutreachCampaign {self.id} - {self.name}>" 

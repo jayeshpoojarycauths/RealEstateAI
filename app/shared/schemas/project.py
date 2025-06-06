@@ -119,4 +119,12 @@ class ProjectAnalytics(BaseModel):
     project_type_distribution: dict
     lead_status_distribution: dict
     monthly_project_creation: dict
-    monthly_lead_conversion: dict 
+    monthly_lead_conversion: dict
+
+class ProjectLeadResponse:
+    """Placeholder for ProjectLeadResponse schema."""
+    pass
+
+class ProjectListResponse:
+    """Placeholder for ProjectListResponse schema."""
+    pass 

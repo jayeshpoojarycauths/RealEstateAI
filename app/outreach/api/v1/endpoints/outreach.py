@@ -6,16 +6,14 @@ import pandas as pd
 from io import BytesIO
 
 from app.shared.models.user import User
-from app.shared.api.deps import get_db
+from app.shared.db.session import get_db
 from app.shared.core.security.security import get_current_customer
 from app.lead.models import Lead
 from app.shared.models.customer import Customer
-from app.shared.models.outreach import OutreachLog, Outreach, InteractionLog, CommunicationPreferences, OutreachChannel
+from app.outreach.models.outreach import OutreachLog
 
-from app.shared.core.communication import CommunicationBaseService
-from app.shared.core.auth import (
-    get_current_user,
-    get_current_active_user)
+from app.shared.core.communication import OutreachEngine
+from app.shared.core.auth import get_current_user
 from app.outreach.schemas.outreach import (
     OutreachCreate, OutreachResponse, OutreachFilter,
     OutreachStats, OutreachAnalytics, OutreachRequest, OutreachLogResponse, LeadUpload, OutreachChannel, OutreachStatus,
@@ -26,7 +24,8 @@ from app.outreach.schemas.outreach import (
 )
 from app.outreach.services.outreach import OutreachService
 from app.shared.core.pagination import PaginationParams, get_pagination_params
-from app.shared.core.security.security import require_role, UserRole, get_current_tenant
+from app.shared.core.security.dependencies import require_role
+from app.shared.core.security.roles import Role as UserRole
 from app.shared.core.outreach import MockOutreachEngine
 from datetime import datetime
 
@@ -36,7 +35,7 @@ router = APIRouter()
 async def initiate_outreach(
     *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_user),
     lead_id: UUID,
 ) -> Any:
     """
@@ -67,7 +66,7 @@ async def initiate_outreach(
 
     
     # Initialize communication service
-    comm_service = CommunicationBaseService(preferences)
+    comm_service = OutreachEngine(preferences)
 
     # Send messages through all enabled channels
     results = await comm_service.send_all_channels(lead)
@@ -94,7 +93,7 @@ async def initiate_outreach(
 async def initiate_bulk_outreach(
     *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_user),
     lead_ids: List[UUID],
 ) -> Any:
     """
@@ -112,7 +111,7 @@ async def initiate_bulk_outreach(
         )
 
     # Initialize communication service
-    comm_service = CommunicationService(preferences)
+    comm_service = OutreachEngine(preferences)
 
     results = []
     for lead_id in lead_ids:
@@ -607,7 +606,7 @@ async def list_templates(
     channel: Optional[str] = None,
     is_active: Optional[bool] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_user)
 ) -> OutreachTemplateList:
     """List templates with filtering."""
     service = OutreachService(db)

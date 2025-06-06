@@ -10,14 +10,14 @@ from app.shared.models.customer import Customer
 from app.lead.schemas.lead import LeadCreate, LeadUpdate
 from app.shared.core.tenant import get_customer_id
 from app.shared.core.security import UserRole
-from app.shared.services.communication_base import CommunicationBaseService
+from app.shared.core.communication import OutreachEngine
 
 logger = logging.getLogger(__name__)
 
 class LeadNotificationService:
     def __init__(self, db: Session):
         self.db = db
-        self.communication_service = CommunicationBaseService(db)
+        self.communication_service = OutreachEngine(db)
 
     async def notify_new_lead(self, lead: Lead, customer_id: int) -> None:
         """Send notifications for a new lead"""

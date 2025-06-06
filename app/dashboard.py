@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.shared.db.session import SessionLocal
 from app.lead.models.lead import Lead, LeadScore
 from app.shared.models.project import RealEstateProject
-from app.shared.models.outreach import OutreachLog
+from app.outreach.models.outreach import OutreachLog
 from app.shared.models.interaction import InteractionLog, CallInteraction, MessageInteraction
 from datetime import datetime, timedelta
 import numpy as np

@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from app.shared.models.outreach import Outreach, OutreachTemplate
+from app.outreach.models.outreach import Outreach, OutreachTemplate, OutreachCampaign
 from app.lead.models.lead import Lead
 from app.outreach.schemas import (
     OutreachCreate, OutreachChannel, OutreachStatus,
@@ -14,8 +14,6 @@ from typing import List, Optional
 from fastapi.testclient import TestClient
 from app.main import app
 from app.shared.core.exceptions import NotFoundException
-from app.shared.models.outreach import OutreachCampaign
-from app.outreach.schemas.outreach import OutreachUpdate
 from app.shared.models.customer import Customer
 
 @pytest.fixture

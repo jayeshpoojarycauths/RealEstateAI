@@ -122,10 +122,32 @@ async def send_welcome_email(
     }
     await send_email(email_to, subject, "welcome", template_data)
 
+class EmailService:
+    """Service class for sending emails using FastMail and templates."""
+    def __init__(self):
+        self.fastmail = fastmail
+        self.template_env = template_env
+
+    async def send_email(self, email_to: str, subject: str, template_name: str, template_data: Dict[str, Any]) -> None:
+        await send_email(email_to, subject, template_name, template_data)
+
+    async def send_verification_email(self, email_to: str, token: str, user_name: str) -> None:
+        await send_verification_email(email_to, token, user_name)
+
+    async def send_password_reset_email(self, email_to: str, token: str, user_name: str) -> None:
+        await send_password_reset_email(email_to, token, user_name)
+
+    async def send_mfa_code_email(self, email_to: str, code: str, user_name: str) -> None:
+        await send_mfa_code_email(email_to, code, user_name)
+
+    async def send_welcome_email(self, email_to: str, user_name: str) -> None:
+        await send_welcome_email(email_to, user_name)
+
 __all__ = [
     'send_email',
     'send_verification_email',
     'send_password_reset_email',
     'send_mfa_code_email',
-    'send_welcome_email'
+    'send_welcome_email',
+    'EmailService',
 ] 

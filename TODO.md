@@ -12,4 +12,6 @@
 - [ ] Integrate lead sourcing from Facebook Marketplace
 - [ ] Integrate lead sourcing from local forums/WhatsApp groups
 - [ ] Integrate lead sourcing from B2B CRM datasets
-- [ ] Integrate lead sourcing from Google Maps Places API 
+- [ ] Integrate lead sourcing from Google Maps Places API
+- [ ] Implement ProjectListResponse schema in app/shared/schemas/project.py 
+- [ ] Implement RealEstateProjectList schema in app/project/schemas/project.py 

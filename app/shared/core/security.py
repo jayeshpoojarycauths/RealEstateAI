@@ -75,9 +75,6 @@ def require_role(required_roles: List[UserRole]):
     return decorator
 
 # Role-based access control decorators
-def admin_required():
-    return require_role([UserRole.ADMIN])
-
 def manager_required():
     return require_role([UserRole.ADMIN, UserRole.MANAGER])
 

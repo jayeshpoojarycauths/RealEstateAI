@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime
-from app.shared.core.database import get_db
+from app.shared.db.session import get_db
 from app.scraping.services.scraper import ScraperService
 from app.scraping.schemas.scraping import (
     ScrapingConfigCreate,
@@ -17,7 +17,7 @@ from app.scraping.schemas.scraping import (
     ScrapingJobFilter
 )
 from app.scraping.models.scraping import ScrapingSource, ScrapingStatus
-from app.shared.core.auth import get_current_user
+from app.shared.core.security.auth import get_current_user
 from app.shared.core.exceptions import NotFoundError, ValidationError
 
 router = APIRouter()

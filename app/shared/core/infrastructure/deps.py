@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from app.shared.core.config import settings
 from app.shared.core.exceptions import AuthenticationException, AuthorizationException
-from app.shared.core.security import decode_access_token
+from app.shared.core.security.auth import get_current_user
 from app.shared.models.user import User
 from app.shared.core.tenant import get_customer_id
 from app.shared.models.customer import Customer

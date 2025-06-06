@@ -73,37 +73,6 @@ ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
     },
 }
 
-def get_user_permissions(user: User) -> List[str]:
-    """Get list of permissions for a user based on their role."""
-    role_permissions = {
-        Role.ADMIN: [
-            "manage_users",
-            "manage_roles",
-            "manage_permissions",
-            "view_analytics",
-            "manage_settings"
-        ],
-        Role.MANAGER: [
-            "manage_team",
-            "view_analytics",
-            "manage_settings"
-        ],
-        Role.AGENT: [
-            "manage_leads",
-            "view_analytics"
-        ],
-        Role.VIEWER: [
-            "view_leads",
-            "view_analytics"
-        ],
-        Role.CUSTOMER: [
-            "view_own_data",
-            "manage_own_profile"
-        ]
-    }
-    
-    return role_permissions.get(user.role, [])
-
 def check_permission(
     required_permission: str,
     current_user: User

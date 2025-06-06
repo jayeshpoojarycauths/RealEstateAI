@@ -5,14 +5,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Path, status
 from sqlalchemy.orm import Session
 
-from app.shared.api.deps import get_current_user, get_current_customer 
-from app.shared.core.security.security import get_current_active_user    
-from app.shared.core.pagination import PaginationParams
+from app.shared.core.security.auth import get_current_user
 from app.shared.core.security import (
-    admin_required,
     manager_required,
     agent_required,
-    viewer_required
+    viewer_required,
+    admin_required
 )
 from app.shared.core.exceptions import (
     NotFoundException,
@@ -64,7 +62,7 @@ router = APIRouter(
 async def scrape_properties(
     *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_user),
     source: str,
     location: str,
     max_pages: int = 1,
@@ -107,7 +105,7 @@ async def scrape_properties(
 async def get_properties(
     *,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_user),
     skip: int = 0,
     limit: int = 100,
     location: Optional[str] = None,

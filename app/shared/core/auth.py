@@ -11,6 +11,7 @@ from app.shared.models.user import User
 from app.shared.models.customer import Customer
 from app.shared.db.session import get_db
 from app.shared.schemas.token import TokenPayload
+from app.shared.core.security.auth import get_current_user
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 

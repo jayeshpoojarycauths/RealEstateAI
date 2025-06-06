@@ -1,21 +1,8 @@
 from datetime import datetime, timedelta
-from typing import Any, Optional, Union
-from jose import jwt
+from typing import Any, Union, Dict, Optional
+from jose import jwt, JWTError
+from fastapi import HTTPException, status
 from app.shared.core.config import settings
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel
-from app.shared.models.user import User
-from app.shared.models.customer import Customer
-from app.shared.db.session import get_db
-from sqlalchemy.orm import Session
-from app.shared.core.security.auth import get_current_user
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-class TokenData(BaseModel):
-    username: Optional[str] = None
-    roles: list[str] = []
 
 def create_access_token(
     subject: Union[str, Any],
@@ -37,9 +24,9 @@ def create_access_token(
         expire = datetime.utcnow() + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    to_encode = {"exp": expire, "sub": str(subject)}
+    to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
     encoded_jwt = jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM
     )
     return encoded_jwt
 
@@ -65,9 +52,67 @@ def create_refresh_token(
         )
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
     encoded_jwt = jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM
     )
     return encoded_jwt
+
+def decode_access_token(token: str) -> Dict[str, Any]:
+    """
+    Decode a JWT access token.
+    
+    Args:
+        token: JWT token to decode
+        
+    Returns:
+        Dict containing the decoded token payload
+        
+    Raises:
+        JWTError: If token is invalid or expired
+    """
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM]
+        )
+        return payload
+    except JWTError as e:
+        raise JWTError(f"Could not validate token: {str(e)}")
+
+def decode_refresh_token(token: str) -> dict:
+    """Decode and verify JWT refresh token."""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        return payload
+    except jwt.JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+def verify_jwt_token(token: str) -> Dict[str, Any]:
+    """
+    Verify a JWT token and return its payload.
+    
+    Args:
+        token: The JWT token to verify
+        
+    Returns:
+        Dict containing the token payload
+        
+    Raises:
+        HTTPException: If the token is invalid or expired
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        return payload
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 def generate_verification_token(
     email: str,
@@ -93,7 +138,7 @@ def generate_verification_token(
         "type": "email_verification"
     }
     encoded_jwt = jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM
     )
     return encoded_jwt
 
@@ -121,59 +166,6 @@ def generate_password_reset_token(
         "type": "password_reset"
     }
     encoded_jwt = jwt.encode(
-        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM
     )
-    return encoded_jwt
-
-def verify_token(token: str) -> Optional[dict]:
-    """Verify a JWT token."""
-    try:
-        payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
-        )
-        return payload
-    except jwt.JWTError:
-        return None
-
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-) -> User:
-    """Get current user from token."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = verify_token(token)
-        if payload is None:
-            raise credentials_exception
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except jwt.JWTError:
-        raise credentials_exception
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise credentials_exception
-    return user
-
-def get_current_customer(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-) -> Customer:
-    """Get current customer from user."""
-    customer = db.query(Customer).filter(Customer.id == current_user.customer_id).first()
-    if not customer:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found"
-        )
-    return customer
-
-# Alias for backward compatibility
-get_current_tenant = get_current_customer 
+    return encoded_jwt 

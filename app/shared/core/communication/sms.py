@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 from app.shared.core.config import settings
 from app.shared.core.exceptions import ExternalServiceError
+from app.shared.core.sms import SMSService
 
 logger = logging.getLogger(__name__)
 
@@ -37,5 +38,6 @@ async def send_password_reset_sms(
 __all__ = [
     'send_sms',
     'send_verification_sms',
-    'send_password_reset_sms'
+    'send_password_reset_sms',
+    'SMSService',
 ] 

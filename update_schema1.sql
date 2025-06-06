@@ -87,6 +87,25 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     expires_at TIMESTAMPTZ NOT NULL -- ✅ In ORM
 );
 
+-- === OUTREACH CAMPAIGNS TABLE ===
+CREATE TABLE IF NOT EXISTS outreach_campaigns (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id UUID REFERENCES customers(id) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    channel VARCHAR(50) NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'draft',
+    scheduled_at TIMESTAMPTZ,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    total_recipients INTEGER DEFAULT 0,
+    successful_deliveries INTEGER DEFAULT 0,
+    failed_deliveries INTEGER DEFAULT 0,
+    campaign_metadata JSON,
+    created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+    updated_at TIMESTAMPTZ
+);
+
 -- === ALTER TABLES FOR MISSING COLUMNS ===
 
 -- projects

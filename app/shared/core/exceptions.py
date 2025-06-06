@@ -82,6 +82,14 @@ class ExternalServiceError(BaseAPIException):
     ):
         super().__init__(detail=detail, status_code=status_code, headers=headers)
 
+class ValidationError(Exception):
+    """Raised when validation fails."""
+    pass
+
+class NotFoundError(Exception):
+    """Raised when a requested resource is not found."""
+    pass
+
 __all__ = [
     'BaseAPIException',
     'ValidationException',

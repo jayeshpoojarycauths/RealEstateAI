@@ -2,7 +2,7 @@ from typing import List, Optional, Any
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, Query
 from sqlalchemy.orm import Session
 
-from app.shared.core.security import require_role
+from app.shared.core.security.dependencies import require_role
 from app.shared.core.security.roles import Role
 from app.shared.db.session import get_db
 from app.shared.models.user import User
@@ -21,7 +21,6 @@ from app.shared.api import deps
 from app.shared.core.exceptions import ValidationError, NotFoundError
 
 router = APIRouter()
-lead_service = LeadService()
 
 @router.post("/upload", response_model=LeadUploadResponse)
 @require_role([Role.ADMIN, Role.MANAGER])
@@ -31,6 +30,7 @@ async def upload_leads(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     """Upload leads from a file."""
+    lead_service = LeadService(db)
     return await lead_service.upload_leads(db, file, current_user)
 
 @router.get("/", response_model=List[LeadResponse])
@@ -42,6 +42,7 @@ async def get_leads(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     """Get a list of leads."""
+    lead_service = LeadService(db)
     return await lead_service.get_leads(db, skip, limit, current_user)
 
 @router.post("/", response_model=LeadResponse)
@@ -52,6 +53,7 @@ async def create_lead(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     """Create a new lead."""
+    lead_service = LeadService(db)
     return await lead_service.create_lead(db, lead_in, current_user)
 
 @router.get("/{lead_id}", response_model=LeadResponse)
@@ -62,6 +64,7 @@ async def get_lead(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     """Get a lead by ID."""
+    lead_service = LeadService(db)
     lead = await lead_service.get_lead(db, lead_id, current_user)
     if not lead:
         raise HTTPException(
@@ -79,6 +82,7 @@ async def update_lead(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     """Update a lead."""
+    lead_service = LeadService(db)
     lead = await lead_service.update_lead(db, lead_id, lead_in, current_user)
     if not lead:
         raise HTTPException(
@@ -95,6 +99,7 @@ async def delete_lead(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     """Delete a lead."""
+    lead_service = LeadService(db)
     if not await lead_service.delete_lead(db, lead_id, current_user):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -110,6 +115,7 @@ async def create_lead_activity(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     """Create a new activity for a lead."""
+    lead_service = LeadService(db)
     return await lead_service.create_activity(db, lead_id, activity_in, current_user)
 
 @router.get("/{lead_id}/activities", response_model=List[Any])
@@ -120,6 +126,7 @@ async def list_lead_activities(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     """List all activities for a lead."""
+    lead_service = LeadService(db)
     return await lead_service.get_activities(db, lead_id, current_user)
 
 @router.post("/{lead_id}/assign", response_model=Any)
@@ -131,6 +138,7 @@ async def assign_lead(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     """Assign a lead to a user."""
+    lead_service = LeadService(db)
     return await lead_service.assign_lead(db, lead_id, user_id, current_user)
 
 @router.get("/stats", response_model=Any)
@@ -140,4 +148,5 @@ async def get_lead_stats(
     current_user: User = Depends(deps.get_current_active_user)
 ):
     """Get lead statistics."""
+    lead_service = LeadService(db)
     return await lead_service.get_stats(db, current_user) 

@@ -14,7 +14,7 @@ from app.shared.core.security import UserRole
 from app.shared.core.audit import AuditService, get_audit_service
 from app.shared.core.exceptions import NotFoundException, ValidationException
 from app.shared.core.email import send_email
-from app.shared.core.sms import send_sms
+from app.shared.core.sms import SMSService
 
 class LeadWorkflowService:
     def __init__(self, db: Session, customer: Customer):

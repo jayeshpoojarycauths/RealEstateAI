@@ -256,4 +256,8 @@ class ProjectLeadResponse(BaseModel):
     updated_at: datetime
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class RealEstateProjectList:
+    """Placeholder for RealEstateProjectList schema."""
+    pass 
