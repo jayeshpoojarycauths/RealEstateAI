@@ -4,6 +4,7 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
+import app.models_registry
 
 # Set environment variable to indicate we're running in alembic
 os.environ["ALEMBIC_RUNNING"] = "1"

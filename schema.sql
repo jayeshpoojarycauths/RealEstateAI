@@ -108,11 +108,16 @@ ALTER TYPE public.project_type OWNER TO postgres;
 
 CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
+    AS $$
+
+BEGIN
+
+    NEW.updated_at = CURRENT_TIMESTAMP;
+
+    RETURN NEW;
+
+END;
+
 $$;
 
 
@@ -128,7 +133,7 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.audit_logs (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    tenant_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
     action character varying NOT NULL,
     resource_type character varying NOT NULL,
     resource_id uuid NOT NULL,
@@ -922,10 +927,10 @@ CREATE INDEX idx_audit_logs_resource_id ON public.audit_logs USING btree (resour
 
 
 --
--- Name: idx_audit_logs_tenant_id; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_audit_logs_customer_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_audit_logs_tenant_id ON public.audit_logs USING btree (tenant_id);
+CREATE INDEX idx_audit_logs_customer_id ON public.audit_logs USING btree (customer_id);
 
 
 --
@@ -1231,11 +1236,11 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
--- Name: audit_logs audit_logs_tenant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: audit_logs audit_logs_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.audit_logs
-    ADD CONSTRAINT audit_logs_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(id);
+    ADD CONSTRAINT audit_logs_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
 
 
 --

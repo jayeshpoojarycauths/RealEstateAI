@@ -68,6 +68,9 @@ class SecurityFilter(logging.Filter):
             record.msg = self._mask_sensitive(record.msg)
         if hasattr(record, "args"):
             record.args = tuple(self._mask_sensitive(str(arg)) for arg in record.args)
+        for key, value in record.__dict__.items():
+            if not key.startswith("_") and key not in ("msg", "args") and isinstance(value, str):
+                record.__dict__[key] = self._mask_sensitive(value)
         return True
     
     def _mask_sensitive(self, text: str) -> str:
@@ -96,9 +99,9 @@ class JSONFormatter(logging.Formatter):
             if key not in log_data and not key.startswith('_') and key != "request":
                 log_data[key] = value
         
-        # Add request context if available
-        if hasattr(record, "request"):
-            request: Request = record.request
+        # Add request context if available and not None
+        if hasattr(record, "request") and record.request is not None:
+            request = record.request
             log_data.update({
                 "request_id": getattr(request.state, "request_id", "N/A"),
                 "client_ip": request.client.host if request.client else "N/A",
@@ -107,8 +110,26 @@ class JSONFormatter(logging.Formatter):
                 "service": getattr(request.state, "service", "N/A"),
                 "correlation_id": getattr(request.state, "correlation_id", "N/A"),
             })
+        else:
+            log_data.update({
+                "request_id": "N/A",
+                "client_ip": "N/A",
+                "method": "N/A",
+                "url": "N/A",
+                "service": "N/A",
+                "correlation_id": "N/A",
+            })
         
-        return json.dumps(log_data)
+        # Custom serializer for Enums and other non-serializable objects
+        def default_serializer(obj):
+            try:
+                from enum import Enum
+                if isinstance(obj, Enum):
+                    return obj.value
+            except ImportError:
+                pass
+            return str(obj)
+        return json.dumps(log_data, default=default_serializer)
 
 class AsyncLogHandler(logging.Handler):
     """Asynchronous log handler that uses a thread pool."""
@@ -327,6 +348,7 @@ def log_request(
             "request": request,
             "message_code": message_code.value,
             "message_type": message["type"],
+            "log_message": message["message"],
             **kwargs
         }
     )
@@ -357,6 +379,7 @@ def log_error(
             "message_type": message["type"],
             "error": str(error),
             "error_type": type(error).__name__,
+            "log_message": message["message"],
             **kwargs
         },
         exc_info=True

@@ -139,7 +139,7 @@ ALTER TABLE scraping_configs ADD COLUMN IF NOT EXISTS auto_scrape_enabled BOOLEA
 ALTER TABLE scraping_configs ADD COLUMN IF NOT EXISTS auto_scrape_interval INTEGER; -- ✅ In ORM
 
 -- audit_logs
-ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS tenant_id UUID REFERENCES tenants(id); -- ⚠️ Not found in ORM (check model)
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES customers(id); -- ⚠️ Not found in ORM (check model)
 ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS resource_type VARCHAR; -- ⚠️ Not found in ORM (check model)
 ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS resource_id UUID; -- ⚠️ Not found in ORM (check model)
 ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS details JSON; -- ⚠️ Not found in ORM (check model)

@@ -145,11 +145,7 @@ async def get_current_active_customer(
         raise AuthenticationException("Inactive customer")
     return current_customer
 
-def get_current_tenant(
-    current_customer: Customer = Depends(get_current_customer)
-) -> str:
-    """Get current tenant identifier."""
-    return current_customer.tenant_id
+get_current_tenant = get_current_customer
 
 # Re-export commonly used dependencies
 __all__ = [

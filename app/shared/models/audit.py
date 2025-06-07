@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, JSON, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from app.shared.models.base import BaseModel
+from app.shared.models.customer import Customer
 
 class AuditLog(BaseModel):
     """Audit log model for tracking system events."""

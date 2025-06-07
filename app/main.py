@@ -8,6 +8,7 @@ from app.shared.core.communication.messages import MessageCode
 from app.scraping.tasks.scheduler import start_scheduler, shutdown_scheduler
 import time
 import uuid
+import app.models_registry
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -82,7 +83,7 @@ async def startup_event():
         logger=logger,
         request=None,
         message_code=MessageCode.SYSTEM_ERROR,
-        message="Application startup"
+        log_message="Application startup"
     )
     start_scheduler()
 

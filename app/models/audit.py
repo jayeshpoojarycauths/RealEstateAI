@@ -10,7 +10,7 @@ class AuditLog(Base):
     # Note: This model previously used Integer for IDs. Migration needed to change to UUID.
     # TODO: Create migration to change id, tenant_id, resource_id, and user_id to UUID type
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
+    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False)
     action = Column(String, nullable=False)  # e.g., 'create', 'update', 'delete'
     resource_type = Column(String, nullable=False)  # e.g., 'lead', 'project', 'outreach'
     resource_id = Column(UUID(as_uuid=True), nullable=False)
@@ -19,7 +19,7 @@ class AuditLog(Base):
     timestamp = Column(DateTime, nullable=False)
 
     # Relationships
-    tenant = relationship("Tenant", back_populates="audit_logs")
+    customer = relationship("Customer", back_populates="audit_logs")
     user = relationship("User", back_populates="audit_logs")
 
     def __repr__(self):

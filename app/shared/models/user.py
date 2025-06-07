@@ -7,6 +7,7 @@ import uuid
 
 from app.shared.db.base_class import Base
 from app.shared.core.security.roles import Role
+from app.shared.models.customer import Customer
 
 # Association tables
 user_roles = Table(
@@ -42,8 +43,6 @@ class User(Base):
     model_metadata = Column(JSON)  # Additional user metadata
     
     # Relationships
-    tenant_id = Column(String, ForeignKey("tenants.id"))
-    tenant = relationship("Tenant", back_populates="users")
     customer = relationship("Customer", back_populates="users")
     roles = relationship("Role", secondary="user_roles", back_populates="users")
     audit_logs = relationship("AuditLog", back_populates="user")

@@ -72,4 +72,4 @@ def get_current_tenant(
     current_customer: Customer = Depends(get_current_customer)
 ) -> str:
     """Get current tenant identifier."""
-    return current_customer.tenant_id 
+    return current_customer.customer_id 
