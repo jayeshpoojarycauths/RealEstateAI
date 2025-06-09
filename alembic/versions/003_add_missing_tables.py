@@ -41,19 +41,6 @@ def upgrade():
         sa.Column('updated_at', sa.DateTime(timezone=True))
     )
 
-    # Create refresh_tokens table
-    op.create_table(
-        'refresh_tokens',
-        sa.Column('id', UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
-        sa.Column('token', sa.String(255), unique=True, nullable=False),
-        sa.Column('user_id', UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False),
-        sa.Column('customer_id', UUID(as_uuid=True), sa.ForeignKey('customers.id'), nullable=False),
-        sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('CURRENT_TIMESTAMP')),
-        sa.Column('is_revoked', sa.Boolean(), default=False),
-        sa.Column('device_info', sa.Text())
-    )
-
     # Create login_attempts table
     op.create_table(
         'login_attempts',
@@ -99,6 +86,5 @@ def downgrade():
     op.drop_table('password_resets')
     op.drop_table('mfa_settings')
     op.drop_table('login_attempts')
-    op.drop_table('refresh_tokens')
     op.drop_table('audit_logs')
     op.drop_table('tenants') 

@@ -1,9 +1,4 @@
-from app.lead.models.lead import (
-    Lead,
-    LeadSource,
-    LeadStatus,
-    ActivityType
-)
+from app.lead.models.lead import ActivityType, Lead, LeadSource, LeadStatus
 from app.lead.models.lead_activity import LeadActivity
 
 __all__ = [

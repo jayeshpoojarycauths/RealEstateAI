@@ -1,12 +1,21 @@
-from typing import Optional, Dict, Any, List
-from datetime import datetime
-from app.shared.core.exceptions import ExternalServiceError
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
 
-logger = logging.getLogger(__name__)
+
 
 class OutreachEngine(ABC):
     """

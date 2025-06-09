@@ -1,40 +1,40 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import timedelta
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import Any, Dict, Optional
-from datetime import datetime, timedelta
 
-from app.shared.core.config import settings
-from app.shared.core.security import (
-    create_access_token,
-    verify_password,
-    get_password_hash,
-    UserRole
-)
-from app.shared.core.exceptions import (
-    AuthenticationException,
-    ValidationException,
-    ServiceUnavailableException
-)
-from app.shared.core.email import (
-    send_verification_email,
-    send_password_reset_email,
-    send_mfa_code_email
-)
-from app.shared.api.deps import get_current_active_user
-from app.shared.models.user import User
-from app.shared.schemas.auth import (
-    Token,
-    TokenPayload,
-    UserCreate,
-    UserLogin,
-    PasswordReset,
-    PasswordResetConfirm,
-    MFAVerify
-)
-from app.shared.schemas.user import UserResponse
-from app.shared.db.session import get_db
 from app.auth.services.auth import AuthService
+from app.shared.api.deps import get_current_active_user
+from app.shared.core.config import settings
+from app.shared.core.exceptions import (AuthenticationException,
+                                        ServiceUnavailableException,
+                                        ValidationException)
+from app.shared.core.security import (create_access_token)
+from app.shared.db.session import get_db
+from app.shared.models.user import User
+from app.shared.schemas.auth import (MFAVerify, PasswordReset,
+                                     PasswordResetConfirm, Token, UserCreate)
+from app.shared.schemas.user import UserResponse
+from fastapi import Request
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.shared.models.user import User
+from app.shared.db.session import get_db
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from datetime import timedelta
+from fastapi import Request
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.shared.models.user import User
+from app.shared.db.session import get_db
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from datetime import timedelta
 
 router = APIRouter()
 

@@ -1,16 +1,21 @@
-from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime
+
+from sqlalchemy.orm import Session
 
 from app.lead.models.lead import Lead
-from app.shared.models.user import User 
-from app.shared.models.customer import Customer
-from app.lead.schemas.lead import LeadCreate, LeadUpdate
-from app.shared.core.tenant import get_customer_id
-from app.shared.core.security import UserRole
+from app.lead.schemas.lead import LeadUpdate
 from app.shared.core.communication import OutreachEngine
+from app.shared.models.customer import Customer
+from app.shared.models.user import User
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from datetime import datetime
+from app.shared.core.logging import logger
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from datetime import datetime
+from app.shared.core.logging import logger
 
 logger = logging.getLogger(__name__)
 

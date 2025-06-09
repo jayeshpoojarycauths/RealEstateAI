@@ -1,4 +1,4 @@
-import { Role } from "../types/auth";
+import { Role } from '../types/roles';
 import {
   HomeIcon,
   UserIcon,
@@ -17,9 +17,9 @@ import {
  * @property {MenuItem[]} [children] - Optional submenu items
  */
 export interface MenuItem {
+  title: string;
   path: string;
-  label: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  icon?: string;
   roles: Role[];
   children?: MenuItem[];
 }
@@ -31,43 +31,93 @@ export interface MenuItem {
  */
 export const menuItems: MenuItem[] = [
   {
-    path: "/dashboard",
-    label: "Dashboard",
-    icon: HomeIcon,
-    roles: [Role.ADMIN, Role.MANAGER, Role.AGENT],
+    title: 'Dashboard',
+    path: '/dashboard',
+    icon: 'dashboard',
+    roles: [Role.ADMIN, Role.AGENT, Role.CUSTOMER, Role.GUEST]
   },
   {
-    path: "/admin",
-    label: "Admin",
-    icon: CogIcon,
+    title: 'Leads',
+    path: '/leads',
+    icon: 'people',
+    roles: [Role.ADMIN, Role.AGENT],
+    children: [
+      {
+        title: 'All Leads',
+        path: '/leads',
+        roles: [Role.ADMIN, Role.AGENT]
+      },
+      {
+        title: 'My Leads',
+        path: '/leads/my',
+        roles: [Role.ADMIN, Role.AGENT]
+      }
+    ]
+  },
+  {
+    title: 'Properties',
+    path: '/properties',
+    icon: 'home',
+    roles: [Role.ADMIN, Role.AGENT, Role.CUSTOMER, Role.GUEST],
+    children: [
+      {
+        title: 'All Properties',
+        path: '/properties',
+        roles: [Role.ADMIN, Role.AGENT, Role.CUSTOMER, Role.GUEST]
+      },
+      {
+        title: 'My Properties',
+        path: '/properties/my',
+        roles: [Role.ADMIN, Role.AGENT]
+      }
+    ]
+  },
+  {
+    title: 'Users',
+    path: '/users',
+    icon: 'person',
     roles: [Role.ADMIN],
     children: [
       {
-        path: "/admin/users",
-        label: "User Management",
-        icon: UserIcon,
-        roles: [Role.ADMIN],
+        title: 'All Users',
+        path: '/users',
+        roles: [Role.ADMIN]
       },
       {
-        path: "/admin/audit-logs",
-        label: "Audit Logs",
-        icon: ChartBarIcon,
-        roles: [Role.ADMIN],
+        title: 'Agents',
+        path: '/users/agents',
+        roles: [Role.ADMIN]
       },
-    ],
+      {
+        title: 'Customers',
+        path: '/users/customers',
+        roles: [Role.ADMIN]
+      }
+    ]
   },
   {
-    path: "/properties",
-    label: "Properties",
-    icon: BuildingOfficeIcon,
-    roles: [Role.ADMIN, Role.MANAGER, Role.AGENT],
-  },
-  {
-    path: "/customers",
-    label: "Customers",
-    icon: UserGroupIcon,
-    roles: [Role.ADMIN, Role.MANAGER, Role.AGENT],
-  },
+    title: 'Settings',
+    path: '/settings',
+    icon: 'settings',
+    roles: [Role.ADMIN, Role.AGENT],
+    children: [
+      {
+        title: 'Profile',
+        path: '/settings/profile',
+        roles: [Role.ADMIN, Role.AGENT, Role.CUSTOMER]
+      },
+      {
+        title: 'Account',
+        path: '/settings/account',
+        roles: [Role.ADMIN, Role.AGENT]
+      },
+      {
+        title: 'System',
+        path: '/settings/system',
+        roles: [Role.ADMIN]
+      }
+    ]
+  }
 ];
 
 /**

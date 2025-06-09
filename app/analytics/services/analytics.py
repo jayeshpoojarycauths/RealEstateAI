@@ -1,25 +1,29 @@
-from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import func, case, and_, or_
 from datetime import datetime, timedelta
+from typing import List, Optional
+
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.analytics.schemas.analytics import (AnalyticsResponse,
+                                             ConversionFunnelResponse,
+                                             LeadActivityStats,
+                                             LeadQualityResponse,
+                                             LeadSourceStats, LeadStatusStats,
+                                             PriceTrendDataPoint,
+                                             PriceTrendResponse, TimeRange)
 from app.lead.models.lead import Lead
-from app.project.models.project import RealEstateProject
 from app.shared.models.interaction import InteractionLog
-from app.shared.models.customer import Customer
-from app.analytics.schemas.analytics import (
-    AnalyticsResponse,
-    LeadScoreDistribution,
-    ConversionFunnelResponse,
-    PriceTrendResponse,
-    LeadQualityResponse,
-    TimeRange,
-    TimeSeriesDataPoint,
-    LeadSourceStats,
-    ChannelPerformance,
-    LeadStatusStats,
-    LeadActivityStats,
-    PriceTrendDataPoint
-)
+from app.shared.models.interaction import InteractionLog
+from sqlalchemy.orm import Session
+from datetime import datetime
+from sqlalchemy import func
+from datetime import timedelta
+from app.shared.models.interaction import InteractionLog
+from sqlalchemy.orm import Session
+from datetime import datetime
+from sqlalchemy import func
+from datetime import timedelta
+
 
 class AnalyticsService:
     def __init__(self, db: Session):

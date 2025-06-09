@@ -1,8 +1,13 @@
 from datetime import datetime, timedelta
-from typing import Any, Union, Dict, Optional
-from jose import jwt, JWTError
+from typing import Any, Dict, Optional, Union, TYPE_CHECKING
+
 from fastapi import HTTPException, status
+from jose import JWTError, jwt
+
 from app.shared.core.config import settings
+
+if TYPE_CHECKING:
+    from app.shared.models.user import User
 
 def create_access_token(
     subject: Union[str, Any],

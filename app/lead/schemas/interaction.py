@@ -1,9 +1,22 @@
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
-from uuid import UUID
 from enum import Enum
+from typing import Any, Dict, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+
 from app.shared.models.interaction import InteractionType
+from app.shared.models.interaction import InteractionLog
+from app.shared.models.interaction import CallInteraction
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.models.interaction import InteractionLog
+from app.shared.models.interaction import CallInteraction
+from datetime import datetime
+from typing import Dict
+from typing import Any
+
 
 class InteractionStatus(str, Enum):
     SUCCESS = "success"

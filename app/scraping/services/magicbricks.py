@@ -1,11 +1,21 @@
-from typing import List, Dict, Any, Optional
+import asyncio
 import logging
-from bs4 import BeautifulSoup
 import re
 from datetime import datetime
-import asyncio
-from app.scraping.services.base import BaseScraper
+from typing import Any, Dict, List, Optional
+
+from bs4 import BeautifulSoup
+
 from app.scraping.models.scraping import ScrapingSource
+from app.scraping.services.base import BaseScraper
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
 
 logger = logging.getLogger(__name__)
 

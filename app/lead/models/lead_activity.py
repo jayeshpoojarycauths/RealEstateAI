@@ -1,9 +1,13 @@
-from sqlalchemy import Column, String, ForeignKey, DateTime, Text, Integer, Enum, JSON
+from sqlalchemy import (JSON, Column, DateTime, Enum, ForeignKey, Integer,
+                        Text)
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
+from app.lead.models.lead_types import ActivityType
 from app.shared.db.base_class import BaseModel
-from app.lead.models.lead import ActivityType
-from sqlalchemy.dialects.postgresql import UUID
+from app.shared.models.user import User
+
 
 class LeadActivity(BaseModel):
     __tablename__ = "lead_activities"

@@ -1,11 +1,12 @@
+
 from fastapi import Request, Response
 from fastapi.middleware.base import BaseHTTPMiddleware
-from app.core.config import settings
+
 from app.core.exceptions import RateLimitError
-import time
-from typing import Dict, Tuple
-import redis
 from app.core.redis import get_redis_client
+from fastapi import Request
+from fastapi import Request
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):

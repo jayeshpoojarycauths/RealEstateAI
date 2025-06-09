@@ -1,14 +1,15 @@
-from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
-from datetime import datetime, timedelta
 import logging
+from typing import List
+
 import pandas as pd
-import numpy as np
+from sqlalchemy.orm import Session
+
 from app.lead.models.lead import Lead
-from app.lead.schemas.lead import LeadCreate, LeadUpdate
-from app.shared.core.tenant import get_customer_id
-from app.shared.core.security import UserRole
+from app.lead.schemas.lead import LeadCreate
+from sqlalchemy.orm import Session
+from app.shared.core.logging import logger
+from sqlalchemy.orm import Session
+from app.shared.core.logging import logger
 
 logger = logging.getLogger(__name__)
 

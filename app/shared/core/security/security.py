@@ -1,21 +1,13 @@
-from datetime import datetime, timedelta
-from typing import Any, Union, List, Optional, Dict
-from passlib.context import CryptContext
-from app.shared.core.config import settings
-from functools import wraps
-from fastapi import HTTPException, Depends, status
-from app.shared.models.user import User
-from app.shared.models.customer import Customer
-from app.shared.core.security.password_utils import verify_password, get_password_hash
-from app.shared.core.constants import JWT_ALGORITHM
-from sqlalchemy.orm import Session
-import uuid
-import asyncio
-from app.shared.core.security.roles import Role
-import pyotp
-import hashlib
 import base64
+import hashlib
+
+import pyotp
 from cryptography.fernet import Fernet
+from passlib.context import CryptContext
+from sqlalchemy import func
+
+from app.shared.core.config import settings
+from app.shared.core.security.password_utils import get_password_hash, verify_password
 
 # Security constants
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES

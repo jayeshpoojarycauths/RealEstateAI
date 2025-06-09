@@ -1,10 +1,11 @@
 from fastapi import APIRouter
+
+from app.analytics.api.v1.endpoints import analytics
 from app.auth.api.v1.endpoints import auth
 from app.lead.api.v1.endpoints import leads
+from app.outreach.api.v1.endpoints import outreach
 from app.project.api.v1.endpoints import projects
 from app.scraping.api.v1.endpoints import scraping
-from app.outreach.api.v1.endpoints import outreach
-from app.analytics.api.v1.endpoints import analytics
 
 # Create main API router
 api_router = APIRouter()

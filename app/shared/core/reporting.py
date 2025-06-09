@@ -1,10 +1,12 @@
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict
+
 from sqlalchemy.orm import Session
-from app.shared.models.customer import Customer
+
 from app.shared.core.communication.email import send_email
-import logging
+from app.shared.models.customer import Customer
 
 logger = logging.getLogger(__name__)
 
@@ -192,6 +194,18 @@ class ReportingService:
     def _save_report(self, filename: str, report_data: Dict[str, Any]) -> None:
         """Save report to file."""
         import json
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from datetime import timedelta
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from datetime import timedelta
         filepath = self.reports_dir / filename
         with open(filepath, 'w') as f:
             json.dump(report_data, f, indent=2) 

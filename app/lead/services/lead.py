@@ -1,40 +1,30 @@
-import pandas as pd
-from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
-from fastapi import UploadFile, HTTPException
-from datetime import datetime, timedelta
-import json
+import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.lead.models.lead import Lead, LeadActivity, LeadScore, ActivityType
-from app.shared.models.user import User
-from app.shared.models.customer import Customer
-from app.lead.schemas.lead import (
-    LeadCreate,
-    LeadUpdate,
-    LeadResponse,
-    LeadListResponse,
-    LeadFilter,
-    LeadStats,
-    LeadActivityCreate,
-    LeadActivityResponse
-)
-from app.lead.services.lead_audit import LeadAuditService
-from app.lead.services.lead_validation import LeadValidationService
-from app.lead.services.lead_notification import LeadNotificationService
-from app.lead.services.lead_import import LeadImportService
-from app.lead.services.lead_export import LeadExportService
-from app.lead.services.lead_analytics import LeadAnalyticsService
-from app.lead.services.lead_workflow import LeadWorkflowService
-from app.outreach.services.outreach import OutreachService
-from app.shared.core.tenant import get_customer_id
-from app.shared.core.security import UserRole
+import pandas as pd
+from fastapi import UploadFile
+from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
+
+from app.lead.models.lead import Lead, LeadScore
+from app.lead.models.lead_activity import LeadActivity
+from app.lead.models.lead_types import ActivityType
+from app.lead.schemas.lead import (LeadCreate, LeadFilter, LeadUpdate)
+from app.shared.core.audit import AuditService
+from app.shared.core.exceptions import NotFoundError
 from app.shared.core.pagination import PaginationParams
 from app.shared.services.ai import AIService
-import logging
-from app.shared.core.exceptions import ValidationError, NotFoundError
-from app.shared.core.audit import AuditService
-from starlette.concurrency import run_in_threadpool
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
 
 logger = logging.getLogger(__name__)
 

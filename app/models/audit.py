@@ -1,8 +1,13 @@
-from sqlalchemy import Column, String, DateTime, JSON, ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
-from app.shared.db.base_class import Base
 import uuid
+
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from app.shared.db.base_class import Base
+from app.shared.models.user import User
+from app.shared.models.user import User
+
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"

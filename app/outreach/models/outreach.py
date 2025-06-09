@@ -1,11 +1,16 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON, Text, Boolean
+import enum
+import uuid
+
+from sqlalchemy import (JSON, Boolean, Column, DateTime, Enum, ForeignKey,
+                        Integer, String, Text)
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from datetime import datetime
-import enum
+
 from app.shared.db.base_class import BaseModel
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
+from sqlalchemy import func
+from sqlalchemy import func
+
 
 class OutreachChannel(str, enum.Enum):
     """Communication channels for outreach."""
@@ -56,8 +61,8 @@ class Outreach(BaseModel):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
     # Relationships
-    lead = relationship("Lead", back_populates="outreach")
-    customer = relationship("Customer", back_populates="outreach")
+    lead = relationship("Lead")
+    customer = relationship("Customer")
     
     def __repr__(self):
         return f"<Outreach {self.id} - {self.channel}>"
@@ -102,8 +107,8 @@ class OutreachLog(BaseModel):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
     # Relationships
-    lead = relationship("Lead", back_populates="outreach_logs")
-    customer = relationship("Customer", back_populates="outreach_logs")
+    lead = relationship("Lead")
+    customer = relationship("Customer")
     
     def __repr__(self):
         return f"<OutreachLog {self.id} - {self.channel}>"
@@ -125,7 +130,7 @@ class CommunicationPreference(BaseModel):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
     
     # Relationships
-    customer = relationship("Customer", back_populates="communication_preferences")
+    customer = relationship("Customer")
     
     def __repr__(self):
         return f"<CommunicationPreference {self.customer_id}>"
@@ -135,6 +140,7 @@ class OutreachCampaign(BaseModel):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     name = Column(String(100), nullable=False)
     description = Column(Text)
     channel = Column(Enum(OutreachChannel), nullable=False)
@@ -149,7 +155,9 @@ class OutreachCampaign(BaseModel):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
 
-    customer = relationship("Customer", back_populates="outreach_campaigns")
+    # Relationships
+    customer = relationship("Customer")
+    user = relationship("User", foreign_keys=[user_id])
 
     def __repr__(self):
         return f"<OutreachCampaign {self.id} - {self.name}>" 

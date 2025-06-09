@@ -1,15 +1,33 @@
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
-from jose import jwt
-from app.shared.core.config import settings
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import jwt
 from pydantic import BaseModel
-from app.shared.models.user import User
-from app.shared.models.customer import Customer
-from app.shared.db.session import get_db
 from sqlalchemy.orm import Session
+
+from app.shared.core.config import settings
 from app.shared.core.security.auth import get_current_user
+from app.shared.db.session import get_db
+from app.shared.models.customer import Customer
+from app.shared.models.user import User
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.shared.models.user import User
+from app.shared.db.session import get_db
+from fastapi import HTTPException
+from datetime import datetime
+from typing import Any
+from datetime import timedelta
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.shared.models.user import User
+from app.shared.db.session import get_db
+from fastapi import HTTPException
+from datetime import datetime
+from typing import Any
+from datetime import timedelta
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 

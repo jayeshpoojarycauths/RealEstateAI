@@ -1,9 +1,18 @@
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
-from app.project.models.project import RealEstateProject
 import logging
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
 from uuid import UUID
+
+from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from sqlalchemy.orm import Session
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+
 
 logger = logging.getLogger(__name__)
 

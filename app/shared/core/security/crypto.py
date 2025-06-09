@@ -1,6 +1,7 @@
-from cryptography.fernet import Fernet
 import os
+
 import bcrypt
+from cryptography.fernet import Fernet
 
 # Fernet key should be securely stored and rotated as needed
 FERNET_KEY = os.environ.get("FERNET_KEY")

@@ -1,7 +1,9 @@
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
 from pydantic import BaseModel
-from app.lead.models.lead import Lead
+
+
 
 class LeadAuditLog(BaseModel):
     """Schema for lead audit log entry"""
@@ -14,6 +16,8 @@ class LeadAuditLog(BaseModel):
 
     class Config:
         from_attributes = True
+from datetime import datetime
+from datetime import datetime
 
 class LeadAuditLogResponse(BaseModel):
     """Schema for lead audit log response"""

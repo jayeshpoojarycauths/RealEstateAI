@@ -1,9 +1,11 @@
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, EmailStr
 from datetime import datetime
-from enum import Enum
+from typing import Any, Dict, List, Optional
 from uuid import UUID
-from app.project.models.project import ProjectType, ProjectStatus
+
+from pydantic import BaseModel, Field
+
+from app.project.models.project import ProjectStatus, ProjectType, project_leads
+
 
 # --- Base Schemas ---
 class ProjectBase(BaseModel):
@@ -125,25 +127,24 @@ class ProjectAmenity(ProjectAmenityBase):
 
 # --- Lead Assignment Schemas ---
 class ProjectLeadBase(BaseModel):
-    status: str = Field(..., min_length=1, max_length=50)
+    """Base schema for project lead assignments."""
     notes: Optional[str] = None
 
 class ProjectLeadCreate(ProjectLeadBase):
+    """Schema for creating a new project lead assignment."""
     project_id: UUID
     lead_id: UUID
-    assigned_by: UUID
 
 class ProjectLeadUpdate(ProjectLeadBase):
+    """Schema for updating a project lead assignment."""
     pass
 
-class ProjectLead(ProjectLeadBase):
-    id: UUID
+class ProjectLeadResponse(ProjectLeadBase):
+    """Schema for project lead assignment response."""
     project_id: UUID
     lead_id: UUID
-    assigned_by: UUID
-    assigned_at: datetime
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -161,7 +162,7 @@ class Project(ProjectBase):
     features: List[ProjectFeature] = []
     images: List[ProjectImage] = []
     amenities_list: List[ProjectAmenity] = []
-    leads: List[ProjectLead] = []
+    leads: List[UUID] = []  # List of lead IDs instead of ProjectLead objects
 
     class Config:
         from_attributes = True
@@ -200,34 +201,6 @@ class ProjectAnalytics(BaseModel):
     location_distribution: List[Dict[str, Any]]
     amenity_popularity: List[Dict[str, Any]]
 
-class RealEstateProjectBase(BaseModel):
-    name: str
-    price: Optional[str] = None
-    size: Optional[str] = None
-    type: Optional[str] = None
-    builder: Optional[str] = None
-    location: Optional[str] = None
-    completion_date: Optional[str] = None
-
-class RealEstateProjectCreate(RealEstateProjectBase):
-    customer_id: UUID
-
-class RealEstateProjectUpdate(RealEstateProjectBase):
-    pass
-
-class RealEstateProjectInDBBase(RealEstateProjectBase):
-    id: UUID
-    customer_id: UUID
-
-    class Config:
-        from_attributes = True
-
-class RealEstateProject(RealEstateProjectInDBBase):
-    pass
-
-class RealEstateProjectInDB(RealEstateProjectInDBBase):
-    pass
-
 class ProjectResponse(ProjectBase):
     id: UUID
     customer_id: UUID
@@ -246,18 +219,4 @@ class ProjectListResponse(BaseModel):
     skip: int
     limit: int
 
-class ProjectLeadResponse(BaseModel):
-    id: int
-    lead_id: int
-    project_id: int
-    role: str
-    notes: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class RealEstateProjectList:
-    """Placeholder for RealEstateProjectList schema."""
-    pass 
+# TODO: Implement RealEstateProject schemas when needed 

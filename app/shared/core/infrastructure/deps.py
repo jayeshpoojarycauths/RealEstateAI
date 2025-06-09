@@ -1,75 +1,176 @@
-from typing import Generator, Optional
+"""
+Dependency injection utilities.
+"""
+
+from typing import TYPE_CHECKING, Optional, Generator, Dict, Any
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from jose import JWTError, jwt
-from pydantic import ValidationError
 
-from app.shared.core.config import settings
-from app.shared.core.exceptions import AuthenticationException, AuthorizationException
-from app.shared.core.security.auth import get_current_user
-from app.shared.models.user import User
-from app.shared.core.tenant import get_customer_id
-from app.shared.models.customer import Customer
-from app.shared.db.session import SessionLocal, get_db
-from app.shared.schemas.token import TokenPayload
+from app.shared.core.exceptions import AuthenticationException
+from app.shared.core.security.auth_core import decode_token, oauth2_scheme
+from app.shared.core.security.roles import Role
+from app.shared.db.session import get_db
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+if TYPE_CHECKING:
+    from app.shared.models.user import User
+    from app.shared.models.customer import Customer
+
+def get_db_session() -> Generator[Session, None, None]:
+    """
+    Get database session.
+    """
+    return get_db()
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-) -> User:
-    """Get current user from JWT token."""
+    db: Session = Depends(get_db_session)
+) -> "User":
+    """
+    Get current user from JWT token.
+    """
+    from app.shared.models.user import User
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        token_data = TokenPayload(**payload)
-    except (JWTError, ValidationError):
-        raise AuthenticationException("Could not validate credentials")
-
-    user = db.query(User).filter(User.id == token_data.sub).first()
-    if not user:
-        raise AuthenticationException("User not found")
+        payload = decode_token(token)
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except AuthenticationException:
+        raise credentials_exception
+    
+    user = db.query(User).filter_by(id=user_id).first()
+    if user is None:
+        raise credentials_exception
     return user
 
-async def get_current_active_user(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    """Get current active user."""
+def get_current_active_user(
+    current_user: "User" = Depends(get_current_user)
+) -> "User":
+    """
+    Get current active user.
+    
+    Args:
+        current_user: Current user from token
+        
+    Returns:
+        Current active user
+        
+    Raises:
+        HTTPException: If user is inactive
+    """
     if not current_user.is_active:
-        raise AuthorizationException("Inactive user")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user"
+        )
     return current_user
 
-async def get_current_superuser(
-    current_user: User = Depends(get_current_active_user)
-) -> User:
-    """Get current superuser."""
+def get_current_superuser(
+    current_user: "User" = Depends(get_current_active_user)
+) -> "User":
+    """
+    Get current superuser.
+    
+    Args:
+        current_user: Current active user
+        
+    Returns:
+        Current superuser
+        
+    Raises:
+        HTTPException: If user is not a superuser
+    """
     if not current_user.is_superuser:
-        raise AuthorizationException("Not enough permissions")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
     return current_user
 
-async def get_current_customer(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
-) -> Customer:
-    """Get current customer from user."""
-    customer = db.query(Customer).filter(Customer.id == current_user.customer_id).first()
+def get_current_customer(
+    db: Session = Depends(get_db),
+    current_user: "User" = Depends(get_current_active_user)
+) -> "Customer":
+    """
+    Get current customer.
+    
+    Args:
+        db: Database session
+        current_user: Current active user
+        
+    Returns:
+        Current customer
+        
+    Raises:
+        HTTPException: If user is not associated with a customer
+    """
+    from app.shared.models.customer import Customer
+    customer = db.query(Customer).filter_by(user_id=current_user.id).first()
     if not customer:
-        raise AuthenticationException("Customer not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Customer not found"
+        )
     return customer
 
-async def get_current_active_customer(
-    current_customer: Customer = Depends(get_current_customer)
-) -> Customer:
-    """Get current active customer."""
+def get_current_active_customer(
+    current_customer: "Customer" = Depends(get_current_customer)
+) -> "Customer":
+    """
+    Get current active customer.
+    
+    Args:
+        current_customer: Current customer
+        
+    Returns:
+        Current active customer
+        
+    Raises:
+        HTTPException: If customer is inactive
+    """
     if not current_customer.is_active:
-        raise AuthorizationException("Inactive customer")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive customer"
+        )
     return current_customer
 
-def get_current_tenant(
-    current_customer: Customer = Depends(get_current_customer)
-) -> str:
-    """Get current tenant identifier."""
-    return current_customer.customer_id 
+
+def get_current_user_dep():
+    """
+    Get current user dependency.
+    """
+    return get_current_user
+
+def get_current_active_user_dep():
+    """
+    Get current active user dependency.
+    """
+    return get_current_active_user
+
+def get_current_superuser_dep():
+    """
+    Get current superuser dependency.
+    """
+    return get_current_superuser
+
+def get_current_customer_dep():
+    """
+    Get current customer dependency.
+    """
+    return get_current_customer
+
+__all__ = [
+    'get_current_active_user',
+    'get_current_superuser',
+    'get_current_customer',
+    'get_current_active_customer',
+    'get_current_user_dep',
+    'get_current_active_user_dep',
+    'get_current_superuser_dep',
+    'get_current_customer_dep'
+] 

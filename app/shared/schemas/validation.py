@@ -1,7 +1,10 @@
-from pydantic import BaseModel, EmailStr, constr, validator
-from typing import Optional, List
-from datetime import datetime
 import re
+from typing import Optional
+
+from pydantic import BaseModel, EmailStr, constr, validator
+from app.shared.models.user import User
+from app.shared.models.user import User
+
 
 class PasswordValidation(BaseModel):
     password: constr(min_length=8, max_length=100)

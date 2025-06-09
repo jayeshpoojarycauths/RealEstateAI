@@ -1,51 +1,35 @@
+import logging
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 from uuid import UUID
 
-from sqlalchemy import func
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
 
-from app.shared.core.exceptions import (
-    NotFoundException,
-    ValidationException,
-    AuthorizationException,
-    ValidationError,
-    NotFoundError
-)
-from app.shared.models.user import User
 from app.project.models.project import (
     Project,
+    ProjectAmenity,
     ProjectFeature,
     ProjectImage,
-    ProjectAmenity,
     ProjectType,
-    ProjectStatus
+    project_leads
 )
 from app.project.schemas.project import (
-    ProjectCreate,
-    ProjectUpdate,
-    ProjectResponse,
-    ProjectFilter,
-    ProjectStats,
-    ProjectAnalytics,
-    ProjectLeadCreate,
-    ProjectLeadResponse,
-    ProjectListResponse,
-    ProjectList,
-    ProjectFeatureCreate,
-    ProjectImageCreate,
     ProjectAmenityCreate,
-    RealEstateProjectCreate,
-    RealEstateProjectUpdate,
-    RealEstateProjectList,
-    RealEstateProject
+    ProjectAnalytics,
+    ProjectCreate,
+    ProjectFeatureCreate,
+    ProjectFilter,
+    ProjectImageCreate,
+    ProjectLeadCreate,
+    ProjectStats,
+    ProjectUpdate
 )
-from app.shared.db.session import get_db
 from app.shared.core.audit import AuditService
+from app.shared.core.exceptions import NotFoundException, ValidationError, ValidationException
 from app.shared.core.pagination import PaginationParams
 from app.shared.services.ai import AIService
-import logging
+from app.shared.core.logging import logger
 
 logger = logging.getLogger(__name__)
 
@@ -267,40 +251,31 @@ class ProjectService:
 
     async def assign_lead(
         self,
-        project_id: str,
+        project_id: UUID,
         lead_in: ProjectLeadCreate,
-        customer_id: str
-    ) -> Any:
-        """Assign a lead to a project."""
+        customer_id: UUID
+    ) -> Dict[str, Any]:
+        """Assign a lead to a project using the association table."""
+        # Verify project exists and belongs to customer
         project = await self.get_project(project_id, customer_id)
         
-        # Check if lead is already assigned
-        existing_assignment = self.db.query(ProjectLead).filter(
-            ProjectLead.project_id == project_id,
-            ProjectLead.lead_id == lead_in.lead_id
-        ).first()
-        
-        if existing_assignment:
-            raise ValidationError(detail="Lead is already assigned to this project")
-        
-        lead_assignment = ProjectLead(
-            **lead_in.dict(),
-            project_id=project_id
-        )
-        
-        self.db.add(lead_assignment)
-        self.db.commit()
-        self.db.refresh(lead_assignment)
-        
-        # Log audit
-        self.audit_service.log_project_lead_assignment(
-            project=project,
-            lead_assignment=lead_assignment,
-            user_id=lead_in.assigned_by,
-            customer_id=customer_id
-        )
-        
-        return lead_assignment
+        try:
+            # Insert into project_leads association table
+            stmt = project_leads.insert().values(
+                project_id=str(project_id),
+                lead_id=str(lead_in.lead_id)
+            )
+            self.db.execute(stmt)
+            self.db.commit()
+            
+            return {
+                "message": "Lead assigned successfully",
+                "project_id": str(project_id),
+                "lead_id": str(lead_in.lead_id)
+            }
+        except Exception as e:
+            self.db.rollback()
+            raise ValidationException(f"Error assigning lead: {str(e)}")
 
     async def get_project_stats(self, customer_id: str) -> ProjectStats:
         """Get project statistics."""
@@ -341,7 +316,7 @@ class ProjectService:
         
         average_project_value = total_value / total_projects if total_projects > 0 else 0.0
         
-        total_leads = self.db.query(func.count(ProjectLead.id)).join(
+        total_leads = self.db.query(func.count(project_leads.c.id)).join(
             Project
         ).filter(
             Project.customer_id == customer_id
@@ -366,11 +341,11 @@ class ProjectService:
         lead_trends = []
         for i in range(30):
             date = datetime.utcnow() - timedelta(days=i)
-            count = self.db.query(func.count(ProjectLead.id)).join(
+            count = self.db.query(func.count(project_leads.c.id)).join(
                 Project
             ).filter(
                 Project.customer_id == customer_id,
-                func.date(ProjectLead.assigned_at) == date.date()
+                func.date(project_leads.c.assigned_at) == date.date()
             ).scalar()
             lead_trends.append({
                 "date": date.date().isoformat(),

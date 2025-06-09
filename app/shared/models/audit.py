@@ -1,12 +1,18 @@
-from sqlalchemy import Column, String, JSON, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
-from app.shared.models.base import BaseModel
-from app.shared.models.customer import Customer
+"""
+Audit log model for tracking system events.
+"""
 
-class AuditLog(BaseModel):
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, String
+from sqlalchemy.orm import relationship
+
+from app.shared.db.base_class import Base
+
+class AuditLog(Base):
     """Audit log model for tracking system events."""
     __tablename__ = "audit_logs"
+    __table_args__ = {'extend_existing': True}
 
+    id = Column(String(36), primary_key=True, index=True)
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     customer_id = Column(String, ForeignKey("customers.id"), nullable=False)
     action = Column(String, nullable=False)
@@ -15,6 +21,8 @@ class AuditLog(BaseModel):
     details = Column(JSON)
     timestamp = Column(DateTime, nullable=False)
     
-    # Relationships
-    user = relationship("User", back_populates="audit_logs")
-    customer = relationship("Customer", back_populates="audit_logs") 
+    # Use string references for relationships
+    user = relationship("User", back_populates="audit_logs", foreign_keys=[user_id])
+    customer = relationship("Customer", back_populates="audit_logs", foreign_keys=[customer_id])
+
+__all__ = ["AuditLog"] 

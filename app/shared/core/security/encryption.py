@@ -1,8 +1,11 @@
-from cryptography.fernet import Fernet
-from sqlalchemy.types import TypeDecorator, String
 import base64
-from app.shared.core.config import settings
 from typing import Union
+
+from cryptography.fernet import Fernet
+from sqlalchemy.types import String, TypeDecorator
+
+from app.shared.core.config import settings
+
 
 class EncryptedField(TypeDecorator):
     """SQLAlchemy type for encrypted fields"""

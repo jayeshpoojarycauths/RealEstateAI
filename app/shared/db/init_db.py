@@ -1,8 +1,17 @@
 from sqlalchemy.orm import Session
-from app.shared.models.user import User, Role, Permission
-from app.shared.models.customer import Customer
+from sqlalchemy import create_engine
+
 from app.shared.core.security import get_password_hash
-from uuid import uuid4
+from app.shared.models.customer import Customer
+from app.shared.models.user import Permission, Role, User
+from app.shared.core.config import settings
+from app.shared.db.base_class import Base
+from app.scraping.models.scraping import ScrapingConfig
+
+def create_tables():
+    """Create all database tables."""
+    engine = create_engine(settings.DATABASE_URL)
+    Base.metadata.create_all(bind=engine)
 
 def init_db(db: Session) -> None:
     """Initialize the database with required data."""

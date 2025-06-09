@@ -10,7 +10,7 @@ Key Components:
 - PermissionService: Service class for managing permissions and RBAC
 
 Usage:
-    from app.shared.core.security.rbac import require_admin, require_manager, require_agent
+    from app.shared.core.security.rbac import require_admin, require_agent
 
     @router.get("/admin-only")
     @require_admin
@@ -18,17 +18,15 @@ Usage:
         return {"message": "Admin access granted"}
 """
 
-from typing import List, Optional, Dict, Any
-from fastapi import Depends, HTTPException, status
-from app.shared.core.infrastructure.deps import get_current_user
-from app.shared.core.security.roles import Role
-from app.shared.core.exceptions import PermissionDenied
-from app.shared.core.communication.messages import Messages
 from enum import Enum
-from sqlalchemy.orm import Session
-from app.shared.models.user import User
-from app.shared.db.session import get_db
+from typing import Dict, List, TYPE_CHECKING
+
+from app.shared.core.exceptions import PermissionDenied
 from app.shared.core.security.permissions import Permission
+from app.shared.core.security.roles import Role
+
+if TYPE_CHECKING:
+    from app.shared.models.user import User
 
 class Permission(str, Enum):
     """
@@ -80,16 +78,6 @@ ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
         Permission.MANAGE_SYSTEM,
         Permission.VIEW_AUDIT_LOGS,
     ],
-    Role.MANAGER: [
-        Permission.READ_USER,
-        Permission.CREATE_PROPERTY,
-        Permission.READ_PROPERTY,
-        Permission.UPDATE_PROPERTY,
-        Permission.DELETE_PROPERTY,
-        Permission.CREATE_CUSTOMER,
-        Permission.READ_CUSTOMER,
-        Permission.UPDATE_CUSTOMER,
-    ],
     Role.AGENT: [
         Permission.READ_PROPERTY,
         Permission.CREATE_CUSTOMER,
@@ -100,6 +88,9 @@ ROLE_PERMISSIONS: Dict[Role, List[Permission]] = {
         Permission.READ_PROPERTY,
         Permission.READ_CUSTOMER,
     ],
+    Role.GUEST: [
+        Permission.READ_PROPERTY,
+    ],
 }
 
 """
@@ -108,9 +99,9 @@ Mapping of roles to their allowed permissions.
 This dictionary defines which permissions are granted to each role in the system.
 The permissions are organized in a hierarchical structure where:
 - ADMIN has all permissions
-- MANAGER has a subset of permissions
 - AGENT has basic operational permissions
 - CUSTOMER has minimal read-only permissions
+- GUEST has minimal read-only permissions
 """
 
 class RBACService:
@@ -129,7 +120,7 @@ class RBACService:
     @staticmethod
     def require_permission(permission: Permission):
         """Dependency for requiring a specific permission."""
-        def dependency(current_user: User):
+        def dependency(current_user: "User"):
             if not RBACService.has_permission(current_user.role, permission):
                 raise PermissionDenied(
                     detail=f"Required permission: {permission}"
@@ -140,7 +131,7 @@ class RBACService:
     @staticmethod
     def require_roles(*roles: Role):
         """Dependency for requiring specific roles."""
-        def dependency(current_user: User):
+        def dependency(current_user: "User"):
             if current_user.role not in roles:
                 raise PermissionDenied(
                     detail=f"Required roles: {', '.join(role.value for role in roles)}"
@@ -148,18 +139,18 @@ class RBACService:
             return current_user
         return dependency
 
-# Create RBAC service instance
+# Initialize RBAC service
 rbac_service = RBACService()
 
-# Export commonly used dependencies
+# Common role requirements
 require_admin = rbac_service.require_roles(Role.ADMIN)
-require_manager = rbac_service.require_roles(Role.ADMIN, Role.MANAGER)
-require_agent = rbac_service.require_roles(Role.ADMIN, Role.MANAGER, Role.AGENT)
+require_agent = rbac_service.require_roles(Role.ADMIN, Role.AGENT)
 
 __all__ = [
+    'Permission',
+    'ROLE_PERMISSIONS',
     'RBACService',
-    'rbac_service',
     'require_admin',
-    'require_manager',
     'require_agent',
+    'rbac_service'
 ] 

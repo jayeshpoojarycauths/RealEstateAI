@@ -1,8 +1,9 @@
 import logging
-from typing import Optional
-from app.shared.core.config import settings
+
 from app.shared.core.exceptions import ExternalServiceError
 from app.shared.core.sms import SMSService
+from app.shared.core.logging import logger
+from app.shared.core.logging import logger
 
 logger = logging.getLogger(__name__)
 

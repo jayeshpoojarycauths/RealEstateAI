@@ -8,23 +8,15 @@ export const isManager = (role: Role) => role === Role.MANAGER;
 export const isAgent = (role: Role) => role === Role.AGENT;
 export const isAnalyst = (role: Role) => role === Role.ANALYST;
 export const isAuditor = (role: Role) => role === Role.AUDITOR;
+export const isCustomer = (role: Role) => role === Role.CUSTOMER;
+export const isGuest = (role: Role) => role === Role.GUEST;
 
 // Role hierarchy for permission checks
 export const roleHierarchy: Record<Role, Role[]> = {
-  [Role.PLATFORM_ADMIN]: Object.values(Role),
-  [Role.SUPERADMIN]: [
-    Role.SUPERADMIN,
-    Role.ADMIN,
-    Role.MANAGER,
-    Role.AGENT,
-    Role.ANALYST,
-    Role.AUDITOR,
-  ],
-  [Role.ADMIN]: [Role.ADMIN, Role.MANAGER, Role.AGENT, Role.ANALYST],
-  [Role.MANAGER]: [Role.MANAGER, Role.AGENT],
-  [Role.AGENT]: [Role.AGENT],
-  [Role.ANALYST]: [Role.ANALYST],
-  [Role.AUDITOR]: [Role.AUDITOR],
+  [Role.ADMIN]: [Role.ADMIN, Role.AGENT, Role.CUSTOMER, Role.GUEST],
+  [Role.AGENT]: [Role.AGENT, Role.CUSTOMER, Role.GUEST],
+  [Role.CUSTOMER]: [Role.CUSTOMER, Role.GUEST],
+  [Role.GUEST]: [Role.GUEST]
 };
 
 // Check if a role has permission to perform actions for another role
@@ -35,13 +27,10 @@ export const hasPermission = (userRole: Role, targetRole: Role): boolean => {
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   role: Role;
-  phone?: string;
-  avatar?: string;
-  isEmailVerified: boolean;
-  tenantId?: string; // Added for multitenant support
+  isActive: boolean;
+  isSuperuser: boolean;
   createdAt: string;
   updatedAt: string;
 }

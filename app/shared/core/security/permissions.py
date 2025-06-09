@@ -1,13 +1,17 @@
-from enum import Enum
-from typing import Dict, Set, List, Optional
-from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session
+"""
+Permission management module.
+"""
 
-from app.shared.core.exceptions import AuthorizationException, PermissionDenied
-from app.shared.models.user import User
-from app.shared.db.session import get_db
-from app.shared.core.security.roles import Role
-from app.shared.core.communication.messages import Messages
+from enum import Enum
+from typing import Dict, Set, TYPE_CHECKING
+
+from fastapi import HTTPException, status
+
+from app.shared.core.exceptions import PermissionDenied
+from app.shared.core.security.role_types import Role
+
+if TYPE_CHECKING:
+    from app.shared.models.user import User
 
 class Permission(str, Enum):
     """System permissions."""
@@ -51,16 +55,6 @@ ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
         Permission.MANAGE_SYSTEM,
         Permission.VIEW_AUDIT_LOGS,
     },
-    Role.MANAGER: {
-        Permission.READ_USER,
-        Permission.CREATE_PROPERTY,
-        Permission.READ_PROPERTY,
-        Permission.UPDATE_PROPERTY,
-        Permission.DELETE_PROPERTY,
-        Permission.CREATE_CUSTOMER,
-        Permission.READ_CUSTOMER,
-        Permission.UPDATE_CUSTOMER,
-    },
     Role.AGENT: {
         Permission.READ_PROPERTY,
         Permission.CREATE_CUSTOMER,
@@ -71,11 +65,18 @@ ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
         Permission.READ_PROPERTY,
         Permission.READ_CUSTOMER,
     },
+    Role.GUEST: {
+        Permission.READ_PROPERTY,
+    },
 }
+
+def get_user_permissions(user: "User") -> Set[Permission]:
+    """Get all permissions for a user."""
+    return ROLE_PERMISSIONS.get(user.role, set())
 
 def check_permission(
     required_permission: str,
-    current_user: User
+    current_user: "User"
 ) -> bool:
     """Check if user has required permission."""
     if not current_user.is_active:
@@ -92,7 +93,7 @@ def check_permission(
 
 def has_permission(
     required_permission: str,
-    current_user: User
+    current_user: "User"
 ) -> bool:
     """Check if user has required permission without raising exception."""
     if not current_user.is_active:
@@ -120,7 +121,7 @@ class PermissionService:
     @staticmethod
     def require_permission(permission: Permission):
         """Dependency for requiring a specific permission."""
-        def dependency(current_user: User):
+        def dependency(current_user: "User"):
             if not PermissionService.has_permission(current_user.role, permission):
                 raise PermissionDenied(
                     detail=f"Required permission: {permission}"
@@ -131,7 +132,7 @@ class PermissionService:
     @staticmethod
     def require_roles(*roles: Role):
         """Dependency for requiring specific roles."""
-        def dependency(current_user: User):
+        def dependency(current_user: "User"):
             if current_user.role not in roles:
                 raise PermissionDenied(
                     detail=f"Required roles: {', '.join(role.value for role in roles)}"
@@ -144,11 +145,28 @@ permission_service = PermissionService()
 
 # Export commonly used dependencies
 require_admin = permission_service.require_roles(Role.ADMIN)
-require_manager = permission_service.require_roles(Role.ADMIN, Role.MANAGER)
-require_agent = permission_service.require_roles(Role.ADMIN, Role.MANAGER, Role.AGENT)
+require_agent = permission_service.require_roles(Role.ADMIN, Role.AGENT)
+require_customer = permission_service.require_roles(Role.ADMIN, Role.AGENT, Role.CUSTOMER)
 
 # Export permission-based dependencies
 require_user_management = permission_service.require_permission(Permission.CREATE_USER)
 require_property_management = permission_service.require_permission(Permission.CREATE_PROPERTY)
 require_customer_management = permission_service.require_permission(Permission.CREATE_CUSTOMER)
-require_system_management = permission_service.require_permission(Permission.MANAGE_SYSTEM) 
+require_system_management = permission_service.require_permission(Permission.MANAGE_SYSTEM)
+
+__all__ = [
+    'Permission',
+    'PermissionService',
+    'permission_service',
+    'require_admin',
+    'require_agent',
+    'require_customer',
+    'require_user_management',
+    'require_property_management',
+    'require_customer_management',
+    'require_system_management',
+    'check_permission',
+    'has_permission',
+    'get_user_permissions',
+    'init_dependencies'
+] 

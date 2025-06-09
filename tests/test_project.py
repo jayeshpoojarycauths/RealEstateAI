@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from app.shared.models.project import Project
+from app.project.models.project import Project
 from app.lead.models import ProjectLead
 from app.lead.models.lead import Lead
 from app.project.schemas import ProjectCreate, ProjectUpdate, ProjectType, ProjectStatus

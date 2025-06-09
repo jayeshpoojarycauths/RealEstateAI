@@ -1,11 +1,13 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON, Text, Boolean, Float
+import enum
+import uuid
+
+from sqlalchemy import (JSON, Boolean, Column, DateTime, Enum, Float,
+                        ForeignKey, Integer, String, Text)
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from datetime import datetime
-import enum
+
 from app.shared.db.base_class import BaseModel
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
 
 class ScrapingSource(str, enum.Enum):
     """Supported scraping sources."""
@@ -36,6 +38,7 @@ class ScrapingConfig(BaseModel):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     enabled_sources = Column(JSON, default=list)
     locations = Column(JSON, default=list)
     property_types = Column(JSON, default=list)
@@ -61,6 +64,7 @@ class ScrapingConfig(BaseModel):
     
     # Relationships
     customer = relationship("Customer", back_populates="scraping_config")
+    user = relationship("User", back_populates="scraping_configs", foreign_keys=[user_id])
     jobs = relationship("ScrapingJob", back_populates="config")
     
     def __repr__(self):

@@ -1,8 +1,10 @@
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from uuid import UUID
 from enum import Enum
+from typing import Dict, List, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr
+
 
 # --- Upload Schemas ---
 class LeadUploadResponse(BaseModel):
@@ -115,6 +117,12 @@ class LeadInDBBase(LeadBase):
 
     class Config:
         from_attributes = True
+from fastapi import Request
+from datetime import datetime
+from typing import Dict
+from fastapi import Request
+from datetime import datetime
+from typing import Dict
 
 class Lead(LeadInDBBase):
     """Full lead model for API responses."""

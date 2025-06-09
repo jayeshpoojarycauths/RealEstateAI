@@ -1,14 +1,16 @@
-from typing import Optional, Dict, Any
+import asyncio
 import logging
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Any, Dict
+
+from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from apscheduler.executors.pool import ThreadPoolExecutor
-from app.scraping.models.scraping import ScrapingConfig, ScrapingStatus
+from sqlalchemy.orm import Session
+
+from app.scraping.models.scraping import ScrapingConfig
 from app.shared.core.config import settings
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +22,7 @@ class ScrapingScheduler:
         
         # Configure job stores
         jobstores = {
-            'default': SQLAlchemyJobStore(url=settings.SQLALCHEMY_DATABASE_URI)
+            'default': SQLAlchemyJobStore(url=settings.database_url)
         }
         
         # Configure executors
@@ -89,6 +91,16 @@ class ScrapingScheduler:
         """Run all scraping jobs for a configuration."""
         try:
             from app.scraping.services.scraper import ScraperService
+            from sqlalchemy.orm import Session
+            from datetime import datetime
+            from typing import Dict
+            from typing import Any
+            from app.shared.core.logging import logger
+            from sqlalchemy.orm import Session
+            from datetime import datetime
+            from typing import Dict
+            from typing import Any
+            from app.shared.core.logging import logger
             scraper_service = ScraperService(self.db)
             config = await asyncio.to_thread(
                 lambda: self.db.query(ScrapingConfig).filter(

@@ -1,9 +1,12 @@
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, EmailStr, validator
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
 from uuid import UUID
+
+from pydantic import BaseModel, EmailStr, Field, validator
+
 from app.outreach.models.outreach import OutreachChannel, OutreachStatus
+
 
 class OutreachChannel(str, Enum):
     EMAIL = "email"
@@ -285,6 +288,16 @@ class InteractionLog(InteractionLogBase):
 
     class Config:
         from_attributes = True
+from app.shared.models.interaction import InteractionLog
+from fastapi import Request
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.models.interaction import InteractionLog
+from fastapi import Request
+from datetime import datetime
+from typing import Dict
+from typing import Any
 
 class InteractionLogResponse(InteractionLog):
     pass 

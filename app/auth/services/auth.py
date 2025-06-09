@@ -1,55 +1,46 @@
-from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
-from app.shared.core.config import settings
-from app.shared.core.security import (
-    create_access_token,
-    verify_password,
-    get_password_hash,
-    create_refresh_token,
-    verify_jwt_token,
-    verify_mfa_code,
-    encrypt_value,
-    decrypt_value,
-    hash_code
-)
-from app.shared.core.exceptions import (
-    AuthenticationException,
-    ValidationException,
-    ServiceUnavailableException
-)
-from app.shared.core.email import (
-    send_verification_email,
-    send_password_reset_email,
-    send_mfa_code_email
-)
-from app.shared.models.user import User
-from app.shared.schemas.auth import (
-    UserCreate,
-    UserLogin,
-    PasswordReset,
-    PasswordResetConfirm,
-    MFAVerify
-)
-from app.auth.models.auth import (
-    RefreshToken,
-    LoginAttempt,
-    MFASettings,
-    UserSession
-)
-from app.shared.core.audit import AuditService
-from app.shared.core.security.roles import Role
-from app.shared.schemas.user import UserUpdate
-import pyotp
-import secrets
-import qrcode
-import io
 import base64
-import re
+import io
 import json
+import re
+import secrets
 import uuid
-import asyncio
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import pyotp
+import qrcode
+from sqlalchemy.orm import Session
+
+from app.auth.models.auth import (MFASettings, UserSession)
+from app.shared.core.audit import AuditService
+from app.shared.core.config import settings
+from app.shared.core.email import (send_password_reset_email,
+                                   send_verification_email)
+from app.shared.core.exceptions import (ValidationException)
+from app.shared.core.security import (create_access_token,
+                                      create_refresh_token, decrypt_value,
+                                      encrypt_value, get_password_hash,
+                                      hash_code, verify_jwt_token,
+                                      verify_mfa_code, verify_password)
+from app.shared.core.security.roles import Role
+from app.shared.models.user import User
+from app.shared.schemas.auth import (UserCreate)
+from app.shared.schemas.user import UserUpdate
+from fastapi import Request
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from datetime import timedelta
+from fastapi import Request
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from datetime import timedelta
+
 
 class AuthService:
     def __init__(self, db: Session):
@@ -98,7 +89,7 @@ class AuthService:
             email=user_in.email,
             hashed_password=get_password_hash(user_in.password),
             full_name=user_in.full_name,
-            role=user_in.role or Role.VIEWER,
+            role=user_in.role or Role.GUEST,
             is_active=True,
             is_superuser=False,
         )

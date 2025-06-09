@@ -1,9 +1,10 @@
-from sqlalchemy import Column, String, ForeignKey, Text, Boolean, JSON, Integer, Float, DateTime, Enum
-from sqlalchemy.orm import relationship
-from app.shared.models.base import BaseModel
 import enum
-from datetime import datetime
-import uuid
+
+from sqlalchemy import (JSON, Column, DateTime, Enum, Float,
+                        ForeignKey, Integer, String, Text)
+from sqlalchemy.orm import relationship
+
+from app.shared.db.base_class import Base
 
 class InteractionType(enum.Enum):
     CALL = "call"
@@ -28,10 +29,11 @@ class CommunicationChannel(str, enum.Enum):
     PHONE = "phone"
     PUSH = "push"
 
-class InteractionLog(BaseModel):
+class InteractionLog(Base):
     __tablename__ = "interaction_logs"
     __table_args__ = {'extend_existing': True}
     
+    id = Column(String(36), primary_key=True, index=True)
     lead_id = Column(String(36), ForeignKey('leads.id'))
     customer_id = Column(String(36), ForeignKey('customers.id'))
     interaction_type = Column(Enum(InteractionType))
@@ -44,13 +46,15 @@ class InteractionLog(BaseModel):
     response_time = Column(Float)  # Average response time in seconds
     model_metadata = Column(JSON)  # Additional interaction metadata
     
-    lead = relationship("Lead", back_populates="interactions")
-    customer = relationship("Customer")
+    # Use string references for relationships
+    lead = relationship("Lead", back_populates="interactions", foreign_keys=[lead_id])
+    customer = relationship("Customer", foreign_keys=[customer_id])
 
-class CallInteraction(BaseModel):
+class CallInteraction(Base):
     __tablename__ = "call_interactions"
     __table_args__ = {'extend_existing': True}
     
+    id = Column(String(36), primary_key=True, index=True)
     interaction_id = Column(String(36), ForeignKey('interaction_logs.id'))
     call_sid = Column(String)  # Twilio Call SID
     recording_url = Column(String)
@@ -62,10 +66,11 @@ class CallInteraction(BaseModel):
     
     interaction = relationship("InteractionLog")
 
-class MessageInteraction(BaseModel):
+class MessageInteraction(Base):
     __tablename__ = "message_interactions"
     __table_args__ = {'extend_existing': True}
     
+    id = Column(String(36), primary_key=True, index=True)
     interaction_id = Column(String(36), ForeignKey('interaction_logs.id'))
     message_id = Column(String)  # Provider's message ID
     content = Column(Text)
@@ -74,4 +79,13 @@ class MessageInteraction(BaseModel):
     delivery_status = Column(String)
     model_metadata = Column(JSON)  # Additional message metadata
     
-    interaction = relationship("InteractionLog") 
+    interaction = relationship("InteractionLog")
+
+__all__ = [
+    "InteractionType",
+    "InteractionStatus",
+    "CommunicationChannel",
+    "InteractionLog",
+    "CallInteraction",
+    "MessageInteraction"
+] 

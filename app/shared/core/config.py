@@ -1,42 +1,108 @@
-from typing import Any, List, Optional, Union, Dict
-from pydantic_settings import BaseSettings
-from pydantic import AnyHttpUrl, validator, EmailStr, PostgresDsn
+"""
+Configuration settings module.
+"""
+
+import os
 import secrets
 from functools import lru_cache
-import json
-import os
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import AnyHttpUrl, field_validator, Field, ValidationInfo
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Dict
+from typing import Any
+from sqlalchemy import func
+from typing import Dict
+from typing import Any
+from sqlalchemy import func
+
 
 class Settings(BaseSettings):
     """Application settings."""
-    PROJECT_NAME: str = "Real Estate AI Platform"
-    VERSION: str = "1.0.0"
-    API_V1_STR: str = "/api/v1"
+    
+    # Environment
+    ENVIRONMENT: str = Field(default="development")
+    DEBUG: bool = Field(default=True)
+    
+    # API Settings
+    API_V1_STR: str = Field(default="/api/v1")
+    PROJECT_NAME: str = Field(default="Real Estate AI")
     
     # Security
-    SECRET_KEY: str = secrets.token_urlsafe(32)
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
-    ALLOWED_HOSTS: List[str] = ["*"]
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    SECRET_KEY: str = Field(default="your-secret-key-here")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7)
     
     # Database
-    POSTGRES_SERVER: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-    SQLALCHEMY_DATABASE_URI: Optional[str] = None
-    SQLALCHEMY_DATABASE_URL: Optional[str] = None
-
-    @validator("SQLALCHEMY_DATABASE_URI", pre=True)
-    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+    DATABASE_URL: Optional[str] = Field(default=None)
+    POSTGRES_USER: Optional[str] = Field(default=None)
+    POSTGRES_PASSWORD: Optional[str] = Field(default=None)
+    POSTGRES_SERVER: Optional[str] = Field(default=None)
+    POSTGRES_DB: Optional[str] = Field(default=None)
+    
+    # Email
+    MAIL_USERNAME: Optional[str] = Field(default=None)
+    MAIL_PASSWORD: Optional[str] = Field(default=None)
+    MAIL_SERVER: Optional[str] = Field(default=None)
+    MAIL_PORT: Optional[int] = Field(default=None)
+    MAIL_FROM: Optional[str] = Field(default=None)
+    
+    # AWS Settings
+    AWS_REGION: Optional[str] = Field(default=None)
+    AWS_ACCESS_KEY_ID: Optional[str] = Field(default=None)
+    AWS_SECRET_ACCESS_KEY: Optional[str] = Field(default=None)
+    SECRETS_ID: Optional[str] = Field(default=None)
+    
+    # Vault Settings
+    VAULT_ADDR: Optional[str] = Field(default=None)
+    VAULT_TOKEN: Optional[str] = Field(default=None)
+    VAULT_PATH: Optional[str] = Field(default=None)
+    
+    # Kubernetes Settings
+    K8S_SECRET_NAME: Optional[str] = Field(default=None)
+    K8S_NAMESPACE: Optional[str] = Field(default=None)
+    
+    # Frontend
+    FRONTEND_URL: str = Field(default="http://localhost:3000")
+    
+    # CORS
+    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = Field(default=[])
+    
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: str | List[str]) -> List[str] | str:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        elif isinstance(v, (list, str)):
+            return v
+        raise ValueError(v)
+    
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_db_connection(cls, v: Optional[str], info: ValidationInfo) -> str:
         if isinstance(v, str):
             return v
-        return f"postgresql://{values.get('POSTGRES_USER')}:{values.get('POSTGRES_PASSWORD')}@{values.get('POSTGRES_SERVER')}/{values.get('POSTGRES_DB')}"
-
-    # Frontend
-    FRONTEND_URL: str = "http://localhost:3000"
+        values = info.data
+        if all(values.get(key) for key in ['POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_SERVER', 'POSTGRES_DB']):
+            return f"postgresql://{values['POSTGRES_USER']}:{values['POSTGRES_PASSWORD']}@{values['POSTGRES_SERVER']}/{values['POSTGRES_DB']}"
+        # Don't default to SQLite, raise an error instead
+        raise ValueError("DATABASE_URL or PostgreSQL configuration is required")
+    
+    @property
+    def database_url(self) -> str:
+        """Get database URL."""
+        return self.DATABASE_URL
+    
+    # Redis
+    REDIS_URL: Optional[str] = Field(default=None)
+    
+    # Celery
+    CELERY_BROKER_URL: Optional[str] = Field(default=None)
+    CELERY_RESULT_BACKEND: Optional[str] = Field(default=None)
+    
+    # Version
+    VERSION: str = "1.0.0"
     
     # Email
     SMTP_TLS: bool = True
@@ -46,12 +112,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     EMAILS_FROM_EMAIL: Optional[str] = None
     EMAILS_FROM_NAME: Optional[str] = None
-    MAIL_USERNAME: str = "your-email@gmail.com"
-    MAIL_PASSWORD: str = "your-app-password"
-    MAIL_FROM: str = "your-email@gmail.com"
     MAIL_FROM_NAME: str = "Real Estate AI"
-    MAIL_PORT: int = 587
-    MAIL_SERVER: str = "smtp.gmail.com"
     MAIL_TLS: bool = True
     MAIL_SSL: bool = False
     MAIL_STARTTLS: bool = True
@@ -149,11 +210,9 @@ class Settings(BaseSettings):
     TWILIO_CALL_MACHINE_DETECTION_SPEECH_END_THRESHOLD: int = 1000  # milliseconds
     TWILIO_CALL_MACHINE_DETECTION_SILENCE_TIMEOUT: int = 1000  # milliseconds
 
-    @property
     def get_database_url(self) -> str:
-        if self.SQLALCHEMY_DATABASE_URI:
-            return self.SQLALCHEMY_DATABASE_URI
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
+        """Get database URL."""
+        return self.DATABASE_URL
 
     @property
     def get_database_engine_options(self) -> dict:
@@ -165,35 +224,23 @@ class Settings(BaseSettings):
             "echo": self.DB_ECHO,
         }
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
-
     @property
     def full_call_status_callback_url(self) -> str:
         """Get the full call status callback URL."""
         return f"{self.API_BASE_URL}{self.CALL_STATUS_CALLBACK_URL}"
 
-    class Config:
-        case_sensitive = True
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True
+    )
 
-    def __init__(self, **kwargs):
-        env_file = kwargs.pop("_env_file", ".env")
-        if env_file is None:
-            kwargs["_env_file"] = None
-        super().__init__(**kwargs)
-        if not self.SQLALCHEMY_DATABASE_URI:
-            self.SQLALCHEMY_DATABASE_URI = (
-                f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-                f"@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
-            )
-        self.SQLALCHEMY_DATABASE_URL = self.SQLALCHEMY_DATABASE_URI
+def get_settings() -> Settings:
+    """Get application settings."""
+    return Settings()
+
+# Create settings instance
+settings = get_settings()
 
 # Only create settings instance if not in alembic environment
 if not os.environ.get("ALEMBIC_RUNNING"):

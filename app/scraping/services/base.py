@@ -1,19 +1,33 @@
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
 import logging
 import random
-import time
-from datetime import datetime
-from sqlalchemy.orm import Session
-from app.scraping.models.scraping import ScrapingConfig, ScrapingJob, ScrapingResult, ScrapingStatus
-from app.shared.core.config import settings
-import asyncio
 import uuid
-from fake_useragent import UserAgent
+from abc import ABC, abstractmethod
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 import aiohttp
-from tenacity import retry, stop_after_attempt, wait_exponential
-from ratelimit import limits, sleep_and_retry
 from aiolimiter import AsyncLimiter
+from fake_useragent import UserAgent
+from sqlalchemy.orm import Session
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+from app.scraping.models.scraping import (ScrapingConfig, ScrapingJob,
+                                          ScrapingResult, ScrapingStatus)
+from app.shared.core.config import settings
+from fastapi import Request
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from fastapi import Request
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
 
 logger = logging.getLogger(__name__)
 

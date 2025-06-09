@@ -1,6 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from app.shared.core.config import settings
+from sqlalchemy.orm import Session
+from app.shared.db.session import get_db
+from sqlalchemy.orm import Session
+from app.shared.db.session import get_db
 
 engine = create_engine(
     settings.get_database_url,

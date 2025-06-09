@@ -1,7 +1,17 @@
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from openai import OpenAI, OpenAIError
+
 from app.shared.core.config import settings
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from sqlalchemy import func
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 

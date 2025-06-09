@@ -1,12 +1,34 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
+from app.project.models.project import ProjectStatus, ProjectType, project_leads
+
+# --- Base Schemas ---
 class ProjectBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-    type: str
-    status: str = "active"
+    """Base fields for project operations."""
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    type: ProjectType
+    status: str = Field(..., min_length=1, max_length=50)
+    customer_id: UUID
+    owner_id: UUID
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    budget: Optional[float] = None
+    location: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    
+    # Location fields
+    address: str = Field(..., min_length=1, max_length=200)
+    city: str = Field(..., min_length=1, max_length=100)
+    state: str = Field(..., min_length=1, max_length=100)
+    zip_code: str = Field(..., min_length=1, max_length=20)
+    country: str = Field(..., min_length=1, max_length=100)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class ProjectCreate(ProjectBase):
     pass
@@ -77,18 +99,21 @@ class ProjectLead(ProjectLeadBase):
         orm_mode = True
 
 class Project(ProjectBase):
-    id: int
+    """Schema for project response."""
+    id: UUID
+    customer_id: UUID
+    created_by: UUID
+    updated_by: UUID
     created_at: datetime
     updated_at: datetime
-    created_by_id: int
-    assigned_to_id: Optional[int] = None
+    deleted_at: Optional[datetime] = None
     features: List[ProjectFeature] = []
     images: List[ProjectImage] = []
-    amenities: List[ProjectAmenity] = []
-    leads: List[ProjectLead] = []
+    amenities_list: List[ProjectAmenity] = []
+    leads: List[UUID] = []  # List of lead IDs instead of ProjectLead objects
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ProjectResponse(BaseModel):
     project: Project

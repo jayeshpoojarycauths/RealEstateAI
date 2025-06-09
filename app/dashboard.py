@@ -1,16 +1,58 @@
-import streamlit as st
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from app.shared.db.session import SessionLocal
+
 from app.lead.models.lead import Lead, LeadScore
-from app.project.models.project import RealEstateProject
 from app.outreach.models.outreach import OutreachLog
-from app.shared.models.interaction import InteractionLog, CallInteraction, MessageInteraction
-from datetime import datetime, timedelta
-import numpy as np
-from app.lead.services.lead_scoring import LeadScoringService
+from app.shared.db.session import SessionLocal, get_db
+from app.shared.models.interaction import InteractionLog, CallInteraction
+from app.shared.core.security import get_current_user
+from app.shared.models.user import User
+from app.project.models.project import Project
+from app.lead.models.message import Message, MessageInteraction
+
+router = APIRouter()
+
+@router.get("/stats")
+async def get_dashboard_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> Dict:
+    """Get dashboard statistics."""
+    # Get customer ID
+    customer_id = current_user.customer_id
+    
+    # Get total projects
+    total_projects = db.query(func.count(Project.id)).filter(
+        Project.customer_id == customer_id
+    ).scalar()
+    
+    # Get total leads
+    total_leads = db.query(func.count(Lead.id)).filter(
+        Lead.customer_id == customer_id
+    ).scalar()
+    
+    # Get recent messages
+    recent_messages = db.query(Message).join(
+        MessageInteraction
+    ).filter(
+        Message.customer_id == customer_id
+    ).order_by(
+        Message.created_at.desc()
+    ).limit(5).all()
+    
+    return {
+        "total_projects": total_projects,
+        "total_leads": total_leads,
+        "recent_messages": recent_messages
+    }
 
 def get_db():
     db = SessionLocal()
@@ -267,10 +309,8 @@ def main():
     
     # Properties Overview
     st.header("Properties Overview")
-    properties = pd.read_sql(
-        db.query(RealEstateProject).statement,
-        db.bind
-    )
+    # TODO: Implement RealEstateProject dashboard when needed
+    # db.query(RealEstateProject).statement,
     
     # Apply filters
     if selected_locations:

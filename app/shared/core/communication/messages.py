@@ -1,5 +1,7 @@
 from enum import Enum
-from typing import Dict, Any
+from typing import Any, Dict
+import logging
+
 
 class MessageType(Enum):
     SUCCESS = "success"
@@ -224,7 +226,6 @@ class Messages:
                 message["message"] = message["message"].format(**kwargs)
                 message["details"] = message["details"].format(**kwargs)
             except (KeyError, IndexError, ValueError) as e:
-                import logging
                 logging.getLogger("app.core.messages").error(f"Message formatting failed for code {code}: {e}. kwargs: {kwargs}")
                 # Option 1: Return unformatted message
                 # pass

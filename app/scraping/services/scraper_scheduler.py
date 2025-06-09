@@ -1,15 +1,16 @@
-from typing import List, Dict, Any
 import asyncio
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List
+
 from sqlalchemy.orm import Session
-from app.shared.models.customer import Customer
-from app.scraping.models.scraping import ScrapingConfig
-from app.lead.models.lead import Lead
-from app.shared.core.config import settings
+
 from app.scraping.services.base import BaseScraper
+from app.scraping.services.facebook_marketplace import \
+    FacebookMarketplaceScraper
 from app.scraping.services.ninety_nine_acres import NinetyNineAcresScraper
-from app.scraping.services.facebook_marketplace import FacebookMarketplaceScraper
+from app.shared.core.config import settings
+from app.shared.models.customer import Customer
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,18 @@ class ScraperScheduler:
         """Lazy initialization of scraper service."""
         if self._scraper_service is None:
             from app.scraping.services.scraper import ScraperService
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from datetime import timedelta
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from datetime import timedelta
             self._scraper_service = ScraperService(self.db)
         return self._scraper_service
 

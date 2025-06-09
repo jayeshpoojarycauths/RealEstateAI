@@ -1,15 +1,21 @@
-from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
 from pydantic import BaseModel, EmailStr, Field
 
 from app.shared.core.security.roles import Role
+from app.shared.models.user import User
+from datetime import datetime
+from app.shared.models.user import User
+from datetime import datetime
+
 
 class UserBase(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
     is_active: Optional[bool] = True
     is_superuser: bool = False
-    role: Role = Role.VIEWER
+    role: Role = Role.GUEST
 
 class UserCreate(UserBase):
     email: EmailStr

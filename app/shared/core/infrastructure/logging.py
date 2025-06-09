@@ -1,17 +1,19 @@
+import asyncio
+import gzip
+import json
 import logging
 import logging.handlers
-import json
-import os
+import re
+import shutil
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Union
+from typing import Any, Dict, Optional
+
 from fastapi import Request
+
 from app.shared.core.communication.messages import MessageCode, Messages
-import re
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-import shutil
-import gzip
+from app.shared.core.config import settings
 
 # Determine the application's base directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent  # Adjust as needed for your structure
@@ -29,6 +31,29 @@ try:
     ARCHIVE_DIR.mkdir(exist_ok=True)
 except OSError as e:
     raise RuntimeError(f"Failed to create log directories: {e}")
+
+# Configure root logger
+logger = logging.getLogger("app")
+logger.setLevel(logging.INFO)
+
+# Create handlers
+backend_handler = logging.FileHandler(BACKEND_LOGS_DIR / "app.log")
+error_handler = logging.FileHandler(ERROR_LOGS_DIR / "error.log")
+error_handler.setLevel(logging.ERROR)
+
+# Create formatters
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+# Add formatters to handlers
+backend_handler.setFormatter(formatter)
+error_handler.setFormatter(formatter)
+
+# Add handlers to logger
+logger.addHandler(backend_handler)
+logger.addHandler(error_handler)
 
 # Log retention settings
 LOG_RETENTION_DAYS = 30
@@ -437,4 +462,90 @@ def schedule_log_archival() -> None:
 
 def get_logger(name: str = None):
     """Get a logger instance by name."""
-    return logging.getLogger(name) 
+    return logging.getLogger(name)
+
+def log_event(
+    event_type: str,
+    message: str,
+    level: str = "info",
+    data: Optional[Dict[str, Any]] = None
+) -> None:
+    """
+    Log an event with the given type, message, and optional data.
+    """
+    log_data = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "event_type": event_type,
+        "message": message,
+        "environment": settings.ENVIRONMENT,
+        "data": data or {}
+    }
+    
+    if level == "error":
+        logger.error(log_data)
+    elif level == "warning":
+        logger.warning(log_data)
+    elif level == "debug":
+        logger.debug(log_data)
+    else:
+        logger.info(log_data)
+
+def log_user_activity(
+    user_id: str,
+    action: str,
+    details: Optional[Dict[str, Any]] = None
+) -> None:
+    """
+    Log user activity.
+    """
+    log_event(
+        event_type="user_activity",
+        message=Messages.get_message(MessageCode.USER_ACTIVITY).format(
+            user_id=user_id,
+            action=action
+        ),
+        data={
+            "user_id": user_id,
+            "action": action,
+            "details": details or {}
+        }
+    )
+
+def log_system_event(
+    event_type: str,
+    message: str,
+    details: Optional[Dict[str, Any]] = None
+) -> None:
+    """
+    Log system event.
+    """
+    log_event(
+        event_type=event_type,
+        message=message,
+        data=details or {}
+    )
+
+def log_error_event(
+    error_type: str,
+    message: str,
+    error_details: Optional[Dict[str, Any]] = None
+) -> None:
+    """
+    Log error event.
+    """
+    log_event(
+        event_type="error",
+        message=message,
+        level="error",
+        data={
+            "error_type": error_type,
+            "details": error_details or {}
+        }
+    )
+
+__all__ = [
+    "log_event",
+    "log_user_activity",
+    "log_system_event",
+    "log_error_event"
+] 

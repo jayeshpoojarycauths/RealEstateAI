@@ -1,11 +1,19 @@
+import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+
 from sqlalchemy.orm import Session
+
+from app.shared.core.reporting import ReportingService
 from app.shared.db.session import SessionLocal
 from app.shared.models.customer import Customer
-from app.shared.core.reporting import ReportingService
-from app.shared.core.config import settings
-import logging
+from sqlalchemy.orm import Session
+from datetime import datetime
+from app.shared.core.logging import logger
+from datetime import timedelta
+from sqlalchemy.orm import Session
+from datetime import datetime
+from app.shared.core.logging import logger
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 

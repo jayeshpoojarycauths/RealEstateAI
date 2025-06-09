@@ -1,19 +1,20 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import List, Optional, Dict, Any
-import os
-from pathlib import Path
 import logging
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-from app.shared.core.config import settings
-from app.shared.core.exceptions import ServiceUnavailableException
+import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from sqlalchemy import func
+
+from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
 from jinja2 import Environment, FileSystemLoader
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
-from app.shared.models.user import User
 
-logger = logging.getLogger(__name__)
+from app.shared.core.config import settings
+from app.shared.core.exceptions import ServiceUnavailableException
+from app.shared.core.logging import logger
 
 # Email configuration
 conf = ConnectionConfig(

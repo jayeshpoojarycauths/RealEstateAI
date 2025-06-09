@@ -1,9 +1,16 @@
-from typing import List, Dict, Any, Optional, Tuple
-import asyncio
-from playwright.async_api import async_playwright, Browser, Page
-from bs4 import BeautifulSoup
 import re
+from typing import Any, Dict, List, Optional, Tuple
+
+from playwright.async_api import Browser, Page, async_playwright
+
 from .base import BaseScraper
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+
 
 class NinetyNineAcresScraper(BaseScraper):
     BASE_URL = "https://www.99acres.com"

@@ -1,8 +1,10 @@
-from typing import Optional, List
-from pydantic import BaseModel, EmailStr, Field, validator
+import re
 from datetime import datetime
 from enum import Enum
-import re
+from typing import List, Optional
+
+from pydantic import BaseModel, EmailStr, Field, validator
+
 
 class Token(BaseModel):
     access_token: str
@@ -88,4 +90,11 @@ class LoginAttempt(BaseModel):
     failure_reason: Optional[str] = None
 
     class Config:
-        from_attributes = True 
+        from_attributes = True from fastapi import Request
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from datetime import datetime
+from fastapi import Request
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from datetime import datetime

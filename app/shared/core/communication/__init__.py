@@ -1,41 +1,27 @@
-from app.shared.core.communication.email import (
-    send_email,
-    send_verification_email,
-    send_password_reset_email,
-    send_welcome_email,
-    EmailService,
-)
-from app.shared.core.communication.sms import (
-    send_sms,
-    send_verification_sms,
-    send_password_reset_sms,
-    SMSService,
-)
-from app.shared.core.communication.messages import (
-    MessageType,
-    MessageCode,
-    Messages,
-    get_message
-)
-from app.shared.core.communication.outreach import (
-    OutreachEngine,
-    MockOutreachEngine
-)
+"""
+Communication module.
+"""
 
+from app.shared.core.communication.email import email_service
+from app.shared.core.communication.messages import (MessageCode, Messages,
+                                                    MessageType, get_message)
+from app.shared.core.communication.outreach import (MockOutreachEngine,
+                                                    OutreachEngine)
+from app.shared.core.communication.sms import (SMSService,
+                                               send_password_reset_sms,
+                                               send_sms, send_verification_sms)
+
+# Re-export commonly used functions
 __all__ = [
-    'send_email',
-    'send_verification_email',
-    'send_password_reset_email',
-    'send_welcome_email',
-    'EmailService',
-    'send_sms',
-    'send_verification_sms',
-    'send_password_reset_sms',
-    'SMSService',
-    'MessageType',
+    'email_service',
     'MessageCode',
     'Messages',
+    'MessageType',
     'get_message',
-    'OutreachEngine',
     'MockOutreachEngine',
+    'OutreachEngine',
+    'SMSService',
+    'send_password_reset_sms',
+    'send_sms',
+    'send_verification_sms'
 ] 

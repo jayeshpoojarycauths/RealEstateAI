@@ -1,7 +1,31 @@
-from fastapi import HTTPException, status, FastAPI, Request
-from typing import Any, Dict, Optional
-from fastapi.responses import JSONResponse
+"""
+Core exceptions module.
+"""
+
 import logging
+from typing import Any, Dict, Optional
+from enum import Enum
+
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse
+
+# Get logger directly
+logger = logging.getLogger("app")
+
+class CommunicationErrorType(Enum):
+    """Types of communication errors."""
+    EMAIL_FAILED = "email_failed"
+    SMS_FAILED = "sms_failed"
+    PUSH_FAILED = "push_failed"
+    WEBHOOK_FAILED = "webhook_failed"
+    API_FAILED = "api_failed"
+    NETWORK_ERROR = "network_error"
+    TIMEOUT = "timeout"
+    RATE_LIMIT = "rate_limit"
+    INVALID_CREDENTIALS = "invalid_credentials"
+    INVALID_RECIPIENT = "invalid_recipient"
+    TEMPLATE_ERROR = "template_error"
+    ATTACHMENT_ERROR = "attachment_error"
 
 class BaseAPIException(HTTPException):
     """Base exception for all API errors."""
@@ -92,6 +116,80 @@ class NotFoundError(Exception):
     """Raised when a requested resource is not found."""
     pass
 
+class CommunicationException(BaseAPIException):
+    """Exception for communication errors."""
+    def __init__(
+        self,
+        error_type: CommunicationErrorType,
+        detail: str,
+        status_code: int = status.HTTP_503_SERVICE_UNAVAILABLE,
+        headers: Optional[Dict[str, Any]] = None,
+        context: Optional[Dict[str, Any]] = None
+    ):
+        self.error_type = error_type
+        self.context = context or {}
+        super().__init__(
+            status_code=status_code,
+            detail=detail,
+            headers=headers
+        )
+
+class EmailException(CommunicationException):
+    """Exception for email-specific errors."""
+    def __init__(
+        self,
+        detail: str,
+        error_type: CommunicationErrorType = CommunicationErrorType.EMAIL_FAILED,
+        context: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            error_type=error_type,
+            detail=detail,
+            context=context
+        )
+
+class SMSException(CommunicationException):
+    """Exception for SMS-specific errors."""
+    def __init__(
+        self,
+        detail: str,
+        error_type: CommunicationErrorType = CommunicationErrorType.SMS_FAILED,
+        context: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            error_type=error_type,
+            detail=detail,
+            context=context
+        )
+
+class PushNotificationException(CommunicationException):
+    """Exception for push notification errors."""
+    def __init__(
+        self,
+        detail: str,
+        error_type: CommunicationErrorType = CommunicationErrorType.PUSH_FAILED,
+        context: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            error_type=error_type,
+            detail=detail,
+            context=context
+        )
+
+class WebhookException(CommunicationException):
+    """Exception for webhook errors."""
+    def __init__(
+        self,
+        detail: str,
+        error_type: CommunicationErrorType = CommunicationErrorType.WEBHOOK_FAILED,
+        context: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(
+            error_type=error_type,
+            detail=detail,
+            context=context
+        )
+
 def register_exception_handlers(app: FastAPI):
     """Register global exception handlers with the FastAPI app."""
     logger = logging.getLogger("uvicorn.error")
@@ -102,6 +200,21 @@ def register_exception_handlers(app: FastAPI):
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail}
+        )
+
+    @app.exception_handler(CommunicationException)
+    async def communication_exception_handler(request: Request, exc: CommunicationException):
+        logger.error(
+            f"Communication Error: {exc.error_type.value} - {exc.detail}",
+            extra={"context": exc.context}
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "detail": exc.detail,
+                "error_type": exc.error_type.value,
+                "context": exc.context
+            }
         )
 
     @app.exception_handler(Exception)
@@ -122,5 +235,11 @@ __all__ = [
     'ConflictException',
     'RateLimitException',
     'ServiceUnavailableException',
-    'ExternalServiceError'
+    'ExternalServiceError',
+    'CommunicationException',
+    'EmailException',
+    'SMSException',
+    'PushNotificationException',
+    'WebhookException',
+    'CommunicationErrorType'
 ] 

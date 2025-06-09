@@ -1,23 +1,20 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from datetime import datetime
-from app.shared.db.session import get_db
-from app.scraping.schemas.scraping import (
-    ScrapingConfigCreate,
-    ScrapingConfigUpdate,
-    ScrapingConfig,
-    ScrapingConfigList,
-    ScrapingJob,
-    ScrapingJobList,
-    ScrapingResult,
-    ScrapingResultList,
-    ScrapingStats,
-    ScrapingJobFilter
-)
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
 from app.scraping.models.scraping import ScrapingSource, ScrapingStatus
-from app.shared.core.security.auth import get_current_user
+from app.scraping.schemas.scraping import (ScrapingConfig,
+                                           ScrapingConfigCreate,
+                                           ScrapingConfigList,
+                                           ScrapingConfigUpdate, ScrapingJob,
+                                           ScrapingJobList,
+                                           ScrapingResultList,
+                                           ScrapingStats)
 from app.shared.core.exceptions import NotFoundError, ValidationError
+from app.shared.core.security.auth import get_current_user
+from app.shared.db.session import get_db
 
 router = APIRouter()
 

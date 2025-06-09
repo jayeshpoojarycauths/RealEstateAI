@@ -1,6 +1,8 @@
-from typing import Optional, List
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, EmailStr
+
 
 class MFABackupCode(BaseModel):
     """Schema for MFA backup code."""
@@ -44,6 +46,12 @@ class UserInDBBase(UserBase):
 
     class Config:
         from_attributes = True
+from fastapi import Request
+from app.shared.models.user import User
+from datetime import datetime
+from fastapi import Request
+from app.shared.models.user import User
+from datetime import datetime
 
 class User(UserInDBBase):
     """Schema for user response."""

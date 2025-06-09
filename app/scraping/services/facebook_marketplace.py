@@ -1,13 +1,22 @@
-from typing import List, Dict, Any, Optional, Tuple
-import asyncio
-from playwright.async_api import async_playwright, Browser, Page
-import json
 import re
-from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+from playwright.async_api import Page, async_playwright
 from sqlalchemy.orm import Session
-from app.shared.models.customer import Customer
-from .base import BaseScraper
+
 from app.shared.core.config import settings
+from app.shared.models.customer import Customer
+
+from .base import BaseScraper
+from sqlalchemy.orm import Session
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from sqlalchemy.orm import Session
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+
 
 class FacebookMarketplaceScraper(BaseScraper):
     BASE_URL = "https://www.facebook.com"

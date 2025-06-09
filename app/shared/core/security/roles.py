@@ -1,24 +1,12 @@
-from enum import Enum
+"""
+Role-based access control definitions.
+"""
+
 from typing import TYPE_CHECKING
+
+from app.shared.core.security.role_types import Role
 
 if TYPE_CHECKING:
     from app.shared.models.user import User
 
-class Role(str, Enum):
-    """
-    User role enumeration.
-    """
-    PLATFORM_ADMIN = "platform_admin"
-    SUPERADMIN = "superadmin"
-    ADMIN = "admin"
-    MANAGER = "manager"
-    AGENT = "agent"
-    ANALYST = "analyst"
-    AUDITOR = "auditor"
-    VIEWER = "viewer"
-    CUSTOMER = "customer"
-    USER = "user"
-
-__all__ = [
-    "Role"
-] 
+__all__ = ["Role"] 

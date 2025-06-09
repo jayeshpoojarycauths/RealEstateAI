@@ -1,14 +1,19 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from app.shared.core.config import settings
-from app.shared.api.router import api_router
-from app.shared.core.logging import logger, log_request, log_error
-from app.shared.core.exceptions import register_exception_handlers
-from app.shared.core.communication.messages import MessageCode
-from app.scraping.tasks.scheduler import start_scheduler, shutdown_scheduler
+# Import models registry first to ensure all models are registered
 import time
 import uuid
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 import app.models_registry
+from app.scraping.tasks.scheduler import shutdown_scheduler, start_scheduler
+from app.shared.api.router import api_router
+from app.shared.core.communication.messages import MessageCode
+from app.shared.core.config import settings
+from app.shared.core.exceptions import register_exception_handlers
+from app.shared.core.logging import log_error, log_request, logger
+from app.shared.core.logging import logger
+from app.shared.core.logging import logger
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

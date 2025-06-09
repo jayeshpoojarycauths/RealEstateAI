@@ -1,11 +1,11 @@
-from typing import Dict, Any, Optional
-from sqlalchemy.orm import Session
-from datetime import datetime
 import logging
-from twilio.rest import Client
+from typing import Any, Dict, Optional
+
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
-import requests
+from sqlalchemy.orm import Session
+from twilio.rest import Client
+
 from app.shared.core.config import settings
 from app.shared.core.text_to_speech import TextToSpeechService
 

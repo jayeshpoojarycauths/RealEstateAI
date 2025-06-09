@@ -27,8 +27,12 @@ Usage:
 
 import warnings
 from functools import wraps
-from typing import Optional, Callable, Any
-from datetime import datetime
+from typing import Any, Callable, Optional
+from typing import Any
+from sqlalchemy import func
+from typing import Any
+from sqlalchemy import func
+
 
 def deprecated(
     since: Optional[str] = None,

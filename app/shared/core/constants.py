@@ -28,7 +28,6 @@ Usage:
 """
 
 from enum import Enum
-from typing import Dict, Any
 
 # API Constants
 API_PREFIX = "/api/v1"

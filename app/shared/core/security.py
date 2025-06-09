@@ -1,24 +1,32 @@
 from datetime import datetime, timedelta
-from typing import Any, Optional, Union, List
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-from app.shared.core.config import settings
 from enum import Enum
+from typing import List, Optional
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from pydantic import BaseModel, ValidationError
+from jose import jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel
+
+from app.shared.core.config import settings
+from fastapi import Depends
 from app.shared.models.user import User
-from app.shared.models.customer import Customer
-from app.shared.db.session import get_db
-from sqlalchemy.orm import Session
+from fastapi import HTTPException
+from datetime import datetime
+from datetime import timedelta
+from fastapi import Depends
+from app.shared.models.user import User
+from fastapi import HTTPException
+from datetime import datetime
+from datetime import timedelta
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class UserRole(str, Enum):
     ADMIN = "admin"
-    MANAGER = "manager"
     AGENT = "agent"
-    VIEWER = "viewer"
+    CUSTOMER = "customer"
+    GUEST = "guest"
 
 class TokenData(BaseModel):
     username: Optional[str] = None
@@ -75,11 +83,14 @@ def require_role(required_roles: List[UserRole]):
     return decorator
 
 # Role-based access control decorators
-def manager_required():
-    return require_role([UserRole.ADMIN, UserRole.MANAGER])
+def admin_required():
+    return require_role([UserRole.ADMIN])
 
 def agent_required():
-    return require_role([UserRole.ADMIN, UserRole.MANAGER, UserRole.AGENT])
+    return require_role([UserRole.ADMIN, UserRole.AGENT])
 
-def viewer_required():
-    return require_role([UserRole.ADMIN, UserRole.MANAGER, UserRole.AGENT, UserRole.VIEWER]) 
+def customer_required():
+    return require_role([UserRole.ADMIN, UserRole.AGENT, UserRole.CUSTOMER])
+
+def guest_required():
+    return require_role([UserRole.ADMIN, UserRole.AGENT, UserRole.CUSTOMER, UserRole.GUEST]) 

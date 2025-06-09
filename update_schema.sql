@@ -62,11 +62,6 @@ ALTER TABLE real_estate_buyers DROP CONSTRAINT IF EXISTS real_estate_buyers_cust
 ALTER TABLE real_estate_buyers ALTER COLUMN customer_id TYPE UUID USING customer_id::uuid;
 ALTER TABLE real_estate_buyers ADD CONSTRAINT real_estate_buyers_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 
--- refresh_tokens
-ALTER TABLE refresh_tokens DROP CONSTRAINT IF EXISTS refresh_tokens_customer_id_fkey;
-ALTER TABLE refresh_tokens ALTER COLUMN customer_id TYPE UUID USING customer_id::uuid;
-ALTER TABLE refresh_tokens ADD CONSTRAINT refresh_tokens_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
-
 -- interaction_logs
 ALTER TABLE interaction_logs DROP CONSTRAINT IF EXISTS interaction_logs_customer_id_fkey;
 ALTER TABLE interaction_logs ALTER COLUMN customer_id TYPE UUID USING customer_id::uuid;

@@ -1,11 +1,15 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON, Float, Boolean, Text, Table
+import enum
+import uuid
+
+from sqlalchemy import (JSON, Boolean, Column, DateTime, Enum, Float,
+                        ForeignKey, Integer, String, Table, Text)
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from datetime import datetime
+
 from app.shared.db.base_class import BaseModel
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
-import enum
+from app.shared.models.user import User
+from app.shared.models.associations import project_leads
 
 class ProjectType(str, enum.Enum):
     RESIDENTIAL = "residential"
@@ -20,14 +24,6 @@ class ProjectStatus(str, enum.Enum):
     COMPLETED = "completed"
     ON_HOLD = "on_hold"
     CANCELLED = "cancelled"
-
-# Association table for project leads
-project_leads = Table(
-    'project_leads',
-    BaseModel.metadata,
-    Column('project_id', String(36), ForeignKey('projects.id'), primary_key=True),
-    Column('lead_id', String(36), ForeignKey('leads.id'), primary_key=True)
-)
 
 class Project(BaseModel):
     __tablename__ = "projects"
@@ -60,8 +56,9 @@ class Project(BaseModel):
     
     # Foreign keys
     customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    updated_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    assigned_to_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -73,8 +70,9 @@ class Project(BaseModel):
     features = relationship("ProjectFeature", back_populates="project", cascade="all, delete-orphan")
     images = relationship("ProjectImage", back_populates="project", cascade="all, delete-orphan")
     amenities_list = relationship("ProjectAmenity", back_populates="project", cascade="all, delete-orphan")
-    created_by_user = relationship("User", foreign_keys=[created_by])
-    updated_by_user = relationship("User", foreign_keys=[updated_by])
+    created_by_user = relationship("User", back_populates="created_projects", foreign_keys=[created_by_id])
+    updated_by_user = relationship("User", back_populates="updated_projects", foreign_keys=[updated_by_id])
+    assigned_to = relationship("User", back_populates="assigned_projects", foreign_keys=[assigned_to_id])
     
     def __repr__(self):
         return f"<Project {self.name}>"
@@ -126,25 +124,4 @@ class ProjectAmenity(BaseModel):
     def __repr__(self):
         return f"<ProjectAmenity {self.name}>"
 
-class RealEstateProject(BaseModel):
-    __tablename__ = "real_estate_projects"
-    __table_args__ = {'extend_existing': True}
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String)
-    description = Column(Text)
-    location = Column(String)
-    property_type = Column(String)
-    total_units = Column(Integer)
-    price_range_min = Column(Float)
-    price_range_max = Column(Float)
-    amenities = Column(JSON)  # List of amenities
-    images = Column(JSON)  # List of image URLs
-    status = Column(Enum(ProjectStatus))
-    customer_id = Column(String(36), ForeignKey('customers.id'))
-    start_date = Column(DateTime)
-    completion_date = Column(DateTime)
-    model_metadata = Column(JSON)  # Additional project metadata
-    
-    customer = relationship("Customer", back_populates="real_estate_projects")
-    leads = relationship("Lead", secondary=project_leads, back_populates="real_estate_projects") 
+__all__ = ["Project", "ProjectFeature", "ProjectImage", "ProjectAmenity", "ProjectType", "ProjectStatus"] 

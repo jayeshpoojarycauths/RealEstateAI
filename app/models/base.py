@@ -1,7 +1,10 @@
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, DateTime, func
 from uuid import uuid4
+
+from sqlalchemy import Column, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import func
+from sqlalchemy import func
 
 Base = declarative_base()
 

@@ -1,7 +1,9 @@
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
 
 # Lead Score Distribution Schemas
 class ScoreBucket(BaseModel):
@@ -88,6 +90,14 @@ class LeadQualityResponse(BaseModel):
 
     class Config:
         from_attributes = True
+from app.shared.models.user import User
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.models.user import User
+from datetime import datetime
+from typing import Dict
+from typing import Any
 
 # Lead Source Metrics
 class LeadSourceMetrics(BaseModel):

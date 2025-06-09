@@ -1,7 +1,10 @@
 from datetime import datetime
 from typing import Optional
+
 from pydantic import BaseModel
+
 from app.lead.models.lead import ActivityType
+
 
 class LeadActivityBase(BaseModel):
     lead_id: int
@@ -21,4 +24,5 @@ class LeadActivityResponse(LeadActivityBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        from_attributes = True 
+        from_attributes = True from datetime import datetime
+from datetime import datetime

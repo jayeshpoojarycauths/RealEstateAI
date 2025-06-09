@@ -1,6 +1,7 @@
 from typing import Optional
-from app.shared.core.config import settings
+
 from app.shared.models.outreach import OutreachChannel
+
 
 class CommunicationBaseService:
     """Base class for communication services."""

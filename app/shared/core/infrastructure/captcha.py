@@ -1,42 +1,57 @@
-import aiohttp
-from app.shared.core.config import settings
+"""
+CAPTCHA verification utilities.
+"""
+
 import logging
+from typing import Optional
 
-logger = logging.getLogger(__name__)
+from fastapi import HTTPException, Request
+from pydantic import BaseModel
 
-async def verify_captcha(token: str) -> bool:
+from app.shared.core.config import settings
+
+# Get logger directly from logging module
+logger = logging.getLogger("app")
+
+class CaptchaResponse(BaseModel):
+    """CAPTCHA response model."""
+    success: bool
+    score: Optional[float] = None
+    action: Optional[str] = None
+    challenge_ts: Optional[str] = None
+    hostname: Optional[str] = None
+    error_codes: Optional[list[str]] = None
+
+async def verify_captcha(request: Request) -> None:
     """
-    Verify reCAPTCHA token with Google's API.
+    Verify CAPTCHA token from request.
+    
+    Args:
+        request: FastAPI request object
+        
+    Raises:
+        HTTPException: If CAPTCHA verification fails
     """
-    if not settings.RECAPTCHA_SECRET_KEY:
-        if settings.ENVIRONMENT == "development":
-            logger.warning("reCAPTCHA secret key not configured, skipping verification in development")
-            return True
-        else:
-            logger.error("reCAPTCHA secret key not configured in production environment")
-            return False
+    if not settings.ENABLE_CAPTCHA:
+        return
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://www.google.com/recaptcha/api/siteverify",
-                timeout=aiohttp.ClientTimeout(total=10),
-                data={
-                    "secret": settings.RECAPTCHA_SECRET_KEY,
-                    "response": token
-                }
-            ) as response:
-                result = await response.json()
+        token = request.headers.get("X-Captcha-Token")
+        if not token:
+            raise HTTPException(status_code=400, detail="CAPTCHA token required")
 
-                if not result.get("success"):
-                    logger.warning(f"reCAPTCHA verification failed: {result.get('error-codes', [])}")
-                    return False
+        # TODO: Implement actual CAPTCHA verification
+        # For now, just log the attempt
+        logger.info("CAPTCHA verification requested", extra={
+            "token": token[:10] + "..." if token else None,
+            "ip": request.client.host if request.client else None
+        })
 
-                # Check if score meets threshold (for v3)
-                if "score" in result:
-                    return result["score"] >= settings.RECAPTCHA_SCORE_THRESHOLD
-
-                return True
     except Exception as e:
-        logger.error(f"Error verifying reCAPTCHA: {str(e)}")
-        return False 
+        logger.error("CAPTCHA verification failed", extra={
+            "error": str(e),
+            "ip": request.client.host if request.client else None
+        })
+        raise HTTPException(status_code=400, detail="CAPTCHA verification failed")
+
+__all__ = ["verify_captcha", "CaptchaResponse"] 

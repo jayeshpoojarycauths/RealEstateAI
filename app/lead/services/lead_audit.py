@@ -1,19 +1,21 @@
-from typing import List, Optional
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
-from datetime import datetime, timedelta
 
-
-from app.lead.models.lead_activity import LeadActivity
 from app.lead.models.lead import Lead
-from app.lead.schemas.lead_audit import (
-    LeadAuditLog,
-    LeadAuditLogResponse,
-    LeadAuditStats,
-    LeadAuditStatsResponse
-)
-from app.shared.core.tenant import get_customer_id
-from app.shared.core.security import UserRole
+from app.lead.models.lead_activity import LeadActivity
+from app.lead.schemas.lead_audit import (LeadAuditLog, LeadAuditLogResponse,
+from sqlalchemy.orm import Session
+from datetime import datetime
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from datetime import datetime
+from sqlalchemy import func
+                                         LeadAuditStats,
+                                         LeadAuditStatsResponse)
+
 
 class LeadAuditService:
     def __init__(self, db: Session):

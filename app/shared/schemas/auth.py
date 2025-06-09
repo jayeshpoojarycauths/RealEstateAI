@@ -1,5 +1,11 @@
 from typing import Optional
+
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+
 
 class Token(BaseModel):
     access_token: str

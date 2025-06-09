@@ -1,11 +1,22 @@
-from typing import Dict, Any, Optional, List
-from datetime import datetime, timedelta
-import random
 import asyncio
+import random
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.orm import Session
+
 from app.lead.models.lead import Lead
-from app.outreach.models.outreach import Outreach, CommunicationPreference
+from app.outreach.models.outreach import CommunicationPreference
 from app.shared.core.exceptions import ServiceUnavailableException
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+
 
 class OutreachResult:
     """Result of an outreach attempt."""

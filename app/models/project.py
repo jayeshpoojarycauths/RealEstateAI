@@ -1,10 +1,16 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, JSON, Float, Boolean
-from sqlalchemy.orm import relationship
-from datetime import datetime
-from app.shared.db.base_class import Base
-from app.project.schemas import PropertyType, PropertyStatus
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
+from datetime import datetime
+
+from sqlalchemy import (JSON, Boolean, Column, DateTime, Enum, Float,
+                        ForeignKey, Integer, String)
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from app.project.schemas import PropertyStatus, PropertyType
+from app.shared.db.base_class import Base
+from datetime import datetime
+from datetime import datetime
+
 
 class Project(Base):
     __tablename__ = "projects"

@@ -1,20 +1,16 @@
-from sqlalchemy import Column, String, Integer, Text, DateTime, ForeignKey, Enum, JSON, Float, UUID, Boolean
+import enum
+from datetime import datetime
+
+from sqlalchemy import (JSON, Boolean, Column, DateTime, Enum, Float,
+                        ForeignKey, Integer, String, Table, Text)
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.shared.db.base_class import BaseModel
-import uuid
-from datetime import datetime
-import enum
 
-class ActivityType(str, enum.Enum):
-    CALL = "call"
-    EMAIL = "email"
-    SMS = "sms"
-    MEETING = "meeting"
-    NOTE = "note"
-    STATUS_CHANGE = "status_change"
-    ASSIGNMENT = "assignment"
-    OTHER = "other"
+from app.shared.db.base_class import BaseModel
+from app.shared.models.user import User
+from app.lead.models.lead_types import ActivityType
+from app.shared.models.associations import project_leads
 
 class LeadSource(str, enum.Enum):
     WEBSITE = "website"
@@ -36,19 +32,20 @@ class Lead(BaseModel):
     __tablename__ = "leads"
     __table_args__ = {'extend_existing': True}
     
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)
-    email = Column(String(255), nullable=True)
+    id = Column(String(36), primary_key=True, index=True)
+    name = Column(String(255), nullable=False, index=True)
+    email = Column(String(255), nullable=True, index=True)
     phone = Column(String(20), nullable=True)
+    company = Column(String(255))
     source = Column(Enum(LeadSource), default=LeadSource.OTHER)
     status = Column(Enum(LeadStatus), default=LeadStatus.NEW)
     notes = Column(Text, nullable=True)
-    customer_id = Column(UUID(as_uuid=True), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
-    assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    customer_id = Column(String(36), ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
+    assigned_to = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    updated_by = Column(String(36), ForeignKey("users.id"), nullable=True)
     budget = Column(Float)
     last_contacted_at = Column(DateTime(timezone=True))
     is_active = Column(Boolean, default=True)
@@ -69,13 +66,11 @@ class Lead(BaseModel):
         "User",
         foreign_keys=[updated_by]
     )
-    activities = relationship("LeadActivity", back_populates="lead", cascade="all, delete-orphan")
-    outreach = relationship("Outreach", back_populates="lead")
-    projects = relationship("Project", secondary="project_leads", back_populates="leads")
-    real_estate_projects = relationship("RealEstateProject", secondary="project_leads", back_populates="leads")
+    activities = relationship("app.lead.models.lead_activity.LeadActivity", back_populates="lead", cascade="all, delete-orphan")
+    projects = relationship("Project", secondary=project_leads, back_populates="leads")
     score = relationship("LeadScore", back_populates="lead", uselist=False)
-    interactions = relationship("InteractionLog", back_populates="lead")
     outreach_logs = relationship("OutreachLog", back_populates="lead")
+    interactions = relationship("InteractionLog", back_populates="lead", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Lead {self.name}>"
@@ -84,31 +79,10 @@ class LeadScore(BaseModel):
     __tablename__ = "lead_scores"
     __table_args__ = {'extend_existing': True}
     
-    id = Column(Integer, primary_key=True, index=True)
-    lead_id = Column(UUID(as_uuid=True), ForeignKey('leads.id'))
+    id = Column(String(36), primary_key=True, index=True)
+    lead_id = Column(String(36), ForeignKey('leads.id'))
     score = Column(Float, default=0.0)
     last_updated = Column(DateTime)
     scoring_factors = Column(JSON)  # Store factors that contributed to the score
     
-    lead = relationship("Lead", back_populates="score")
-
-class LeadActivity(BaseModel):
-    __tablename__ = "lead_activities"
-
-    id = Column(Integer, primary_key=True, index=True)
-    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    activity_type = Column(Enum(ActivityType), nullable=False)
-    description = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
-    scheduled_at = Column(DateTime(timezone=True))
-    completed_at = Column(DateTime(timezone=True))
-    model_metadata = Column(JSON)
-
-    # Relationships
-    lead = relationship("Lead", back_populates="activities")
-    user = relationship("User", back_populates="lead_activities")
-
-    def __repr__(self):
-        return f"<LeadActivity {self.activity_type} for lead {self.lead_id}>" 
+    lead = relationship("Lead", back_populates="score") 

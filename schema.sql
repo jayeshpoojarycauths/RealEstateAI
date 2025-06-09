@@ -472,24 +472,6 @@ CREATE TABLE public.real_estate_projects (
 ALTER TABLE public.real_estate_projects OWNER TO postgres;
 
 --
--- Name: refresh_tokens; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.refresh_tokens (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    token character varying(255) NOT NULL,
-    user_id uuid NOT NULL,
-    customer_id uuid NOT NULL,
-    expires_at timestamp with time zone NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
-    is_revoked boolean DEFAULT false,
-    device_info text
-);
-
-
-ALTER TABLE public.refresh_tokens OWNER TO postgres;
-
---
 -- Name: role_permissions; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -744,14 +726,6 @@ ALTER TABLE ONLY public.password_resets
 
 
 --
--- Name: password_resets password_resets_token_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.password_resets
-    ADD CONSTRAINT password_resets_token_key UNIQUE (token);
-
-
---
 -- Name: permissions permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -797,22 +771,6 @@ ALTER TABLE ONLY public.real_estate_buyers
 
 ALTER TABLE ONLY public.real_estate_projects
     ADD CONSTRAINT real_estate_projects_pkey PRIMARY KEY (id);
-
-
---
--- Name: refresh_tokens refresh_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.refresh_tokens
-    ADD CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id);
-
-
---
--- Name: refresh_tokens refresh_tokens_token_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.refresh_tokens
-    ADD CONSTRAINT refresh_tokens_token_key UNIQUE (token);
 
 
 --
@@ -1025,20 +983,6 @@ CREATE INDEX idx_projects_customer_id ON public.projects USING btree (customer_i
 
 
 --
--- Name: idx_refresh_tokens_customer_id; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_refresh_tokens_customer_id ON public.refresh_tokens USING btree (customer_id);
-
-
---
--- Name: idx_refresh_tokens_user_id; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens USING btree (user_id);
-
-
---
 -- Name: idx_users_customer_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1179,13 +1123,6 @@ CREATE TRIGGER update_real_estate_projects_updated_at BEFORE UPDATE ON public.re
 
 
 --
--- Name: refresh_tokens update_refresh_tokens_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
---
-
-CREATE TRIGGER update_refresh_tokens_updated_at BEFORE UPDATE ON public.refresh_tokens FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-
---
 -- Name: role_permissions update_role_permissions_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -1225,14 +1162,6 @@ CREATE TRIGGER update_user_roles_updated_at BEFORE UPDATE ON public.user_roles F
 --
 
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
-
---
--- Name: audit_logs audit_logs_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.audit_logs
-    ADD CONSTRAINT audit_logs_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
 
 
 --
@@ -1393,22 +1322,6 @@ ALTER TABLE ONLY public.real_estate_buyers
 
 ALTER TABLE ONLY public.real_estate_projects
     ADD CONSTRAINT real_estate_projects_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
-
-
---
--- Name: refresh_tokens refresh_tokens_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.refresh_tokens
-    ADD CONSTRAINT refresh_tokens_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
-
-
---
--- Name: refresh_tokens refresh_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.refresh_tokens
-    ADD CONSTRAINT refresh_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --

@@ -1,85 +1,117 @@
-from typing import List
-from fastapi import HTTPException, Depends, status
-from app.shared.core.security.roles import Role
-from app.shared.core.security.auth import get_current_user
+"""
+Security dependencies for FastAPI endpoints.
+"""
 
-# If you have a Permission enum, import it as well
-try:
-    from app.shared.core.security.permissions import Permission
-except ImportError:
-    Permission = None
+from typing import List, TYPE_CHECKING
+from fastapi import Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-def require_role(roles: List[Role]):
-    """
-    Dependency to require specific roles for access.
-    """
-    def decorator(func):
-        async def wrapper(*args, current_user = Depends(get_current_user), **kwargs):
-            if current_user.role not in roles:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Not enough permissions"
-                )
-            return await func(*args, current_user=current_user, **kwargs)
-        return wrapper
-    return decorator
+from app.shared.core.security.role_types import Role
+from app.shared.core.infrastructure.deps import get_db
+from app.shared.core.security.auth import (
+    get_current_user,
+    get_current_active_user,
+    get_current_superuser
+)
 
-def require_permission(permissions: List):
-    """
-    Dependency to require specific permissions for access.
-    """
-    def decorator(func):
-        async def wrapper(*args, current_user = Depends(get_current_user), **kwargs):
-            user_permissions = get_user_permissions(current_user.role)
-            if not any(perm in user_permissions for perm in permissions):
-                raise HTTPException(
-                    status_code=403,
-                    detail="Not enough permissions"
-                )
-            return await func(*args, current_user=current_user, **kwargs)
-        return wrapper
-    return decorator
+if TYPE_CHECKING:
+    from app.shared.models.user import User
 
-def get_user_permissions(role: Role) -> List:
+def require_role(allowed_roles: List[Role]):
     """
-    Get permissions for a given role.
+    Dependency to require specific roles.
+    
+    Args:
+        allowed_roles: List of roles that are allowed to access the endpoint
+        
+    Returns:
+        A dependency function that checks if the current user has one of the allowed roles
     """
-    # This should be replaced with your actual permission logic
-    if Permission is None:
-        return []
-    role_permissions = {
-        Role.ADMIN: [Permission.MANAGE_USERS, Permission.MANAGE_LEADS],
-        Role.MANAGER: [Permission.MANAGE_LEADS],
-        # ... add other roles and permissions as needed ...
-    }
-    return role_permissions.get(role, [])
+    async def dependency(current_user: "User" = Depends(get_current_user)):
+        if current_user.role not in [role.value for role in allowed_roles]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions"
+            )
+        return current_user
+    return dependency
 
 async def admin_required(current_user=Depends(get_current_user)):
-    if current_user.role != Role.ADMIN:
+    """
+    Dependency to require admin role.
+    
+    Args:
+        current_user: The current user from get_current_user dependency
+        
+    Returns:
+        The current user if they are an admin
+        
+    Raises:
+        HTTPException: If user is not an admin
+    """
+    if current_user.role != Role.ADMIN.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user doesn't have enough privileges"
-        )
-    return current_user
-
-async def manager_required(current_user=Depends(get_current_user)):
-    if current_user.role not in [Role.ADMIN, Role.MANAGER]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user doesn't have enough privileges"
+            detail="Not enough permissions"
         )
     return current_user
 
 async def agent_required(current_user=Depends(get_current_user)):
-    if current_user.role not in [Role.ADMIN, Role.MANAGER, Role.AGENT]:
+    """
+    Dependency to require agent role.
+    
+    Args:
+        current_user: The current user from get_current_user dependency
+        
+    Returns:
+        The current user if they are an agent or admin
+        
+    Raises:
+        HTTPException: If user is not an agent or admin
+    """
+    if current_user.role not in [Role.AGENT.value, Role.ADMIN.value]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user doesn't have enough privileges"
+            detail="Not enough permissions"
         )
     return current_user
 
-async def viewer_required(current_user=Depends(get_current_user)):
-    if current_user.role not in [Role.ADMIN, Role.MANAGER, Role.AGENT, Role.VIEWER]:
+async def customer_required(current_user=Depends(get_current_user)):
+    """
+    Dependency to require customer role.
+    
+    Args:
+        current_user: The current user from get_current_user dependency
+        
+    Returns:
+        The current user if they are a customer
+        
+    Raises:
+        HTTPException: If user is not a customer
+    """
+    if current_user.role != Role.CUSTOMER.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    return current_user
+
+async def get_current_active_superuser(
+    current_user=Depends(get_current_user)
+) -> "User":
+    """
+    Dependency to get current active superuser.
+    
+    Args:
+        current_user: The current user from get_current_user dependency
+        
+    Returns:
+        The current user if they are an active superuser
+        
+    Raises:
+        HTTPException: If user is not a superuser or is inactive
+    """
+    if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user doesn't have enough privileges"
@@ -87,11 +119,9 @@ async def viewer_required(current_user=Depends(get_current_user)):
     return current_user
 
 __all__ = [
-    "require_role",
-    "require_permission",
-    "get_user_permissions",
-    "admin_required",
-    "manager_required",
-    "agent_required",
-    "viewer_required"
+    'admin_required',
+    'agent_required',
+    'customer_required',
+    'get_current_active_superuser',
+    'require_role'
 ] 

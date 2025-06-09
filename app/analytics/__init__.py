@@ -1,3 +1,3 @@
 """
-Analytics domain package.
+Analytics package.
 """ 

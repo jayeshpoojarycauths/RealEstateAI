@@ -1,14 +1,19 @@
-from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
-from datetime import datetime, timedelta
 import re
+from typing import Any, Dict, List
+
 import phonenumbers
-from email_validator import validate_email, EmailNotValidError
+from email_validator import EmailNotValidError, validate_email
+from sqlalchemy.orm import Session
 
 from app.lead.models.lead import Lead
+from app.lead.schemas.lead import LeadUpdate
+from sqlalchemy.orm import Session
+from typing import Dict
+from typing import Any
+from sqlalchemy.orm import Session
+from typing import Dict
+from typing import Any
 
-from app.lead.schemas.lead import LeadCreate, LeadUpdate
 
 class LeadValidationService:
     def __init__(self, db: Session):

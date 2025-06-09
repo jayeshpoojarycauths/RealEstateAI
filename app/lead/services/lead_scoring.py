@@ -1,12 +1,31 @@
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from app.lead.models.lead import Lead, LeadScore
-from app.shared.models.interaction import InteractionLog, CallInteraction, MessageInteraction
-from app.project.models.project import RealEstateProject
-from app.lead.schemas.interaction import LeadScoreCreate, InteractionLogCreate, CallInteractionCreate, MessageInteractionCreate
+from typing import Any, Dict, List, Optional
 from uuid import UUID
+
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.lead.models.lead import Lead, LeadScore
+from app.project.models.project import Project
+from app.shared.models.interaction import (CallInteraction, InteractionLog,
+from app.shared.models.interaction import InteractionLog
+from app.shared.models.interaction import CallInteraction
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from sqlalchemy import func
+from datetime import timedelta
+from app.shared.models.interaction import InteractionLog
+from app.shared.models.interaction import CallInteraction
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from sqlalchemy import func
+from datetime import timedelta
+                                           MessageInteraction)
+
 
 class LeadScoringService:
     def __init__(self, db: Session):
@@ -82,15 +101,16 @@ class LeadScoringService:
         if lead.budget:
             try:
                 budget = float(lead.budget.replace('₹', '').replace(',', ''))
-                avg_property_price = self.db.query(func.avg(RealEstateProject.price)).scalar() or 0
-                if avg_property_price > 0:
-                    price_ratio = budget / avg_property_price
-                    if 0.8 <= price_ratio <= 1.2:
-                        budget_score = 10  # Budget within 20% of average
-                    elif 0.6 <= price_ratio <= 1.4:
-                        budget_score = 7   # Budget within 40% of average
-                    else:
-                        budget_score = 4   # Budget outside range
+                # TODO: Implement RealEstateProject scoring when needed
+                # avg_property_price = self.db.query(func.avg(RealEstateProject.price)).scalar() or 0
+                # if avg_property_price > 0:
+                #     price_ratio = budget / avg_property_price
+                #     if 0.8 <= price_ratio <= 1.2:
+                #         budget_score = 10  # Budget within 20% of average
+                #     elif 0.6 <= price_ratio <= 1.4:
+                #         budget_score = 7   # Budget within 40% of average
+                #     else:
+                #         budget_score = 4   # Budget outside range
             except (ValueError, TypeError):
                 pass
         score += budget_score
@@ -99,11 +119,11 @@ class LeadScoringService:
         # Factor 6: Location Match (0-15 points)
         location_score = 0
         if lead.location:
-            # Check if lead's location matches any property locations
-            matching_locations = self.db.query(RealEstateProject).filter(
-                RealEstateProject.location.ilike(f"%{lead.location}%")
-            ).count()
-            location_score = min(matching_locations * 3, 15)
+            # TODO: Implement RealEstateProject scoring when needed
+            # matching_locations = self.db.query(RealEstateProject).filter(
+            #     RealEstateProject.location.ilike(f"%{lead.location}%")
+            # ).count()
+            location_score = min(location_score, 15)
         score += location_score
         factors["location_match"] = location_score
 

@@ -1,33 +1,43 @@
-from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status, UploadFile, File, Query
-from sqlalchemy.orm import Session
-from uuid import UUID
-import pandas as pd
+from datetime import datetime
 from io import BytesIO
+from typing import Any, List, Optional
+from uuid import UUID
 
-from app.shared.models.user import User
-from app.shared.db.session import get_db
-from app.shared.core.security.auth import get_current_customer
+import pandas as pd
+from fastapi import (APIRouter, Depends, File, HTTPException,
+                     Query, UploadFile, status)
+from sqlalchemy.orm import Session
+
 from app.lead.models import Lead
-from app.shared.models.customer import Customer
 from app.outreach.models.outreach import OutreachLog
-
-from app.shared.core.communication import OutreachEngine
-from app.shared.core.auth import get_current_user
-from app.outreach.schemas.outreach import (
-    OutreachCreate, Outreach, OutreachFilter,
-    OutreachStats, OutreachAnalytics, OutreachRequest, OutreachLogResponse, LeadUpload, OutreachChannel, OutreachStatus,
-    InteractionLogCreate, InteractionLogResponse,
-    OutreachUpdate, OutreachTemplate, OutreachTemplateCreate, OutreachTemplateUpdate,
-    CommunicationPreference, CommunicationPreferenceCreate, CommunicationPreferenceUpdate,
-    OutreachList, OutreachTemplateList, OutreachTemplateFilter
-)
+from app.outreach.schemas.outreach import (CommunicationPreference,
+                                           CommunicationPreferenceCreate,
+                                           CommunicationPreferenceUpdate,
+                                           LeadUpload,
+                                           Outreach, OutreachAnalytics,
+                                           OutreachChannel, OutreachCreate,
+                                           OutreachFilter, OutreachList,
+                                           OutreachLogResponse,
+                                           OutreachRequest, OutreachStats,
+                                           OutreachTemplate,
+                                           OutreachTemplateCreate,
+                                           OutreachTemplateFilter,
+                                           OutreachTemplateList,
+                                           OutreachTemplateUpdate,
+                                           OutreachUpdate)
 from app.outreach.services.outreach import OutreachService
+from app.shared.core.auth import get_current_user
+from app.shared.core.communication import OutreachEngine
+from app.shared.core.outreach import MockOutreachEngine
 from app.shared.core.pagination import PaginationParams, get_pagination_params
+from app.shared.core.infrastructure.deps import get_current_customer
 from app.shared.core.security.dependencies import require_role
 from app.shared.core.security.roles import Role as UserRole
-from app.shared.core.outreach import MockOutreachEngine
-from datetime import datetime
+from app.shared.db.session import get_db
+from app.shared.models.customer import Customer
+from app.shared.models.user import User
+from app.shared.models.notification import NotificationPreference
+from app.shared.models.interaction import InteractionLog
 
 router = APIRouter()
 
@@ -53,18 +63,17 @@ async def initiate_outreach(
             detail="Lead not found"
         )
 
-    # Get communication preferences
-    preferences = db.query(CommunicationPreferences).filter(
-        CommunicationPreferences.customer_id == current_user.customer_id
+    # Get notification preferences
+    preferences = db.query(NotificationPreference).filter(
+        NotificationPreference.user_id == current_user.id
     ).first()
 
     if not preferences:
         raise HTTPException(
             status_code=400,
-            detail="Communication preferences not configured"
+            detail="Notification preferences not configured"
         )
 
-    
     # Initialize communication service
     comm_service = OutreachEngine(preferences)
 
@@ -99,15 +108,15 @@ async def initiate_bulk_outreach(
     """
     Initiate outreach to multiple leads
     """
-    # Get communication preferences
-    preferences = db.query(CommunicationPreferences).filter(
-        CommunicationPreferences.customer_id == current_user.customer_id
+    # Get notification preferences
+    preferences = db.query(NotificationPreference).filter(
+        NotificationPreference.user_id == current_user.id
     ).first()
 
     if not preferences:
         raise HTTPException(
             status_code=400,
-            detail="Communication preferences not configured"
+            detail="Notification preferences not configured"
         )
 
     # Initialize communication service
@@ -146,12 +155,12 @@ async def initiate_bulk_outreach(
         "results": results
     }
 
-@router.post("/leads/{lead_id}", response_model=Outreach)
 @require_role([UserRole.ADMIN, UserRole.AGENT])
+@router.post("/leads/{lead_id}", response_model=Outreach)
 async def trigger_outreach(
     lead_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Trigger AI outreach for a specific lead.
@@ -170,15 +179,15 @@ async def trigger_outreach(
         )
 
     try:
-        # Get communication preferences
-        preferences = db.query(CommunicationPreferences).filter(
-            CommunicationPreferences.customer_id == current_user.customer_id
+        # Get notification preferences
+        preferences = db.query(NotificationPreference).filter(
+            NotificationPreference.user_id == current_user.id
         ).first()
 
         if not preferences:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No communication preferences found"
+                detail="No notification preferences found"
             )
 
         # Initialize mock engine

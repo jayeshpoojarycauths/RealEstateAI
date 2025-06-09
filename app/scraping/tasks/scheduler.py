@@ -1,9 +1,15 @@
 import logging
 from typing import Optional
+
 from sqlalchemy.orm import Session
-from app.shared.db.session import SessionLocal
-from app.scraping.services.scheduler import ScrapingScheduler
+
 from app.scraping.models.scraping import ScrapingConfig
+from app.scraping.services.scheduler import ScrapingScheduler
+from app.shared.db.session import SessionLocal
+from sqlalchemy.orm import Session
+from app.shared.core.logging import logger
+from sqlalchemy.orm import Session
+from app.shared.core.logging import logger
 
 logger = logging.getLogger(__name__)
 

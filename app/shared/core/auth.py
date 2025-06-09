@@ -1,17 +1,24 @@
-from typing import Optional
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
 
-from app.shared.core.config import settings
-from app.shared.core.security.jwt import verify_token
-from app.shared.core.exceptions import AuthenticationException
-from app.shared.models.user import User
-from app.shared.models.customer import Customer
-from app.shared.db.session import get_db
-from app.shared.schemas.token import TokenPayload
 from app.shared.core.security.auth import get_current_user
+from app.shared.core.security.jwt import verify_token
+from app.shared.db.session import get_db
+from app.shared.models.customer import Customer
+from app.shared.models.user import User
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.shared.models.user import User
+from app.shared.db.session import get_db
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.shared.models.user import User
+from app.shared.db.session import get_db
+from fastapi import HTTPException
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 

@@ -1,7 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
-from sqlalchemy.orm import Session
+from typing import Any, Dict, List
+
+
 from app.scraping.models.scraping import ScrapingConfig
+from typing import Dict
+from typing import Any
+from typing import Dict
+from typing import Any
+
 
 class IScraperService(ABC):
     """Interface for scraper service."""

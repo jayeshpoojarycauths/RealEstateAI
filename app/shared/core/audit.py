@@ -1,17 +1,19 @@
-from typing import Dict, Any, Optional, List
 from datetime import datetime
-from sqlalchemy.orm import Session
-from app.shared.models.user import User
-from app.shared.models.customer import Customer
-from app.shared.models.audit import AuditLog
-from app.shared.core.tenant import get_customer_id
-import json
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
 from fastapi import Depends, Request
-from app.shared.db.session import get_db
+from sqlalchemy.orm import Session
+
 from app.shared.core.security import get_current_user
+from app.shared.db.session import get_db
+from app.shared.models.audit import AuditLog
+
+if TYPE_CHECKING:
+    from app.shared.models.customer import Customer
+    from app.shared.models.user import User
 
 class AuditLogger:
-    def __init__(self, db: Session, customer: Customer):
+    def __init__(self, db: Session, customer: "Customer"):
         self.db = db
         self.customer = customer
 
@@ -124,7 +126,7 @@ class AuditService:
 
     def log_auth_event(
         self,
-        user: Optional[User],
+        user: Optional["User"],
         action: str,
         metadata: Dict[str, Any],
         customer_id: Optional[str] = None
@@ -144,7 +146,7 @@ class AuditService:
 
     def log_login_success(
         self,
-        user: User,
+        user: "User",
         ip_address: str,
         user_agent: str,
     ) -> None:
@@ -181,7 +183,7 @@ class AuditService:
 
     def log_logout(
         self,
-        user: User,
+        user: "User",
         ip_address: str,
         user_agent: str
     ) -> None:
@@ -197,7 +199,7 @@ class AuditService:
 
     def log_password_change(
         self,
-        user: User,
+        user: "User",
         ip_address: str,
         user_agent: str,
         method: str = "user_initiated"
@@ -215,7 +217,7 @@ class AuditService:
 
     def log_mfa_verification(
         self,
-        user: User,
+        user: "User",
         ip_address: str,
         user_agent: str,
         method: str,
@@ -235,12 +237,12 @@ class AuditService:
 
     def log_session_creation(
         self,
-        user: User,
+        user: "User",
         ip_address: str,
         user_agent: str,
         session_id: str
     ) -> None:
-        """Log new session creation."""
+        """Log session creation."""
         self.log_auth_event(
             user=user,
             action="session_creation",
@@ -253,7 +255,7 @@ class AuditService:
 
     def log_session_invalidation(
         self,
-        user: User,
+        user: "User",
         ip_address: str,
         user_agent: str,
         session_id: str,
@@ -284,26 +286,11 @@ async def log_audit(
     resource_id: str,
     details: Optional[Dict[str, Any]] = None,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user)
+    current_user: Optional["User"] = Depends(get_current_user)
 ) -> AuditLog:
-    """
-    Log an audit action with request context.
-    
-    Args:
-        request: FastAPI request object
-        action: The action performed
-        resource_type: Type of resource affected
-        resource_id: ID of resource affected
-        details: Optional additional details
-        db: Database session
-        current_user: Current authenticated user
-        
-    Returns:
-        Created AuditLog instance
-    """
-    audit_service = AuditService(db)
-    
-    return audit_service.log_action(
+    """Log an audit event."""
+    service = AuditService(db)
+    return service.log_action(
         action=action,
         resource_type=resource_type,
         resource_id=resource_id,

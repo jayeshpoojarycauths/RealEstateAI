@@ -1,9 +1,14 @@
-from fastapi import Request, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.shared.core.security.auth import get_current_user
-from app.shared.core.config import settings
 import time
-from typing import Optional
+
+from fastapi import HTTPException, Request
+from fastapi.security import HTTPBearer
+
+from app.shared.core.config import settings
+from app.shared.core.security.auth import get_current_user
+from fastapi import Request
+from fastapi import HTTPException
+from fastapi import Request
+from fastapi import HTTPException
 
 security = HTTPBearer()
 

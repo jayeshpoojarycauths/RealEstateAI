@@ -1,8 +1,11 @@
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, validator
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 from uuid import UUID
+
+from pydantic import BaseModel, Field, validator
+
 from app.scraping.models.scraping import ScrapingSource, ScrapingStatus
+
 
 # --- Base Schemas ---
 class ScrapingConfigBase(BaseModel):
@@ -110,6 +113,12 @@ class ScrapingResult(ScrapingResultBase):
 
     class Config:
         from_attributes = True
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from datetime import datetime
+from typing import Dict
+from typing import Any
 
 # --- List Schemas ---
 class ScrapingConfigList(BaseModel):

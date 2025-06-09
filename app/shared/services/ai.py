@@ -1,6 +1,13 @@
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 import openai
+
 from app.shared.core.config import settings
+from typing import Dict
+from typing import Any
+from typing import Dict
+from typing import Any
+
 
 class AIService:
     def __init__(self):
@@ -25,7 +32,7 @@ class AIService:
         try:
             # TODO: Implement lead enrichment logic
             return None
-        except Exception as e:
+        except Exception:
             return None
 
     async def generate_outreach_message(
@@ -54,5 +61,5 @@ class AIService:
         try:
             # TODO: Implement message generation logic
             return f"Hello {lead_name}, thank you for your interest in our properties."
-        except Exception as e:
+        except Exception:
             return "Thank you for your interest in our properties." 

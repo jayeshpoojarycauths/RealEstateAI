@@ -1,8 +1,21 @@
 from typing import Optional
+
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
 from app.shared.db.session import get_db
 from app.shared.models.user import User
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.shared.models.user import User
+from app.shared.db.session import get_db
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.shared.models.user import User
+from app.shared.db.session import get_db
+from fastapi import HTTPException
+
 
 async def get_customer_id(
     db: Session = Depends(get_db),

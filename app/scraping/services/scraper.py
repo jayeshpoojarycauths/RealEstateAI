@@ -1,39 +1,25 @@
-from typing import List, Optional, Dict, Any, Type
+import asyncio
+import logging
+import uuid
+from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Type
+
+import aiohttp
 import requests
 from bs4 import BeautifulSoup
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
-from app.project.models.project import RealEstateProject
-from app.scraping.models.scraping import ScrapingConfig
-from app.lead.models.lead import Lead
-from uuid import UUID
-import time
-import os
-from datetime import datetime, timedelta
-import json
-from abc import ABC, abstractmethod
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-import logging
-from app.shared.core.config import settings
-import random
-from ratelimit import limits, sleep_and_retry
 from fake_useragent import UserAgent
-import aiohttp
-import asyncio
+from ratelimit import limits, sleep_and_retry
+from sqlalchemy.orm import Session
 from tenacity import retry, stop_after_attempt, wait_exponential
+
+from app.scraping.models.scraping import (ScrapingConfig, ScrapingJob,
+                                          ScrapingResult, ScrapingSource,
+                                          ScrapingStatus)
 from app.scraping.schemas.scraping import *
 from app.scraping.services.base import BaseScraper
 from app.scraping.services.ninety_nine_acres import NinetyNineAcresScraper
-from app.scraping.services.facebook_marketplace import FacebookMarketplaceScraper
-from app.scraping.models.scraping import (
-    ScrapingJob,
-    ScrapingResult,
-    ScrapingSource,
-    ScrapingStatus
-)
 from app.shared.core.exceptions import NotFoundError, ValidationError
-import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -330,6 +316,24 @@ class ScraperService:
         """Lazy initialization of scheduler."""
         if self._scheduler is None:
             from app.scraping.services.scheduler import ScrapingScheduler
+from fastapi import Request
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from app.shared.core.exceptions import ValidationError
+from datetime import timedelta
+from fastapi import Request
+from sqlalchemy.orm import Session
+from app.shared.models.user import User
+from datetime import datetime
+from typing import Dict
+from typing import Any
+from app.shared.core.logging import logger
+from app.shared.core.exceptions import ValidationError
+from datetime import timedelta
             self._scheduler = ScrapingScheduler(self.db)
         return self._scheduler
 

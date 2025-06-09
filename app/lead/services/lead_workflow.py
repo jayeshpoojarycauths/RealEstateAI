@@ -1,20 +1,16 @@
-from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, desc
-from datetime import datetime, timedelta
-import json
-from fastapi import Depends
+from datetime import datetime
+from typing import List, Optional
 
-from app.lead.models.lead import Lead, LeadActivity, ActivityType, LeadStatus, LeadSource
+from sqlalchemy.orm import Session
+
+from app.lead.models.lead import (ActivityType, Lead, LeadActivity)
+from app.shared.core.audit import AuditService
 from app.shared.models.customer import Customer
-from app.lead.schemas.lead import LeadResponse
-from app.lead.schemas.lead_activity import LeadActivityResponse
-from app.shared.core.tenant import get_customer_id
-from app.shared.core.security import UserRole
-from app.shared.core.audit import AuditService, get_audit_service
-from app.shared.core.exceptions import NotFoundException, ValidationException
-from app.shared.core.email import send_email
-from app.shared.core.sms import SMSService
+from sqlalchemy.orm import Session
+from datetime import datetime
+from sqlalchemy.orm import Session
+from datetime import datetime
+
 
 class LeadWorkflowService:
     def __init__(self, db: Session, customer: Customer):

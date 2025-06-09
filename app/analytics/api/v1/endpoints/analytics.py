@@ -1,35 +1,22 @@
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from typing import List, Optional
 
-from app.shared.core.security.auth import get_current_active_user
-from app.shared.api.deps import get_db
-from app.shared.core.security.auth import get_current_customer
-from app.shared.models.user import User
-from app.shared.core.audit import log_audit
-from app.shared.core.exceptions import NotFoundException
-from app.shared.models.customer import Customer
-from app.lead.models.lead import Lead
-from app.shared.models.interaction import InteractionLog
-from app.analytics.schemas.analytics import (
-    AnalyticsResponse,
-    ConversionFunnelResponse,
-    LeadScoreDistribution,
-    LeadSourceStats,
-    ChannelPerformance,
-    TimeSeriesDataPoint,
-    LeadStatusStats,
-    PriceTrendResponse,
-    TimeRange,
-    LeadQualityResponse,
-    AnalyticsFilter,
-    LeadAnalytics,
-    OutreachAnalytics,
-    UserAnalytics
-)
-from app.analytics.schemas.stats import LeadActivityStats, AgentPerformanceStats, InteractionStats
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.analytics.schemas.analytics import (AnalyticsFilter,
+                                             AnalyticsResponse,
+                                             ConversionFunnelResponse,
+                                             LeadQualityResponse,
+                                             LeadSourceStats, LeadStatusStats,
+                                             PriceTrendResponse, TimeRange)
+from app.analytics.schemas.stats import (AgentPerformanceStats,
+                                         InteractionStats, LeadActivityStats)
 from app.analytics.services.analytics import AnalyticsService
+from app.shared.api.deps import get_db
+from app.shared.core.security.auth import get_current_active_user
+from app.shared.core.infrastructure.deps import get_current_customer
+from app.shared.models.customer import Customer
+from app.shared.models.user import User
 
 router = APIRouter()
 
