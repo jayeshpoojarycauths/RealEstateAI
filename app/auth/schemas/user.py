@@ -46,20 +46,20 @@ class UserInDBBase(UserBase):
 
     class Config:
         from_attributes = True
-from fastapi import Request
-from app.shared.models.user import User
-from datetime import datetime
-from fastapi import Request
-from app.shared.models.user import User
-from datetime import datetime
 
 class User(UserInDBBase):
     """Schema for user response."""
     pass
 
 class UserInDB(UserInDBBase):
-    """Schema for user in database with hashed password."""
-    hashed_password: str
+    """Schema for user in database with password hash."""
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    password_hash: str
+    last_login: Optional[datetime] = None
+    model_metadata: Optional[dict] = None
+    reset_token: Optional[str] = None
+    reset_token_expires: Optional[datetime] = None
 
 class MFASettings(BaseModel):
     """Schema for MFA settings."""

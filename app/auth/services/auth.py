@@ -10,12 +10,14 @@ from typing import Any, Dict, List, Optional
 import pyotp
 import qrcode
 from sqlalchemy.orm import Session
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 
 from app.auth.models.auth import (MFASettings, UserSession)
 from app.shared.core.audit import AuditService
 from app.shared.core.config import settings
 from app.shared.core.email import (send_password_reset_email,
-                                   send_verification_email)
+                                   send_verification_email, send_email)
 from app.shared.core.exceptions import (ValidationException)
 from app.shared.core.security import (create_access_token,
                                       create_refresh_token, decrypt_value,
@@ -24,7 +26,7 @@ from app.shared.core.security import (create_access_token,
                                       verify_mfa_code, verify_password)
 from app.shared.core.security.roles import Role
 from app.shared.models.user import User
-from app.shared.schemas.auth import (UserCreate)
+from app.shared.schemas.auth import (UserCreate, UserLogin, TokenData)
 from app.shared.schemas.user import UserUpdate
 from fastapi import Request
 from sqlalchemy.orm import Session
@@ -41,6 +43,23 @@ from typing import Dict
 from typing import Any
 from datetime import timedelta
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
 
 class AuthService:
     def __init__(self, db: Session):
@@ -62,16 +81,21 @@ class AuthService:
 
     async def authenticate(
         self,
-        email: str,
+        username_or_email: str,
         password: str
     ) -> Optional[User]:
         """
-        Authenticate a user.
+        Authenticate a user using either username or email.
         """
-        user = self.db.query(User).filter(User.email == email).first()
+        # Check if input is email or username
+        if '@' in username_or_email:
+            user = self.db.query(User).filter(User.email == username_or_email).first()
+        else:
+            user = self.db.query(User).filter(User.username == username_or_email).first()
+            
         if not user:
             return None
-        if not verify_password(password, user.hashed_password):
+        if not verify_password(password, user.password_hash):
             return None
         return user
 
@@ -79,15 +103,19 @@ class AuthService:
         """
         Register a new user.
         """
-        # Check if user exists
-        user = self.db.query(User).filter(User.email == user_in.email).first()
-        if user:
+        # Check if email exists
+        if self.db.query(User).filter(User.email == user_in.email).first():
             raise ValidationException("Email already registered")
+            
+        # Check if username exists
+        if self.db.query(User).filter(User.username == user_in.username).first():
+            raise ValidationException("Username already taken")
 
         # Create user
         user = User(
             email=user_in.email,
-            hashed_password=get_password_hash(user_in.password),
+            username=user_in.username,
+            password_hash=get_password_hash(user_in.password),
             full_name=user_in.full_name,
             role=user_in.role or Role.GUEST,
             is_active=True,
@@ -148,7 +176,7 @@ class AuthService:
                 raise ValidationException("User not found")
 
             # Update password
-            user.hashed_password = get_password_hash(new_password)
+            user.password_hash = get_password_hash(new_password)
             self.db.commit()
 
         except Exception as e:
@@ -273,7 +301,7 @@ class AuthService:
 
     async def create_access_token(self, user: User, session: Optional[UserSession] = None) -> Dict[str, str]:
         """Create access and refresh tokens for a user."""
-        access_token = create_access_token(user.id)
+        access_token = create_access_token(str(user.id))
         if not session:
             session = await self.create_session(user)
         return {
@@ -353,7 +381,7 @@ class AuthService:
         user_agent: str
     ) -> bool:
         """Change a user's password."""
-        if not verify_password(current_password, user.hashed_password):
+        if not verify_password(current_password, user.password_hash):
             self.audit_service.log_password_change(
                 user=user,
                 ip_address=ip_address,
@@ -367,7 +395,7 @@ class AuthService:
         self.validate_password_complexity(new_password)
         
         # Update password
-        user.hashed_password = get_password_hash(new_password)
+        user.password_hash = get_password_hash(new_password)
         self.db.commit()
         
         # Log successful change
@@ -423,4 +451,117 @@ class AuthService:
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "bearer"
-        } 
+        }
+
+    async def authenticate_user(self, login_data: UserLogin) -> Optional[User]:
+        user = None
+        if "@" in login_data.username_or_email:
+            user = self.db.query(User).filter(User.email == login_data.username_or_email.lower()).first()
+        else:
+            user = self.db.query(User).filter(User.username == login_data.username_or_email).first()
+        
+        if not user:
+            return None
+        if not verify_password(login_data.password, user.password_hash):
+            return None
+        return user
+
+    async def get_user_by_email(self, email: str) -> Optional[User]:
+        return self.db.query(User).filter(User.email == email.lower()).first()
+
+    async def get_user_by_username(self, username: str) -> Optional[User]:
+        return self.db.query(User).filter(User.username == username).first()
+
+    async def create_user(self, user_data: UserCreate) -> User:
+        # Check if email already exists
+        if self.db.query(User).filter(User.email == user_data.email).first():
+            raise ValidationException("Email already registered")
+        
+        # Check if username already exists
+        if self.db.query(User).filter(User.username == user_data.username).first():
+            raise ValidationException("Username already taken")
+        
+        hashed_password = get_password_hash(user_data.password)
+        db_user = User(
+            email=user_data.email.lower(),
+            username=user_data.username,
+            password_hash=hashed_password,
+            full_name=user_data.full_name,
+            is_active=True,
+            is_superuser=False
+        )
+        self.db.add(db_user)
+        self.db.commit()
+        self.db.refresh(db_user)
+        return db_user
+
+    async def generate_reset_token(self) -> str:
+        return secrets.token_urlsafe(32)
+
+    async def request_password_reset(self, email: str) -> None:
+        user = self.db.query(User).filter(User.email == email).first()
+        if not user:
+            # Don't reveal that the email doesn't exist
+            return
+        
+        reset_token = self.generate_reset_token()
+        user.reset_token = reset_token
+        user.reset_token_expires = datetime.utcnow() + timedelta(hours=24)
+        self.db.commit()
+        
+        reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
+        await send_email(
+            email_to=user.email,
+            subject="Password Reset Request",
+            body=f"""
+            Hello {user.full_name or user.username},
+            
+            You have requested to reset your password. Please click the link below to reset your password:
+            
+            {reset_link}
+            
+            This link will expire in 24 hours.
+            
+            If you did not request this password reset, please ignore this email.
+            
+            Best regards,
+            The RealEstateAI Team
+            """
+        )
+
+    async def request_username_reminder(self, email: str) -> None:
+        user = self.db.query(User).filter(User.email == email).first()
+        if not user:
+            # Don't reveal that the email doesn't exist
+            return
+        
+        await send_email(
+            email_to=user.email,
+            subject="Username Reminder",
+            body=f"""
+            Hello {user.full_name or 'there'},
+            
+            You requested a reminder of your username. Your username is:
+            
+            {user.username}
+            
+            If you did not request this reminder, please ignore this email.
+            
+            Best regards,
+            The RealEstateAI Team
+            """
+        )
+
+    async def reset_password(self, token: str, new_password: str) -> None:
+        user = self.db.query(User).filter(
+            User.reset_token == token,
+            User.reset_token_expires > datetime.utcnow()
+        ).first()
+        
+        if not user:
+            raise ValidationException("Invalid or expired reset token")
+        
+        user.password_hash = get_password_hash(new_password)
+        user.reset_token = None
+        user.reset_token_expires = None
+        self.db.commit() 

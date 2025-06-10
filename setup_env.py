@@ -140,7 +140,7 @@ def create_minimal_backend_env(env_file: Path) -> str:
     return f"""# Project Info
 PROJECT_NAME=Real Estate CRM
 VERSION=1.0.0
-API_V1_STR=/v1
+API_V1_STR=/api/v1
 ENVIRONMENT=development
 
 # Security

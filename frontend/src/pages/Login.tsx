@@ -1,37 +1,27 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   Card,
-  CardHeader,
   CardBody,
   Typography,
   Button,
   Input,
-  Checkbox,
 } from "@material-tailwind/react";
 import { useAuth } from "../hooks/useAuth";
 import { logger } from "../utils/logger";
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password must contain at least one uppercase letter, one lowercase letter, and one number",
-    ),
-  rememberMe: z.boolean().optional(),
+  username_or_email: z.string().min(1, "Username or email is required"),
+  password: z.string().min(1, "Password is required"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
@@ -41,54 +31,42 @@ export const Login: React.FC = () => {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      rememberMe: false,
-    },
   });
 
   const onSubmit = async (data: LoginFormData) => {
     try {
       setError(null);
-      await login({
-        email: data.email.trim().toLowerCase(),
-        password: data.password,
-      });
-
-      // Redirect to the page the user was trying to access, or dashboard
-      const from = (location.state as any)?.from?.pathname || "/dashboard";
-      navigate(from, { replace: true });
-
-      logger.info("User logged in successfully");
+      await login(data);
+      logger.info("Login successful");
     } catch (err) {
-      setError("Invalid email or password");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred during login"
+      );
       logger.error("Login failed", err as Error);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <Card className="w-96">
-        <CardHeader
-          variant="gradient"
-          color="blue"
-          className="mb-4 grid h-28 place-items-center"
-        >
-          <Typography variant="h3" color="white">
+        <CardBody className="flex flex-col gap-4">
+          <Typography variant="h4" color="blue-gray" className="text-center mb-4">
             Sign In
           </Typography>
-        </CardHeader>
-        <CardBody className="flex flex-col gap-4">
+          
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <Input
-                label="Email"
-                type="email"
-                {...register("email")}
-                error={!!errors.email}
+                label="Username or Email"
+                type="text"
+                {...register("username_or_email")}
+                error={!!errors.username_or_email}
               />
-              {errors.email && (
+              {errors.username_or_email && (
                 <Typography variant="small" color="red" className="mt-1">
-                  {errors.email.message}
+                  {errors.username_or_email.message}
                 </Typography>
               )}
             </div>
@@ -107,10 +85,6 @@ export const Login: React.FC = () => {
               )}
             </div>
 
-            <div className="flex items-center">
-              <Checkbox label="Remember me" {...register("rememberMe")} />
-            </div>
-
             {error && (
               <Typography variant="small" color="red" className="text-center">
                 {error}
@@ -126,6 +100,37 @@ export const Login: React.FC = () => {
             >
               {isSubmitting ? "Signing in..." : "Sign In"}
             </Button>
+
+            <div className="flex flex-col gap-2">
+              <Typography variant="small" color="gray" className="text-center">
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="text-blue-500 hover:text-blue-700 font-medium"
+                >
+                  Forgot Password?
+                </button>
+              </Typography>
+              <Typography variant="small" color="gray" className="text-center">
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-username")}
+                  className="text-blue-500 hover:text-blue-700 font-medium"
+                >
+                  Forgot Username?
+                </button>
+              </Typography>
+              <Typography variant="small" color="gray" className="text-center mt-2">
+                Don't have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate("/register")}
+                  className="text-blue-500 hover:text-blue-700 font-medium"
+                >
+                  Sign Up
+                </button>
+              </Typography>
+            </div>
           </form>
         </CardBody>
       </Card>

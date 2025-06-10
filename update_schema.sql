@@ -79,4 +79,18 @@ ALTER TABLE audit_logs ADD CONSTRAINT IF NOT EXISTS audit_logs_customer_id_fkey 
 -- Convert assigned_to column to UUID if it exists
 ALTER TABLE leads DROP CONSTRAINT IF EXISTS leads_assigned_to_fkey;
 ALTER TABLE leads ALTER COLUMN assigned_to TYPE UUID USING assigned_to::uuid;
-ALTER TABLE leads ADD CONSTRAINT leads_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL; 
+ALTER TABLE leads ADD CONSTRAINT leads_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL;
+
+-- Add columns
+ALTER TABLE users
+ADD COLUMN first_name VARCHAR(100),
+ADD COLUMN last_name VARCHAR(100),
+ADD COLUMN last_login TIMESTAMP,
+ADD COLUMN model_metadata JSON,
+ADD COLUMN reset_token VARCHAR(255),
+ADD COLUMN reset_token_expires TIMESTAMP;
+
+-- Remove columns
+ALTER TABLE users
+DROP COLUMN IF EXISTS full_name,
+DROP COLUMN IF EXISTS role; 

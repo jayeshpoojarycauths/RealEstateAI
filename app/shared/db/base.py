@@ -13,7 +13,7 @@ from app.shared.models.user import User
 
 # Create SQLAlchemy engine
 engine = create_engine(
-    settings.get_database_url,
+    settings.DATABASE_URL,
     **settings.get_database_engine_options
 )
 

@@ -31,16 +31,14 @@ export const useAuth = () => {
       try {
         setIsLoading(true);
         setError(null);
-        const { data } = await api.post<AuthResponse>(
-          "/auth/login",
-          credentials,
-        );
-        localStorage.setItem(TOKEN_KEY, data.token);
-        localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-        setUser(data.user);
+        const response = await api.post("/auth/login", credentials);
+        const { user, token } = response.data;
+        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        setUser(user);
         showToast("success", "Login successful");
         navigate("/dashboard");
+        logger.info("User logged in successfully", { userId: user.id });
       } catch (err) {
         const error = err as Error;
         setError(error.message);
@@ -58,9 +56,14 @@ export const useAuth = () => {
       try {
         setIsLoading(true);
         setError(null);
-        await api.post("/auth/register", data);
+        const response = await api.post("/auth/register", data);
+        const { user, token } = response.data;
+        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+        setUser(user);
         showToast("success", "Registration successful. Please login.");
         navigate("/login");
+        logger.info("User registered successfully", { userId: user.id });
       } catch (err) {
         const error = err as Error;
         setError(error.message);
@@ -80,29 +83,71 @@ export const useAuth = () => {
     setUser(null);
     showToast("success", "Logged out successfully");
     navigate("/login");
+    logger.info("User logged out");
   }, [navigate, showToast]);
 
   const refreshToken = useCallback(async () => {
     try {
-      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-      if (!refreshToken) {
-        throw new Error("No refresh token found");
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token) {
+        setUser(null);
+        setIsLoading(false);
+        return;
       }
 
-      const { data } = await api.post<AuthResponse>("/auth/refresh", {
-        refreshToken,
-      });
-
-      localStorage.setItem(TOKEN_KEY, data.token);
-      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-      setUser(data.user);
+      const response = await api.post("/auth/refresh");
+      const { user, token: newToken } = response.data;
+      localStorage.setItem(TOKEN_KEY, newToken);
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      setUser(user);
+      logger.info("Token refreshed successfully", { userId: user.id });
     } catch (err) {
-      const error = err as Error;
-      logger.error("Token refresh failed:", error);
-      logout();
+      localStorage.removeItem(TOKEN_KEY);
+      setUser(null);
+      logger.error("Token refresh failed", err as Error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [logout]);
+  }, []);
+
+  const requestPasswordReset = async (email: string) => {
+    try {
+      setError(null);
+      await api.post("/auth/forgot-password", { email });
+      logger.info("Password reset requested", { email });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Password reset request failed";
+      setError(message);
+      logger.error("Password reset request failed", err as Error);
+      throw err;
+    }
+  };
+
+  const requestUsernameReminder = async (email: string) => {
+    try {
+      setError(null);
+      await api.post("/auth/forgot-username", { email });
+      logger.info("Username reminder requested", { email });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Username reminder request failed";
+      setError(message);
+      logger.error("Username reminder request failed", err as Error);
+      throw err;
+    }
+  };
+
+  const resetPassword = async (token: string, newPassword: string) => {
+    try {
+      setError(null);
+      await api.post("/auth/reset-password", { token, new_password: newPassword });
+      logger.info("Password reset successful");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Password reset failed";
+      setError(message);
+      logger.error("Password reset failed", err as Error);
+      throw err;
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
@@ -119,5 +164,8 @@ export const useAuth = () => {
     register,
     logout,
     refreshToken,
+    requestPasswordReset,
+    requestUsernameReminder,
+    resetPassword,
   };
 };

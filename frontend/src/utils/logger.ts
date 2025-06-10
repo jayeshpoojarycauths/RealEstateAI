@@ -1,5 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+
 // Log levels
 export enum LogLevel {
   DEBUG = "DEBUG",
@@ -42,20 +44,20 @@ interface LoggerConfig {
 }
 
 const DEFAULT_CONFIG: LoggerConfig = {
-  apiEndpoint: "/api/v1/logs",
+  apiEndpoint: `${API_BASE_URL}/logs`,
   maxBufferSize: 100,
   flushInterval: 5000,
   maxRetries: 3,
   retryDelay: 1000,
   maxWorkers: 4,
-  isDevelopment: process.env.NODE_ENV === "development",
+  isDevelopment: import.meta.env.MODE === "development",
 };
 
 export class Logger {
   private static instance: Logger;
   private buffer: LogEntry[] = [];
   private readonly config: LoggerConfig;
-  private flushTimer: NodeJS.Timeout | null = null;
+  private flushTimer: number | null = null;
   private readonly axiosInstance: AxiosInstance;
   private readonly workerPool: Worker[];
   private isShuttingDown: boolean = false;

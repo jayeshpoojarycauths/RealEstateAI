@@ -55,29 +55,35 @@ class User(Base):
     Attributes:
         id (str): Unique identifier for the user
         email (str): User's email address (unique)
-        hashed_password (str): Hashed password
-        full_name (str): User's full name
-        role (str): User's role (ADMIN, AGENT, CUSTOMER, GUEST)
+        username (str): User's username (unique)
+        password_hash (str): Hashed password
+        first_name (str): User's first name
+        last_name (str): User's last name
         is_active (bool): Whether the user is active
         is_superuser (bool): Whether the user is a superuser
         created_at (datetime): When the user was created
         updated_at (datetime): When the user was last updated
+        reset_token (str): Reset token for password reset
+        reset_token_expires (datetime): Expiration time for the reset token
     """
     __tablename__ = "users"
     __table_args__ = {'extend_existing': True}
 
     id = Column(String, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    full_name = Column(String, index=True)
-    role = Column(String, default=Role.GUEST.value)
+    username = Column(String, unique=True, index=True, nullable=False)
+    first_name = Column(String(100), nullable=True)
+    last_name = Column(String(100), nullable=True)
+    password_hash = Column(String, nullable=False)
     is_active = Column(Boolean(), default=True)
     is_superuser = Column(Boolean(), default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     customer_id = Column(String, ForeignKey("customers.id"), nullable=False)
-    last_login = Column(DateTime)
-    model_metadata = Column(JSON)  # Additional user metadata
+    last_login = Column(DateTime, nullable=True)
+    model_metadata = Column(JSON, nullable=True)
+    reset_token = Column(String, unique=True, nullable=True)
+    reset_token_expires = Column(DateTime, nullable=True)
     
     # Use string-based relationship references
     customer = relationship("Customer", back_populates="users", foreign_keys=[customer_id])

@@ -2,7 +2,7 @@
 import time
 import uuid
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 import app.models_registry
@@ -25,7 +25,7 @@ app = FastAPI(
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        allow_origins=[str(origin).rstrip('/') for origin in settings.BACKEND_CORS_ORIGINS],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -34,8 +34,16 @@ if settings.BACKEND_CORS_ORIGINS:
 # Register exception handlers
 register_exception_handlers(app)
 
-# Include API router
+
+print("API_V1_STR:", settings.API_V1_STR)
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Minimal /api/logs endpoint
+@app.post("/api/v1/logs")
+async def receive_logs(request: Request):
+    data = await request.json()
+    # Optionally, process or store the logs here
+    return {"status": "ok"}
 
 @app.middleware("http")
 async def add_request_id(request, call_next):
@@ -71,7 +79,6 @@ async def log_requests(request, call_next):
         
         # Log failed request
         log_error(
-            logger=logger,
             request=request,
             message_code=MessageCode.SYSTEM_ERROR,
             error=e,

@@ -23,18 +23,13 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthContext();
+  const { user } = useAuthContext();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
 
   // Filter menu items by user role
   const filteredMenuItems = user?.role
     ? filterMenuItemsByRole(user.role, configMenuItems)
     : [];
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -51,17 +46,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <SafeTypography variant="h5">Real Estate AI</SafeTypography>
           </div>
           <div className="flex items-center gap-4">
-            <SafeTypography variant="small">
-              {user?.firstName} {user?.lastName}
-              {user?.role && (
-                <span className="ml-2 text-gray-500">
-                  ({user.role.replace("_", " ")})
-                </span>
-              )}
-            </SafeTypography>
-            <SafeButton variant="text" color="red" onClick={handleLogout}>
-              Logout
-            </SafeButton>
+            {user && (
+              <SafeTypography variant="small">
+                {user.firstName} {user.lastName}
+                {user.role && (
+                  <span className="ml-2 text-gray-500">
+                    ({user.role.replace("_", " ")})
+                  </span>
+                )}
+              </SafeTypography>
+            )}
           </div>
         </div>
       </SafeCard>

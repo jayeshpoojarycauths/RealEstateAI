@@ -27,31 +27,32 @@ export const hasPermission = (userRole: Role, targetRole: Role): boolean => {
 export interface User {
   id: string;
   email: string;
-  fullName: string;
+  username: string;
+  full_name: string;
   role: Role;
-  isActive: boolean;
-  isSuperuser: boolean;
-  createdAt: string;
-  updatedAt: string;
+  is_active: boolean;
+  is_superuser: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface LoginCredentials {
-  email: string;
+  username_or_email: string;
   password: string;
-  tenantId?: string; // Added for multitenant support
 }
 
-export interface RegisterData extends LoginCredentials {
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  tenantId?: string; // Added for multitenant support
+export interface RegisterData {
+  email: string;
+  username: string;
+  password: string;
+  full_name: string;
+  role?: Role;
 }
 
 export interface AuthResponse {
-  user: User;
   token: string;
   refreshToken: string;
+  user: User;
 }
 
 export interface AuthState {

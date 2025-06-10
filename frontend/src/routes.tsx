@@ -15,6 +15,9 @@ import { TenantManagement } from "./pages/platform/TenantManagement";
 import { SystemSettings } from "./pages/platform/SystemSettings";
 import { Unauthorized } from "./pages/Unauthorized";
 import { NotFound } from "./pages/NotFound";
+import { ForgotPassword } from "./pages/ForgotPassword";
+import { ForgotUsername } from "./pages/ForgotUsername";
+import { ResetPassword } from "./pages/ResetPassword";
 
 export const AppRoutes = () => {
   return (
@@ -23,6 +26,9 @@ export const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/forgot-username" element={<ForgotUsername />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Protected routes */}
       <Route

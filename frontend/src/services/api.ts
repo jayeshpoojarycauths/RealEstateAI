@@ -2,7 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { logger } from "../utils/logger";
 
 const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 // Extend the InternalAxiosRequestConfig type to include _retry
 interface CustomInternalAxiosRequestConfig extends InternalAxiosRequestConfig {
