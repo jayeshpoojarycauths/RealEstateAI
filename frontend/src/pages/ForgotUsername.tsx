@@ -37,15 +37,11 @@ export const ForgotUsername: React.FC = () => {
     try {
       setError(null);
       await requestUsernameReminder(data.email);
+      logger.info("Username reminder email sent", { email: "[REDACTED]" });
       setSuccess(true);
-      logger.info("Username reminder email sent", { email: data.email });
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "An error occurred while requesting username reminder"
-      );
-      logger.error("Username reminder request failed", err as Error);
+      setError("An error occurred while processing your request. Please try again later.");
+      logger.error("Username reminder request failed", err);
     }
   };
 

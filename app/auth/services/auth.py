@@ -301,7 +301,7 @@ class AuthService:
 
     async def create_access_token(self, user: User, session: Optional[UserSession] = None) -> Dict[str, str]:
         """Create access and refresh tokens for a user."""
-        access_token = create_access_token(str(user.id))
+        access_token = create_access_token({"sub": str(user.id)})
         if not session:
             session = await self.create_session(user)
         return {

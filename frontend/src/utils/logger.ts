@@ -12,25 +12,50 @@ export enum LogLevel {
 
 // Log entry interface
 export interface LogEntry {
-  level: LogLevel;
-  message: string;
   timestamp: string;
-  context: Record<string, any>;
-  stackTrace?: string;
+  level: LogLevel;
+  logger: string;
+  message: string;
+  module?: string;
+  function?: string;
+  line?: number;
+  name?: string;
+  msg?: string;
+  args?: any[];
+  levelname?: string;
+  levelno?: number;
+  pathname?: string;
+  filename?: string;
+  exc_info?: any;
+  exc_text?: string;
+  stack_info?: string;
+  lineno?: number;
+  funcName?: string;
+  created?: number;
+  msecs?: number;
+  relativeCreated?: number;
+  thread?: number;
+  threadName?: string;
+  processName?: string;
+  process?: number;
+  taskName?: string;
+  message_code?: string;
+  message_type?: string;
+  log_message?: string;
+  method?: string;
+  path?: string;
+  status_code?: number;
+  process_time?: number;
+  request_id?: string;
+  client_ip?: string;
+  url?: string;
   service?: string;
-  correlationId?: string;
+  correlation_id?: string;
 }
 
 // Log batch interface
 export interface LogBatch {
   entries: LogEntry[];
-}
-
-export interface AuditLogEntry extends LogEntry {
-  action: string;
-  resourceType: string;
-  resourceId: string | number;
-  userId?: string;
 }
 
 interface LoggerConfig {
@@ -107,46 +132,25 @@ export class Logger {
     level: LogLevel,
     message: string,
     context: Record<string, any> = {},
-    stackTrace?: string,
   ): LogEntry {
+    const timestamp = new Date().toISOString();
     return {
+      timestamp,
       level,
+      logger: "frontend",
       message,
-      timestamp: new Date().toISOString(),
-      context: this.sanitizeContext(context),
-      stackTrace,
       service: context.service || "frontend",
-      correlationId: context.correlationId,
+      correlation_id: context.correlationId,
+      created: Date.now(),
+      msecs: new Date().getMilliseconds(),
+      relativeCreated: performance.now(),
+      thread: 0,
+      threadName: "main",
+      processName: "browser",
+      process: 0,
+      taskName: "main",
+      ...context,
     };
-  }
-
-  private sanitizeContext(context: Record<string, any>): Record<string, any> {
-    const sanitized: Record<string, any> = {};
-    const sensitivePatterns = [
-      /password/i,
-      /api[_-]?key/i,
-      /token/i,
-      /secret/i,
-      /authorization/i,
-      /credit[_-]?card/i,
-      /ssn/i,
-      /social[_-]?security/i,
-    ];
-
-    for (const [key, value] of Object.entries(context)) {
-      if (
-        typeof value === "string" &&
-        sensitivePatterns.some((pattern) => pattern.test(key))
-      ) {
-        sanitized[key] = "***";
-      } else if (typeof value === "object" && value !== null) {
-        sanitized[key] = this.sanitizeContext(value);
-      } else {
-        sanitized[key] = value;
-      }
-    }
-
-    return sanitized;
   }
 
   private async flush(): Promise<void> {
@@ -180,49 +184,27 @@ export class Logger {
     }
   }
 
-  private formatMessage(
-    level: LogLevel,
-    message: string,
-    data?: any,
-  ): LogEntry {
-    return {
-      level,
-      message,
-      timestamp: new Date().toISOString(),
-      context:
-        data && typeof data === "object" ? this.sanitizeContext(data) : {},
-      stackTrace: undefined,
-      service: (data && data.service) || "frontend",
-      correlationId: data && data.correlationId,
-    };
-  }
-
   private log(level: LogLevel, message: string, data?: any): void {
-    const logMessage = this.formatMessage(level, message, data);
+    const logEntry = this.createLogEntry(level, message, data);
 
     if (this.config.isDevelopment) {
       switch (level) {
         case LogLevel.DEBUG:
-          console.debug(logMessage);
+          console.debug(logEntry);
           break;
         case LogLevel.INFO:
-          console.info(logMessage);
+          console.info(logEntry);
           break;
         case LogLevel.WARN:
-          console.warn(logMessage);
+          console.warn(logEntry);
           break;
         case LogLevel.ERROR:
-          console.error(logMessage);
+          console.error(logEntry);
           break;
       }
-    } else {
-      // In production, you might want to send logs to a service like Sentry
-      if (level === LogLevel.ERROR) {
-        // Example: Sentry.captureException(data);
-      }
     }
-    // Always add to buffer for persistence and backend delivery
-    this.buffer.push(logMessage);
+
+    this.buffer.push(logEntry);
     this.checkBuffer();
   }
 
@@ -240,28 +222,6 @@ export class Logger {
 
   public error(message: string, data?: any): void {
     this.log(LogLevel.ERROR, message, data);
-  }
-
-  public audit(
-    action: string,
-    resourceType: string,
-    resourceId: string | number,
-    userId?: string,
-    context: Record<string, any> = {},
-  ): void {
-    const auditEntry: AuditLogEntry = {
-      ...this.createLogEntry(
-        LogLevel.INFO,
-        `Audit: ${action} ${resourceType} ${resourceId}`,
-        context,
-      ),
-      action,
-      resourceType,
-      resourceId,
-      userId,
-    };
-    this.buffer.push(auditEntry);
-    this.checkBuffer();
   }
 
   private checkBuffer(): void {

@@ -2,8 +2,9 @@
 import time
 import uuid
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, ValidationError
 
 import app.models_registry
 from app.scraping.tasks.scheduler import shutdown_scheduler, start_scheduler
@@ -38,11 +39,21 @@ register_exception_handlers(app)
 print("API_V1_STR:", settings.API_V1_STR)
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-# Minimal /api/logs endpoint
+class LogEntry(BaseModel):
+    timestamp: str
+    level: str
+    logger: str
+    message: str
+    # Add other expected fields as needed
+
 @app.post("/api/v1/logs")
-async def receive_logs(request: Request):
-    data = await request.json()
-    # Optionally, process or store the logs here
+async def log_endpoint(log: dict, request: Request):
+    # TODO: Implement authentication and rate-limiting to prevent abuse and denial-of-service attacks
+    try:
+        validated_log = LogEntry(**log)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid log payload: {e.errors()}")
+    # Process the validated log entry as needed
     return {"status": "ok"}
 
 @app.middleware("http")
